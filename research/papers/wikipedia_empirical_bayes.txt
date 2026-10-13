@@ -1,0 +1,2804 @@
+
+
+Empirical Bayes method - Wikipedia
+
+Jump to content
+
+	
+		
+			
+				
+
+	
+	
+
+Main menu
+	
+	
+
+				
+		
+
+	
+	Main menu
+	move to sidebar
+	hide
+
+	
+
+	
+		Navigation
+	
+	
+		
+		
+			
+			Main pageContentsCurrent eventsRandom articleAbout WikipediaContact us
+		
+		
+	
+
+	
+
+	
+		Contribute
+	
+	
+		
+		
+			
+			HelpLearn to editCommunity portalRecent changesUpload fileSpecial pages
+		
+		
+	
+
+				
+
+	
+
+		
+			
+
+	
+	
+		
+		
+	
+
+		
+		
+			
+
+	
+
+Search
+	
+	
+		
+			
+				
+					
+						
+						
+					
+					
+				
+				Search
+			
+		
+	
+
+			
+	
+	
+
+	
+		
+		
+			
+			
+		
+		
+	
+
+	
+
+	
+		
+		
+			
+			
+		
+		
+	
+
+	
+		
+
+	
+	
+
+Appearance
+	
+	
+
+			
+				
+			
+		
+	
+
+	
+	
+
+	
+		
+		
+			
+			
+		
+		
+	
+
+	
+
+	
+		
+		
+			Donate
+
+Create account
+
+Log in
+
+			
+		
+		
+	
+
+	
+	
+
+	
+	
+
+Personal tools
+	
+	
+
+		
+
+	
+		
+		
+			
+
+Donate
+
+Create account
+
+Log in
+
+			
+		
+		
+	
+
+	
+	
+
+		
+	
+
+	
+		
+			
+		
+		
+			
+		
+			
+				
+				
+				
+		
+		
+	
+	
+				
+					
+					
+	
+	Contents
+	move to sidebar
+	hide
+
+	
+		
+			
+				(Top)
+			
+		
+		
+		
+			
+				1
+				Introduction
+			
+		
+		
+		
+		
+	
+	
+		
+			
+				2
+				Point estimation
+			
+		
+		
+			
+				
+				Toggle Point estimation subsection
+			
+		
+		
+			
+			
+				
+					2.1
+					Robbins' method: non-parametric empirical Bayes (NPEB)
+				
+			
+			
+			
+			
+		
+		
+			
+				
+					2.2
+					Gaussian
+				
+			
+			
+			
+			
+		
+		
+			
+				
+					2.3
+					Parametric empirical Bayes
+				
+			
+			
+			
+				
+			
+				
+					2.3.1
+					Gaussian–Gaussian model
+				
+			
+			
+			
+			
+		
+		
+			
+				
+					2.3.2
+					Poisson–gamma model
+				
+			
+			
+			
+			
+		
+	
+		
+	
+	
+	
+		
+			
+				3
+				See also
+			
+		
+		
+		
+		
+	
+	
+		
+			
+				4
+				References
+			
+		
+		
+		
+		
+	
+	
+		
+			
+				5
+				Further reading
+			
+		
+		
+		
+		
+	
+	
+		
+			
+				6
+				External links
+			
+		
+		
+		
+		
+	
+
+					
+		
+			
+		
+		
+			
+				
+					
+						
+
+	
+	
+
+Toggle the table of contents
+	
+	
+
+							
+			
+		
+	
+
+					
+					Empirical Bayes method
+							
+
+	
+	
+
+1 language
+	
+	
+
+		
+			
+			
+				
+				Català
+			
+			Edit links
+		
+
+	
+
+				
+					
+						
+							
+								
+
+	
+		
+		
+			Article
+
+Talk
+
+			
+		
+		
+	
+
+								
+
+	
+	English
+	
+	
+
+					
+
+	
+		
+		
+			
+			
+		
+		
+	
+
+				
+	
+
+							
+						
+						
+							
+			    
+
+	
+		
+		
+			Read
+
+Edit
+
+View history
+
+			
+		
+		
+	
+
+			
+
+							
+								
+
+	
+	
+
+Tools
+	
+	
+
+									
+						
+
+	
+	Tools
+	move to sidebar
+	hide
+
+	
+
+	
+		Actions
+	
+	
+		
+		
+			
+
+Read
+
+Edit
+
+View history
+
+			
+		
+		
+	
+
+	
+		General
+	
+	
+		
+		
+			
+			What links hereRelated changesUpload filePermanent linkPage informationCite this pageGet shortened URLSwitch to legacy parser
+		
+		
+	
+
+	
+		Print/export
+	
+	
+		
+		
+			
+			Download as PDFPrintable version
+		
+		
+	
+
+	
+		In other projects
+	
+	
+		
+		
+			
+			Wikidata item
+		
+		
+	
+
+									
+				
+	
+
+							
+						
+					
+				
+				
+					
+						
+							
+				
+							
+		
+						
+							
+				
+	
+	Appearance
+	move to sidebar
+	hide
+
+							
+		
+					
+				
+				
+					
+							
+		
+
+						From Wikipedia, the free encyclopedia
+					
+					
+					
+					
+					Bayesian statistical inference method
+Part of a series onBayesian statistics
+Posterior = Likelihood × Prior ÷ Evidence
+
+Background
+Bayesian inference
+Bayesian probability
+Bayes' theorem
+Bernstein–von Mises theorem
+Coherence
+Cox's theorem
+Cromwell's rule
+Likelihood principle
+Principle of indifference
+Principle of maximum entropy
+
+Model building
+Conjugate prior
+Linear regression
+Empirical Bayes
+Hierarchical model
+
+Posterior approximation
+Markov chain Monte Carlo
+Laplace's approximation
+Integrated nested Laplace approximations
+Variational inference
+Approximate Bayesian computation
+
+Estimators
+Bayesian estimator
+Credible interval
+Maximum a posteriori estimation
+
+Evidence approximation
+Evidence lower bound
+Nested sampling
+
+Model evaluation
+Bayes factor (Schwarz criterion)
+Model averaging
+Posterior predictive
+
+ Mathematics portalvte
+
+Empirical Bayes methods are procedures for  statistical inference in which the prior probability distribution is estimated from the data.  This approach stands in contrast to standard Bayesian methods, for which the prior distribution is fixed before any data are observed.  Despite this difference in perspective, empirical Bayes may be viewed as an approximation to a fully Bayesian treatment of a hierarchical model wherein the parameters at the highest level of the hierarchy are set to their most likely values, instead of being integrated out.[1]
+  
+
+Introduction[edit]
+
+Empirical Bayes methods can be seen as an approximation to a fully Bayesian treatment of a hierarchical Bayes model.
+
+In, for example, a two-stage hierarchical Bayes model, observed data 
+  
+    
+      
+        y
+        =
+        {
+        
+          y
+          
+            1
+          
+        
+        ,
+        
+          y
+          
+            2
+          
+        
+        ,
+        …
+        ,
+        
+          y
+          
+            n
+          
+        
+        }
+      
+    
+    {\displaystyle y=\{y_{1},y_{2},\dots ,y_{n}\}}
+  
+ are assumed to be generated from an unobserved set of parameters 
+  
+    
+      
+        θ
+        =
+        {
+        
+          θ
+          
+            1
+          
+        
+        ,
+        
+          θ
+          
+            2
+          
+        
+        ,
+        …
+        ,
+        
+          θ
+          
+            n
+          
+        
+        }
+      
+    
+    {\displaystyle \theta =\{\theta _{1},\theta _{2},\dots ,\theta _{n}\}}
+  
+ according to a probability distribution 
+  
+    
+      
+        p
+        (
+        y
+        ∣
+        θ
+        )
+        
+      
+    
+    {\displaystyle p(y\mid \theta )\,}
+  
+.  In turn, the parameters 
+  
+    
+      
+        θ
+      
+    
+    {\displaystyle \theta }
+  
+ can be considered samples drawn from a population characterised by hyperparameters 
+  
+    
+      
+        η
+        
+      
+    
+    {\displaystyle \eta \,}
+  
+ according to a probability distribution 
+  
+    
+      
+        p
+        (
+        θ
+        ∣
+        η
+        )
+        
+      
+    
+    {\displaystyle p(\theta \mid \eta )\,}
+  
+.  In the hierarchical Bayes model, though not in the empirical Bayes approximation, the hyperparameters 
+  
+    
+      
+        η
+        
+      
+    
+    {\displaystyle \eta \,}
+  
+ are considered to be drawn from an unparameterized distribution 
+  
+    
+      
+        p
+        (
+        η
+        )
+        
+      
+    
+    {\displaystyle p(\eta )\,}
+  
+.
+
+Information about a particular quantity of interest 
+  
+    
+      
+        
+          θ
+          
+            i
+          
+        
+        
+      
+    
+    {\displaystyle \theta _{i}\;}
+  
+ therefore comes not only from the properties of those data 
+  
+    
+      
+        y
+      
+    
+    {\displaystyle y}
+  
+ that directly depend on it, but also from the properties of the population of parameters 
+  
+    
+      
+        θ
+        
+      
+    
+    {\displaystyle \theta \;}
+  
+ as a whole, inferred from the data as a whole, summarised by the hyperparameters 
+  
+    
+      
+        η
+        
+      
+    
+    {\displaystyle \eta \;}
+  
+.
+
+Using Bayes' theorem,
+
+  
+    
+      
+        p
+        (
+        θ
+        ∣
+        y
+        )
+        =
+        
+          
+            
+              p
+              (
+              y
+              ∣
+              θ
+              )
+              p
+              (
+              θ
+              )
+            
+            
+              p
+              (
+              y
+              )
+            
+          
+        
+        =
+        
+          
+            
+              p
+              (
+              y
+              ∣
+              θ
+              )
+            
+            
+              p
+              (
+              y
+              )
+            
+          
+        
+        ∫
+        p
+        (
+        θ
+        ∣
+        η
+        )
+        p
+        (
+        η
+        )
+        
+        d
+        η
+        
+        .
+      
+    
+    {\displaystyle p(\theta \mid y)={\frac {p(y\mid \theta )p(\theta )}{p(y)}}={\frac {p(y\mid \theta )}{p(y)}}\int p(\theta \mid \eta )p(\eta )\,d\eta \,.}
+  
+
+In general, this integral will not be tractable analytically or symbolically and must be evaluated by numerical methods. Stochastic (random) or deterministic approximations may be used.  Example stochastic methods are Markov Chain Monte Carlo and Monte Carlo sampling.  Deterministic approximations are discussed in quadrature.
+
+Alternatively, the expression can be written as
+
+  
+    
+      
+        p
+        (
+        θ
+        ∣
+        y
+        )
+        =
+        ∫
+        p
+        (
+        θ
+        ∣
+        η
+        ,
+        y
+        )
+        p
+        (
+        η
+        ∣
+        y
+        )
+        
+        d
+        η
+        =
+        ∫
+        
+          
+            
+              p
+              (
+              y
+              ∣
+              θ
+              )
+              p
+              (
+              θ
+              ∣
+              η
+              )
+            
+            
+              p
+              (
+              y
+              ∣
+              η
+              )
+            
+          
+        
+        p
+        (
+        η
+        ∣
+        y
+        )
+        
+        d
+        η
+        
+        ,
+      
+    
+    {\displaystyle p(\theta \mid y)=\int p(\theta \mid \eta ,y)p(\eta \mid y)\;d\eta =\int {\frac {p(y\mid \theta )p(\theta \mid \eta )}{p(y\mid \eta )}}p(\eta \mid y)\;d\eta \,,}
+  
+
+and the final factor in the integral can in turn be expressed as
+
+  
+    
+      
+        p
+        (
+        η
+        ∣
+        y
+        )
+        =
+        ∫
+        p
+        (
+        η
+        ∣
+        θ
+        )
+        p
+        (
+        θ
+        ∣
+        y
+        )
+        
+        d
+        θ
+        .
+      
+    
+    {\displaystyle p(\eta \mid y)=\int p(\eta \mid \theta )p(\theta \mid y)\;d\theta .}
+  
+
+These suggest an iterative scheme, qualitatively similar in structure to a Gibbs sampler, to evolve successively improved approximations to 
+  
+    
+      
+        p
+        (
+        θ
+        ∣
+        y
+        )
+        
+      
+    
+    {\displaystyle p(\theta \mid y)\;}
+  
+ and 
+  
+    
+      
+        p
+        (
+        η
+        ∣
+        y
+        )
+        
+      
+    
+    {\displaystyle p(\eta \mid y)\;}
+  
+.  First, calculate an initial approximation to 
+  
+    
+      
+        p
+        (
+        θ
+        ∣
+        y
+        )
+        
+      
+    
+    {\displaystyle p(\theta \mid y)\;}
+  
+ ignoring the 
+  
+    
+      
+        η
+      
+    
+    {\displaystyle \eta }
+  
+ dependence completely; then calculate an approximation to 
+  
+    
+      
+        p
+        (
+        η
+        ∣
+        y
+        )
+        
+      
+    
+    {\displaystyle p(\eta \mid y)\;}
+  
+ based upon the initial approximate distribution of 
+  
+    
+      
+        p
+        (
+        θ
+        ∣
+        y
+        )
+        
+      
+    
+    {\displaystyle p(\theta \mid y)\;}
+  
+; then use this 
+  
+    
+      
+        p
+        (
+        η
+        ∣
+        y
+        )
+        
+      
+    
+    {\displaystyle p(\eta \mid y)\;}
+  
+ to update the approximation for 
+  
+    
+      
+        p
+        (
+        θ
+        ∣
+        y
+        )
+        
+      
+    
+    {\displaystyle p(\theta \mid y)\;}
+  
+; then update 
+  
+    
+      
+        p
+        (
+        η
+        ∣
+        y
+        )
+        
+      
+    
+    {\displaystyle p(\eta \mid y)\;}
+  
+; and so on.
+
+When the true distribution 
+  
+    
+      
+        p
+        (
+        η
+        ∣
+        y
+        )
+        
+      
+    
+    {\displaystyle p(\eta \mid y)\;}
+  
+ is sharply peaked, the integral determining 
+  
+    
+      
+        p
+        (
+        θ
+        ∣
+        y
+        )
+        
+      
+    
+    {\displaystyle p(\theta \mid y)\;}
+  
+ may be not much changed by replacing the probability distribution over 
+  
+    
+      
+        η
+        
+      
+    
+    {\displaystyle \eta \;}
+  
+ with a point estimate 
+  
+    
+      
+        
+          η
+          
+            ∗
+          
+        
+        
+      
+    
+    {\displaystyle \eta ^{*}\;}
+  
+ representing the distribution's peak (or, alternatively, its mean),
+
+  
+    
+      
+        p
+        (
+        θ
+        ∣
+        y
+        )
+        ≃
+        
+          
+            
+              p
+              (
+              y
+              ∣
+              θ
+              )
+              
+              p
+              (
+              θ
+              ∣
+              
+                η
+                
+                  ∗
+                
+              
+              )
+            
+            
+              p
+              (
+              y
+              ∣
+              
+                η
+                
+                  ∗
+                
+              
+              )
+            
+          
+        
+        
+        .
+      
+    
+    {\displaystyle p(\theta \mid y)\simeq {\frac {p(y\mid \theta )\;p(\theta \mid \eta ^{*})}{p(y\mid \eta ^{*})}}\,.}
+  
+
+With this approximation, the above iterative scheme becomes the EM algorithm.
+
+The term "Empirical Bayes" can cover a wide variety of methods, but most can be regarded as an early truncation of either the above scheme or something quite like it.  Point estimates, rather than the whole distribution, are typically used for the parameter(s) 
+  
+    
+      
+        η
+        
+      
+    
+    {\displaystyle \eta \;}
+  
+. The estimates for 
+  
+    
+      
+        
+          η
+          
+            ∗
+          
+        
+        
+      
+    
+    {\displaystyle \eta ^{*}\;}
+  
+ are typically made from the first approximation to 
+  
+    
+      
+        p
+        (
+        θ
+        ∣
+        y
+        )
+        
+      
+    
+    {\displaystyle p(\theta \mid y)\;}
+  
+ without subsequent refinement. These estimates for 
+  
+    
+      
+        
+          η
+          
+            ∗
+          
+        
+        
+      
+    
+    {\displaystyle \eta ^{*}\;}
+  
+ are usually made without considering an appropriate prior distribution for 
+  
+    
+      
+        η
+      
+    
+    {\displaystyle \eta }
+  
+.
+
+Point estimation[edit]
+
+Robbins' method: non-parametric empirical Bayes (NPEB)[edit]
+
+Robbins[2] considered a case of sampling from a mixed distribution, where probability for each 
+  
+    
+      
+        
+          y
+          
+            i
+          
+        
+      
+    
+    {\displaystyle y_{i}}
+  
+ (conditional on 
+  
+    
+      
+        
+          θ
+          
+            i
+          
+        
+      
+    
+    {\displaystyle \theta _{i}}
+  
+) is specified by  a Poisson distribution,
+
+  
+    
+      
+        p
+        (
+        
+          y
+          
+            i
+          
+        
+        ∣
+        
+          θ
+          
+            i
+          
+        
+        )
+        =
+        
+          
+            
+              
+                
+                  
+                    θ
+                    
+                      i
+                    
+                  
+                
+                
+                  
+                    y
+                    
+                      i
+                    
+                  
+                
+              
+              
+                e
+                
+                  −
+                  
+                    θ
+                    
+                      i
+                    
+                  
+                
+              
+            
+            
+              
+                
+                  y
+                  
+                    i
+                  
+                
+              
+              !
+            
+          
+        
+      
+    
+    {\displaystyle p(y_{i}\mid \theta _{i})={{\theta _{i}}^{y_{i}}e^{-\theta _{i}} \over {y_{i}}!}}
+  
+
+while the prior on θ is unspecified except that it is also i.i.d. from an unknown distribution, with cumulative distribution function 
+  
+    
+      
+        G
+        (
+        θ
+        )
+      
+    
+    {\displaystyle G(\theta )}
+  
+.  Compound sampling arises in a variety of statistical estimation problems, such as accident rates and clinical trials.[citation needed]  We simply seek a point prediction of 
+  
+    
+      
+        
+          θ
+          
+            i
+          
+        
+      
+    
+    {\displaystyle \theta _{i}}
+  
+ given all the observed data.  Because the prior is unspecified, we seek to do this without knowledge of G.[3]
+
+Under squared error loss (SEL), the conditional expectation E(θi | Yi = yi) is a reasonable quantity to use for prediction.  For the Poisson compound sampling model, this quantity is
+
+  
+    
+      
+        E
+        ⁡
+        (
+        
+          θ
+          
+            i
+          
+        
+        ∣
+        
+          y
+          
+            i
+          
+        
+        )
+        =
+        
+          
+            
+              ∫
+              (
+              
+                θ
+                
+                  
+                    y
+                    
+                      i
+                    
+                  
+                  +
+                  1
+                
+              
+              
+                e
+                
+                  −
+                  θ
+                
+              
+              
+                /
+              
+              
+                
+                  y
+                  
+                    i
+                  
+                
+              
+              !
+              )
+              
+              d
+              G
+              (
+              θ
+              )
+            
+            
+              
+                ∫
+                (
+                
+                  θ
+                  
+                    
+                      y
+                      
+                        i
+                      
+                    
+                  
+                
+                
+                  e
+                  
+                    −
+                    θ
+                  
+                
+                
+                  /
+                
+                
+                  
+                    y
+                    
+                      i
+                    
+                  
+                
+                !
+                )
+                
+                d
+                G
+                (
+                θ
+              
+              )
+            
+          
+        
+        .
+      
+    
+    {\displaystyle \operatorname {E} (\theta _{i}\mid y_{i})={\int (\theta ^{y_{i}+1}e^{-\theta }/{y_{i}}!)\,dG(\theta ) \over {\int (\theta ^{y_{i}}e^{-\theta }/{y_{i}}!)\,dG(\theta })}.}
+  
+
+This can be simplified by multiplying both the numerator and denominator by 
+  
+    
+      
+        (
+        
+          
+            y
+            
+              i
+            
+          
+        
+        +
+        1
+        )
+      
+    
+    {\displaystyle ({y_{i}}+1)}
+  
+, yielding
+
+  
+    
+      
+        E
+        ⁡
+        (
+        
+          θ
+          
+            i
+          
+        
+        ∣
+        
+          y
+          
+            i
+          
+        
+        )
+        =
+        
+          
+            
+              (
+              
+                y
+                
+                  i
+                
+              
+              +
+              1
+              )
+              
+                p
+                
+                  G
+                
+              
+              (
+              
+                y
+                
+                  i
+                
+              
+              +
+              1
+              )
+            
+            
+              
+                p
+                
+                  G
+                
+              
+              (
+              
+                y
+                
+                  i
+                
+              
+              )
+            
+          
+        
+        ,
+      
+    
+    {\displaystyle \operatorname {E} (\theta _{i}\mid y_{i})={{(y_{i}+1)p_{G}(y_{i}+1)} \over {p_{G}(y_{i})}},}
+  
+
+where pG is the marginal probability mass function obtained by integrating out θ over G.
+
+To take advantage of this, Robbins[2] suggested estimating the marginals with their empirical frequencies (
+  
+    
+      
+        #
+        {
+        
+          Y
+          
+            j
+          
+        
+        }
+      
+    
+    {\displaystyle \#\{Y_{j}\}}
+  
+), yielding the fully non-parametric estimate as:
+
+  
+    
+      
+        E
+        ⁡
+        (
+        
+          θ
+          
+            i
+          
+        
+        ∣
+        
+          y
+          
+            i
+          
+        
+        )
+        ≈
+        (
+        
+          y
+          
+            i
+          
+        
+        +
+        1
+        )
+        
+          
+            
+              #
+              {
+              
+                Y
+                
+                  j
+                
+              
+              =
+              
+                y
+                
+                  i
+                
+              
+              +
+              1
+              }
+            
+            
+              #
+              {
+              
+                Y
+                
+                  j
+                
+              
+              =
+              
+                y
+                
+                  i
+                
+              
+              }
+            
+          
+        
+        ,
+      
+    
+    {\displaystyle \operatorname {E} (\theta _{i}\mid y_{i})\approx (y_{i}+1){{\#\{Y_{j}=y_{i}+1\}} \over {\#\{Y_{j}=y_{i}\}}},}
+  
+
+where 
+  
+    
+      
+        #
+      
+    
+    {\displaystyle \#}
+  
+ denotes "number of". (See also Good–Turing frequency estimation.)
+
+Example – Accident rates
+
+Suppose each customer of an insurance company has an "accident rate" Θ and is insured against accidents; the probability distribution of Θ  is the underlying distribution, and is unknown.  The number of accidents suffered by each customer in a specified time period has a Poisson distribution with expected value equal to the particular customer's accident rate.  The actual number of accidents experienced by a customer is the observable quantity. A crude way to estimate the underlying probability distribution of the accident rate Θ is to estimate the proportion of members of the whole population suffering 0, 1, 2, 3, ... accidents during the specified time period as the corresponding proportion in the observed random sample.  Having done so, it is then desired to predict the accident rate of each customer in the sample.  As above, one may use the conditional expected value of the accident rate Θ given the observed number of accidents during the baseline period.  Thus, if a customer suffers six accidents during the baseline period, that customer's estimated accident rate is 7 × [the proportion of the sample who suffered 7 accidents] / [the proportion of the sample who suffered 6 accidents].  Note that if the proportion of people suffering k accidents is a decreasing function of k, the customer's predicted accident rate will often be lower than their observed number of accidents.
+
+This shrinkage effect is typical of empirical Bayes analyses.
+
+Gaussian[edit]
+Suppose 
+  
+    
+      
+        X
+        ,
+        Y
+      
+    
+    {\displaystyle X,Y}
+  
+ are random variables, such that 
+  
+    
+      
+        Y
+      
+    
+    {\displaystyle Y}
+  
+ is observed, but 
+  
+    
+      
+        X
+      
+    
+    {\displaystyle X}
+  
+ is hidden. The problem is to find the expectation of 
+  
+    
+      
+        X
+      
+    
+    {\displaystyle X}
+  
+, conditional on 
+  
+    
+      
+        Y
+      
+    
+    {\displaystyle Y}
+  
+. Suppose further that 
+  
+    
+      
+        Y
+        
+          |
+        
+        X
+        ∼
+        
+          
+            N
+          
+        
+        (
+        X
+        ,
+        Σ
+        )
+      
+    
+    {\displaystyle Y|X\sim {\mathcal {N}}(X,\Sigma )}
+  
+, that is, 
+  
+    
+      
+        Y
+        =
+        X
+        +
+        Z
+      
+    
+    {\displaystyle Y=X+Z}
+  
+, where 
+  
+    
+      
+        Z
+      
+    
+    {\displaystyle Z}
+  
+ is a multivariate gaussian with variance 
+  
+    
+      
+        Σ
+      
+    
+    {\displaystyle \Sigma }
+  
+.
+
+Then, we have the formula 
+  
+    
+      
+        Σ
+        
+          ∇
+          
+            y
+          
+        
+        ρ
+        (
+        y
+        
+          |
+        
+        x
+        )
+        =
+        ρ
+        (
+        y
+        
+          |
+        
+        x
+        )
+        (
+        x
+        −
+        y
+        )
+      
+    
+    {\displaystyle \Sigma \nabla _{y}\rho (y|x)=\rho (y|x)(x-y)}
+  
+by direct calculation with the probability density function of multivariate gaussians. Integrating over 
+  
+    
+      
+        ρ
+        (
+        x
+        )
+        d
+        x
+      
+    
+    {\displaystyle \rho (x)dx}
+  
+, we obtain 
+  
+    
+      
+        Σ
+        
+          ∇
+          
+            y
+          
+        
+        ρ
+        (
+        y
+        )
+        =
+        (
+        
+          E
+        
+        [
+        x
+        
+          |
+        
+        y
+        ]
+        −
+        y
+        )
+        ρ
+        (
+        y
+        )
+        
+        ⟹
+        
+        
+          E
+        
+        [
+        x
+        
+          |
+        
+        y
+        ]
+        =
+        y
+        +
+        Σ
+        
+          ∇
+          
+            y
+          
+        
+        ln
+        ⁡
+        ρ
+        (
+        y
+        )
+      
+    
+    {\displaystyle \Sigma \nabla _{y}\rho (y)=(\mathbb {E} [x|y]-y)\rho (y)\implies \mathbb {E} [x|y]=y+\Sigma \nabla _{y}\ln \rho (y)}
+  
+ In particular, this means that one can perform Bayesian estimation of 
+  
+    
+      
+        X
+      
+    
+    {\displaystyle X}
+  
+ without access to either the prior density of 
+  
+    
+      
+        X
+      
+    
+    {\displaystyle X}
+  
+ or the posterior density of 
+  
+    
+      
+        Y
+      
+    
+    {\displaystyle Y}
+  
+. The only requirement is to have access to the score function of 
+  
+    
+      
+        Y
+      
+    
+    {\displaystyle Y}
+  
+. This has applications in score-based generative modeling.[4]
+
+Parametric empirical Bayes[edit]
+
+If the likelihood and its prior take on simple parametric forms (such as 1- or 2-dimensional likelihood functions with simple conjugate priors), then the empirical Bayes problem  is only to estimate the marginal 
+  
+    
+      
+        m
+        (
+        y
+        ∣
+        η
+        )
+      
+    
+    {\displaystyle m(y\mid \eta )}
+  
+ and the hyperparameters 
+  
+    
+      
+        η
+      
+    
+    {\displaystyle \eta }
+  
+ using the complete set of empirical measurements.   For example, one common approach, called parametric empirical Bayes point estimation, is to approximate the marginal using the maximum likelihood estimate (MLE), or a moments expansion, which allows one to express the hyperparameters 
+  
+    
+      
+        η
+      
+    
+    {\displaystyle \eta }
+  
+ in terms of the empirical mean and variance.  This simplified marginal allows one to plug in the empirical averages into a point estimate for the prior 
+  
+    
+      
+        θ
+      
+    
+    {\displaystyle \theta }
+  
+.  The resulting equation for the prior 
+  
+    
+      
+        θ
+      
+    
+    {\displaystyle \theta }
+  
+ is greatly simplified, as shown below.
+
+There are several common parametric empirical Bayes models, including the Poisson–gamma model (below), the Beta-binomial model, the Gaussian–Gaussian model, the Dirichlet-multinomial model, as well specific models for Bayesian linear regression (see below) and Bayesian multivariate linear regression. More advanced approaches include hierarchical Bayes models and Bayesian mixture models.
+
+Gaussian–Gaussian model[edit]
+
+For an example of empirical Bayes estimation using a Gaussian-Gaussian model, see Empirical Bayes estimators.
+
+Poisson–gamma model[edit]
+
+For example, in the example above, let the likelihood be a Poisson distribution, and let the prior now be specified by the conjugate prior, which is a gamma distribution (
+  
+    
+      
+        G
+        (
+        α
+        ,
+        β
+        )
+      
+    
+    {\displaystyle G(\alpha ,\beta )}
+  
+) (where 
+  
+    
+      
+        η
+        =
+        (
+        α
+        ,
+        β
+        )
+      
+    
+    {\displaystyle \eta =(\alpha ,\beta )}
+  
+):
+
+  
+    
+      
+        ρ
+        (
+        θ
+        ∣
+        α
+        ,
+        β
+        )
+        
+        d
+        θ
+        =
+        
+          
+            
+              (
+              θ
+              
+                /
+              
+              β
+              
+                )
+                
+                  α
+                  −
+                  1
+                
+              
+              
+              
+                e
+                
+                  −
+                  θ
+                  
+                    /
+                  
+                  β
+                
+              
+            
+            
+              Γ
+              (
+              α
+              )
+            
+          
+        
+        
+        (
+        d
+        θ
+        
+          /
+        
+        β
+        )
+        
+           for 
+        
+        θ
+        >
+        0
+        ,
+        α
+        >
+        0
+        ,
+        β
+        >
+        0
+        
+        
+        .
+      
+    
+    {\displaystyle \rho (\theta \mid \alpha ,\beta )\,d\theta ={\frac {(\theta /\beta )^{\alpha -1}\,e^{-\theta /\beta }}{\Gamma (\alpha )}}\,(d\theta /\beta ){\text{ for }}\theta >0,\alpha >0,\beta >0\,\!.}
+  
+
+It is straightforward to show the posterior is also a gamma distribution.  Write
+
+  
+    
+      
+        ρ
+        (
+        θ
+        ∣
+        y
+        )
+        ∝
+        ρ
+        (
+        y
+        ∣
+        θ
+        )
+        ρ
+        (
+        θ
+        ∣
+        α
+        ,
+        β
+        )
+        ,
+      
+    
+    {\displaystyle \rho (\theta \mid y)\propto \rho (y\mid \theta )\rho (\theta \mid \alpha ,\beta ),}
+  
+
+where the marginal distribution has been omitted since it does not depend explicitly on 
+  
+    
+      
+        θ
+      
+    
+    {\displaystyle \theta }
+  
+.
+Expanding terms which do depend on 
+  
+    
+      
+        θ
+      
+    
+    {\displaystyle \theta }
+  
+ gives the posterior as:
+
+  
+    
+      
+        ρ
+        (
+        θ
+        ∣
+        y
+        )
+        ∝
+        (
+        
+          θ
+          
+            y
+          
+        
+        
+        
+          e
+          
+            −
+            θ
+          
+        
+        )
+        (
+        
+          θ
+          
+            α
+            −
+            1
+          
+        
+        
+        
+          e
+          
+            −
+            θ
+            
+              /
+            
+            β
+          
+        
+        )
+        =
+        
+          θ
+          
+            y
+            +
+            α
+            −
+            1
+          
+        
+        
+        
+          e
+          
+            −
+            θ
+            (
+            1
+            +
+            1
+            
+              /
+            
+            β
+            )
+          
+        
+        .
+      
+    
+    {\displaystyle \rho (\theta \mid y)\propto (\theta ^{y}\,e^{-\theta })(\theta ^{\alpha -1}\,e^{-\theta /\beta })=\theta ^{y+\alpha -1}\,e^{-\theta (1+1/\beta )}.}
+  
+
+So the posterior density is also a gamma distribution 
+  
+    
+      
+        G
+        (
+        
+          α
+          ′
+        
+        ,
+        
+          β
+          ′
+        
+        )
+      
+    
+    {\displaystyle G(\alpha ',\beta ')}
+  
+, where 
+  
+    
+      
+        
+          α
+          ′
+        
+        =
+        y
+        +
+        α
+      
+    
+    {\displaystyle \alpha '=y+\alpha }
+  
+, and 
+  
+    
+      
+        
+          β
+          ′
+        
+        =
+        (
+        1
+        +
+        1
+        
+          /
+        
+        β
+        
+          )
+          
+            −
+            1
+          
+        
+      
+    
+    {\displaystyle \beta '=(1+1/\beta )^{-1}}
+  
+.  Also notice that the marginal is simply the integral of the posterior over all 
+  
+    
+      
+        Θ
+      
+    
+    {\displaystyle \Theta }
+  
+, which turns out to be a negative binomial distribution.
+
+To apply empirical Bayes, we will approximate the marginal using the maximum likelihood estimate (MLE). But since the posterior is a gamma distribution, the MLE of the marginal turns out to be just the mean of the posterior, which is the point estimate 
+  
+    
+      
+        E
+        ⁡
+        (
+        θ
+        ∣
+        y
+        )
+      
+    
+    {\displaystyle \operatorname {E} (\theta \mid y)}
+  
+ we need. Recalling that the mean 
+  
+    
+      
+        μ
+      
+    
+    {\displaystyle \mu }
+  
+ of a gamma distribution 
+  
+    
+      
+        G
+        (
+        
+          α
+          ′
+        
+        ,
+        
+          β
+          ′
+        
+        )
+      
+    
+    {\displaystyle G(\alpha ',\beta ')}
+  
+ is simply 
+  
+    
+      
+        
+          α
+          ′
+        
+        
+          β
+          ′
+        
+      
+    
+    {\displaystyle \alpha '\beta '}
+  
+, we have
+
+  
+    
+      
+        E
+        ⁡
+        (
+        θ
+        ∣
+        y
+        )
+        =
+        
+          α
+          ′
+        
+        
+          β
+          ′
+        
+        =
+        
+          
+            
+              
+                
+                  
+                    y
+                    ¯
+                  
+                
+              
+              +
+              α
+            
+            
+              1
+              +
+              1
+              
+                /
+              
+              β
+            
+          
+        
+        =
+        
+          
+            β
+            
+              1
+              +
+              β
+            
+          
+        
+        
+          
+            
+              y
+              ¯
+            
+          
+        
+        +
+        
+          
+            1
+            
+              1
+              +
+              β
+            
+          
+        
+        (
+        α
+        β
+        )
+        .
+      
+    
+    {\displaystyle \operatorname {E} (\theta \mid y)=\alpha '\beta '={\frac {{\bar {y}}+\alpha }{1+1/\beta }}={\frac {\beta }{1+\beta }}{\bar {y}}+{\frac {1}{1+\beta }}(\alpha \beta ).}
+  
+
+To obtain the values of 
+  
+    
+      
+        α
+      
+    
+    {\displaystyle \alpha }
+  
+ and 
+  
+    
+      
+        β
+      
+    
+    {\displaystyle \beta }
+  
+, empirical Bayes prescribes estimating mean 
+  
+    
+      
+        α
+        β
+      
+    
+    {\displaystyle \alpha \beta }
+  
+ and variance 
+  
+    
+      
+        α
+        
+          β
+          
+            2
+          
+        
+      
+    
+    {\displaystyle \alpha \beta ^{2}}
+  
+ using the complete set of empirical data.
+
+The resulting point estimate 
+  
+    
+      
+        E
+        ⁡
+        (
+        θ
+        ∣
+        y
+        )
+      
+    
+    {\displaystyle \operatorname {E} (\theta \mid y)}
+  
+ is therefore like a weighted average of the sample mean 
+  
+    
+      
+        
+          
+            
+              y
+              ¯
+            
+          
+        
+      
+    
+    {\displaystyle {\bar {y}}}
+  
+ and the prior mean 
+  
+    
+      
+        μ
+        =
+        α
+        β
+      
+    
+    {\displaystyle \mu =\alpha \beta }
+  
+.  This turns out to be a general feature of empirical Bayes; the point estimates for the prior (i.e. mean) will look like a weighted averages of the sample estimate and the prior estimate (likewise for estimates of the variance).
+
+See also[edit]
+Bayes estimator
+Bayesian network
+Hyperparameter
+Hyperprior
+Best linear unbiased prediction
+Robbins lemma
+Spike-and-slab variable selection
+
+References[edit]
+This article includes a list of general references but lacks sufficient corresponding inline citations. Please help improve this article by introducing more precise citations.  (February 2012) (Learn how and when to remove this message)
+
+↑ Carlin, Bradley P.; Louis, Thomas A. (2002). "Empirical Bayes: Past, Present, and Future". In Raftery, Adrian E.; Tanner, Martin A.; Wells, Martin T. (eds.). Statistics in the 21st Century. Chapman & Hall. pp. 312–318. ISBN 1-58488-272-7.
+1 2 Robbins, Herbert (1956). "An Empirical Bayes Approach to Statistics". Breakthroughs in Statistics. Springer Series in Statistics. pp. 157–163. doi:10.1007/978-1-4612-0919-5_26. ISBN 978-0-387-94037-3. MR 0084919. {{cite book}}: ISBN / Date incompatibility (help)
+↑ Carlin, Bradley P.; Louis, Thomas A. (2000). Bayes and Empirical Bayes Methods for Data Analysis (2nd ed.). Chapman & Hall/CRC. pp. Sec. 3.2 and Appendix B. ISBN 978-1-58488-170-4.
+↑ Saremi, Saeed; Hyvärinen, Aapo (2019). "Neural Empirical Bayes". Journal of Machine Learning Research. 20 (181): 1–23. ISSN 1533-7928.
+
+Further reading[edit]
+Peter E. Rossi; Greg M. Allenby; Rob McCulloch (14 May 2012). Bayesian Statistics and Marketing. John Wiley & Sons. ISBN 978-0-470-86368-8.
+Casella, George (May 1985). "An Introduction to Empirical Bayes Data Analysis" (PDF). American Statistician. 39 (2): 83–87. doi:10.2307/2682801. hdl:1813/32886. JSTOR 2682801. MR 0789118.
+Nikulin, Mikhail (1987). "Bernstein's regularity conditions in a problem of empirical Bayesian approach". Journal of Soviet Mathematics. 36 (5): 596–600. doi:10.1007/BF01093293. S2CID 122405908.
+
+External links[edit]
+Use of empirical Bayes Method in estimating road safety (North America)
+Empirical Bayes methods for missing data analysis
+Using the Beta-Binomial distribution to assess performance of a biometric identification device
+A Hierarchical Naive Bayes Classifiers (for continuous and discrete variables).
+
+Retrieved from "https://en.wikipedia.org/w/index.php?title=Empirical_Bayes_method&oldid=1328186485"
+					Category: Nonparametric Bayesian statisticsHidden categories: Articles with short descriptionShort description is different from WikidataAll articles with unsourced statementsArticles with unsourced statements from February 2012Articles lacking in-text citations from February 2012All articles lacking in-text citationsCS1 errors: ISBN date
+				
+			
+			
+		
+		
+			
+				
+	 This page was last edited on 18 December 2025, at 10:51 (UTC).
+	Page was rendered with Parsoid.
+	Text is available under the Creative Commons Attribution-ShareAlike 4.0 License;
+additional terms may apply. By using this site, you agree to the Terms of Use and Privacy Policy. Wikipedia® is a registered trademark of the Wikimedia Foundation, Inc., a non-profit organization.
+
+				
+	Privacy policy
+	About Wikipedia
+	Disclaimers
+	Contact Wikipedia
+	Legal & safety contacts
+	Code of Conduct
+	Developers
+	Statistics
+	Cookie statement
+	Mobile view
+
+				
+	
+	
+
+			
+		
+	 
+ 
+
+	
+		
+			
+				
+
+Search
+			
+		
+			
+		
+			
+				
+					
+						
+							
+								
+								
+							
+							
+						
+						Search
+					
+				
+			
+		
+		
+				
+						
+					
+						
+						
+
+Toggle the table of contents
+						
+						
+					
+						
+						
+					
+						
+					
+			
+				Empirical Bayes method
+			
+		
+		
+			
+				
+
+			
+			
+
+			
+			
+
+			
+			
+
+			
+			
+
+			
+			
+
+			
+			
+
+			
+		
+			
+				
+
+1 language
+			
+			
+
+Add topic
+			
+		
+			
+				
+				
+			
+		
+	
+
+	
+		
+	
+

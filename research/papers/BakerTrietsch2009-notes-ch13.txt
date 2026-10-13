@@ -1,0 +1,192 @@
+Research Notes for Chapter 13 *
+Chapter 13 is essentially identical to Chapter 10 of Baker’s Elements of Sequencing and
+Scheduling (ESS). That chapter, in turn, relies on Webster and Baker (1995) with respect
+to single machine models. Unfortunately, we committed an error of omission: that key
+citation is missing in the chapter. (ESS included an explicit acknowledgement of Scott
+Webster’s contribution.) Our coverage here focuses mainly on the sources used in the
+chapter and in Webster and Baker, but we also list sources for more recent results. Next,
+we briefly discuss the effect of teardowns, as distinct from setups. Finally, the state of the
+art in scheduling groups of jobs is deterministic, but we briefly discuss stochastic aspects
+later.
+Other Sources and Comments
+The complexity of single-machine models with batching is discussed by Albers and
+Brucker (1993). To our knowledge, the specific case of the single-machine Fw-problem
+with family setup times (without the GT assumption) is open, however. Theorems 13.1
+and 13.2 are due to Ham, Hitomi and Yoshida (1985). Bruno and Sethi (1978) had noted
+earlier that SWPT applies within a set of consecutive jobs of the same family, and
+proposed a dynamic programming model. Monma and Potts (1989) showed that SWPT
+applies even to jobs of the same family that are processed in different batches. Mason and
+Anderson (1991) strengthened that result by showing that SWPT order should also apply
+to a pseudo-job that represents the set of jobs that may separate two batches from the
+same family. The processing time of the pseudo-job is the combined setup time and
+processing time of the set and its weight is the total weight of the jobs in the set. Any
+such pseudo-job must obey SWPT order with the jobs on either side of it. As noted in the
+chapter, such dominance relationships allowed Mason and Anderson to solve larger
+instances than were tractable before. Additional dynamic programming models for the Fproblem with families but without the GT assumption appear in several publications,
+including Monma and Potts (1989) and Ahn and Hyun (1990). Crauwels, Hariri, Potts
+and Van Wassenhove (1998) propose a branch and bound approach to the problem. Potts
+and Kovalyov (2000) review batching models with a focus on the availability of efficient
+dynamic programming models. Theorem 13.3 is a special case of Property 3 from
+Webster and Baker, but in the limited form we presented in the chapter it is due to Santos
+and Magazine (1985) and was also obtained independently by Dobson, Karmarkar and
+Rummel (1987). Bruno and Downey (1978) showed that the Lmax problem with family
+setups is NP-hard (without the GT assumption). Theorem 13.4 is due to Potts and Van
+Wassenhove (1992). Theorem 13.5 is a special case of Property 7 from Webster and
+*
+
+The Research Notes series (copyright © 2009 by Kenneth R. Baker and Dan Trietsch) accompanies our
+textbook Principles of Sequencing and Scheduling, Wiley (2009). The main purposes of the Research
+Notes series are to provide historical details about the development of sequencing and scheduling theory,
+expand the book’s coverage for advanced readers, provide links to other relevant research, and identify
+important challenges and emerging research areas. Our coverage may be updated on an ongoing basis. We
+invite comments and corrections.
+Citation details: Baker, K.R. and D. Trietsch (2009) Research Notes for Chapter 13 in Principles of
+Sequencing and Scheduling (Wiley, 2009). URL: http://mba.tuck.dartmouth.edu/pss/.
+
+Baker. Theorems 13.6 and 13.7 are due to Coffman, Yannakakis, Magazine and Santos
+(1990). Naddef and Santos (1988) and Shallcross (1992) discuss the results we presented
+in page 381, including how to round them optimally to discrete values.
+The FOE algorithm and Theorem 13.8 are due to Ikura and Gimple (1986). The
+dynamic programming solution in Section 13.4.3, minimizing F for a batch machine with
+release dates, is due to Ahmadi, Ahmadi, Dasu and Tang (1992). The results of Section
+13.4.4 for batch-dependent processing times (i.e., when the jobs allocated to a batch
+dictate its processing time) are due to Lee, Uzsoy and Martin-Vega (1992) and to
+Chandru, Lee and Uzsoy (1993). As we noted in the summary, to work well, the twolevel approach that we can employ under the GT assumption requires an efficient way to
+sequence jobs within each family such that this low-level sequence is optimal in any
+high-level sequence. We noted specifically that in the T-problem we do not have this
+property. Nakamura, Yoshida and Hitomi (1978) proposed the heuristic approach that we
+described, namely sequencing the lower level first, then the higher level, and back to the
+lower level iteratively for the T-problem. In addition to the review by Potts and Kovalyov
+(2000), Allahverdi, Ng, Cheng and Kovalyov (2008) gave a survey of papers with setups,
+which include papers with family setups and batch processors.
+For the single-machine models in the chapter, we assumed each family has a given
+setup time. Webster and Baker also considered models with teardown time, tj. For the
+Lmax-problem, we can add tj to qij and define the family due date exactly as before. For the
+Fw-problem, let s'j = sj + tj and use the models of the chapter but with s'j replacing sj. It
+turns out that the difference between the two versions is constant for any sequence, and
+therefore the substitution will yield the optimal sequence. In single-machine models with
+batch availability, teardowns have the exact same effect as setups and the two effects are
+additive.
+Consider the two-machine F-problem that we presented in Subsection 13.2.3. The
+source of that material is Baker (1995). Suppose now that in addition to setups there are
+also teardowns on each machine, denoted t1i and t2i. The definitions of Ai and Bi require a
+minor change, to incorporate t1i and t2i, respectively. As we indicated in the chapter,
+maximizing the body for each family can serve as the basis for the subsequent higherlevel sequencing, and that remains true when teardown times are necessary on each
+machine. The key to the solution is that either the setups or the teardowns are critical.
+Therefore, to resolve the issue, we need to solve the problem twice. The first solution is
+exactly as described in the chapter, but using the new definitions of Ai and Bi with the
+correct s1i and s2i values. Denote the tentative makespan thus obtained by M1. In the
+second solution we address the reversed problem, where machine 2 precedes machine 1,
+using the t2i and t1i values instead of s1i and s2i, respectively. Denote the second tentative
+makespan by M2. Then, if M1 ≥ M2, use the first sequence; otherwise use the second.
+Cheng, Gupta and Wang (2000) review flow shop models with setups.
+The two-batch-machine minimal makespan model is due to Kleinau (1993). Kleinau
+also showed that without the GT assumption the problem is NP-hard. Sung, Kim and
+Yoon (2000) consider m-machine flow shops with batch processing machines. Sung and
+Min (2001) address the two-batch-machine flow shop with a common due date and an
+E/T objective. Azizoglu and Webster (2003) and Dunstall and Wirth (2005) develop
+branch and bound solutions for the Fw-problem with family setup times on parallel
+machines. The problem is NP-hard (because it generalizes the parallel machine model
+
+without setups that is already NP-hard). However, Webster and Azizoglu (2001) develop
+pseudopolynomial dynamic programming models that apply for a fixed number of
+machines and a fixed number of families.
+The state of the art in scheduling groups of jobs is that the vast majority of models
+are still deterministic. Clearly, in some instances it makes sense to use the same model
+regardless of whether processing time is deterministic, and in some other cases, the
+deterministic counterpart should provide a useful basis for stochastic analysis. For
+instance, flowtime and expected flowtime are minimized by the same sequence, and the
+same applies for maximum lateness, subject to the caveats of Chapter 6. Or take burn-in
+models where the stochastic aspects are largely limited to random delays in loading or
+breakdowns. In such cases the deterministic counterpart solution may be optimal or at
+least a very good basis for practical scheduling. Van Oyen, Duenyas and Tsai (1999)
+address those models and the total weighted tardiness problem. For the latter, they only
+address a very special GT case and to obtain an optimal sequence by a list schedule they
+require very strong agreeability among several model parameters. In other words, they do
+not offer a general solution. When safe scheduling models are required, the focus can be
+on timing decisions for the deterministic counterpart solution.
+
+References
+Ahmadi, J.H., R.H. Ahmadi, S. Dasu and C.S. Tang (1992) "Batching and Scheduling
+Jobs on Batch and Discrete Processors," Operations Research 39, 750-763.
+Ahn, B.-H. and J.-H. Hyun (1990) "Single Facility Multi-class Job Scheduling,"
+Computers and Operations Research 17, 265-272.
+Albers, S. and P. Brucker (1993) "The Complexity of One-machine Batching Problems,"
+Discrete Applied Mathematics 47, 87-107.
+Allahverdi, A., C.T. Ng, T.C.E. Cheng and M.Y. Kovalyov (2008) "A Survey of
+Scheduling Problems with Setup Times or Costs," European Journal of
+Operational Research 187, 985-1032.
+Azizoglu, M. and S. Webster (2003) "Scheduling Parallel Machines to Minimize
+Weighted Flowtime with Family Setup Times," International Journal of
+Production Research 41, 1199-1215.
+Baker, K.R. (2005) Elements of Sequencing and Scheduling, Tuck School of Business,
+Hanover, NH.
+Baker, K.R. (1995) "Lot Streaming in the Two Machine Flow Shop with Setup Times,"
+Annals of Operations Research, Volume on Mathematics of Industrial Systems,
+Vol. 57 (1995), 1-11.
+
+Bruno, J. and P. Downey (1978) "Complexity of Task Sequencing with Deadlines, Setup
+Times and Changeover Costs," SIAM Journal of Computing 7, 393-404.
+
+Bruno, J. and R. Sethi (1978) "Task Sequencing in a Batch Environment with Setup
+Times," Foundations of Control Engineering 3, 105-117.
+Chandru, V., C.Y. Lee and R. Uzsoy (1993) "Minimizing Total Completion Time on
+Batch Processing Machines," International Journal of Production Research 31,
+2097-2122.
+Cheng, T.C.E., J.N.D. Gupta and G. Wang (2000) "A Review of Flowshop Scheduling
+Research with Setup Times," Production and Operations Management 9, 262–
+282.
+Coffman, E.G., M. Yannakakis, M.J. Magazine and C. Santos (1990) "Batch Sizing and
+Job Sequencing on a Single Machine," Annals of Operations Research 26, 135147.
+Crauwels, H.A.J., A.M.A. Hariri, C.N. Potts and L.N. Van Wassenhove (1998) "Branch
+and Bound Algorithms for Single-Machine Scheduling with Batch Set-Up
+Times to Minimize Total Weighted Completion Time," Annals of Operations
+Research 83, 59-76.
+Dobson, G., U.S. Karmarkar and J.L. Rummel (1987) "Batching to Minimize Flow Times
+on One Machine," Management Science 33, 784-799.
+Dunstall, S. and A. Wirth (2005) "A Comparison of Branch-and-Bound Algorithms for a
+Family Scheduling Problem with Identical Parallel Machines," European
+Journal of Operational Research 167, 283–296.
+Ham, I., K. Hitomi and T. Yoshida (1985) Group Technology: Applications to
+Production Management, Kluwer-Nijhoff Publishing, Boston.
+Ikura, Y. and M. Gimple (1986) "Efficient Scheduling Algorithms for a Single Batch
+Processing Machine," Operations Research Letters 5, 61-65.
+Kleinau, U. (1993) "Two-Machine Shop Scheduling Problems with Batch Processing,"
+Mathematical and Computer Modelling 17, 55-66.
+Lee, C.Y., R. Uzsoy and L.A. Martin-Vega (1992) "Efficient Algorithms for Scheduling
+Semiconductor Burn-in Operations," Operations Research 40, 764-775.
+Mason, A.J. and E.J. Anderson (1991) "Minimizing Flow Time on a Single Machine with
+Job Classes and Setup Times," Naval Research Logistics 38, 333-350.
+
+Monma, C.L. and C.N. Potts (1989) "On the Complexity of Scheduling with Batch Setup
+Times," Operations Research 37, 798-804.
+Naddef, D. and C. Santos (1988) "One-Pass Batching Algorithms for the One-Machine
+Problem," Discrete Applied Mathematics 21, 133-145.
+Nakamura, N., T. Yoshida and K. Hitomi (1978) "Group Production Scheduling for
+Minimum Total Tardiness, Part (I)," AIIE Transactions 10, 157-162.
+Potts, C.N. and M.Y. Kovalyov (2000) "Scheduling with Batching: A Review,"
+European Journal of Operational Research 120, 228-249.
+Potts, C.N. and L.W. Van Wassenhove (1992) "Integrating Scheduling with Batching and
+Lot-Sizing: A Review of Algorithms and Complexity," Journal of the
+Operational Research Society 43, 395-406.
+Santos, C. and M. Magazine (1985) "Batching in Single Operation Manufacturing
+Systems," Operations Research Letters 4, 99-103.
+Shallcross, D.F. (1992) "A Polynomial Algorithm for a One Machine Batching Problem,"
+Operations Research Letters 11, 213-218.
+Sung, C.S., Y.H. Kim and S.H. Yoon (2000) "A Problem Reduction and Decomposition
+Approach for Scheduling for a Flowshop of Batch Processing Machines,"
+European Journal of Operational Research 121, 179-192
+Sung, C.S. and J.I. Min (2001) "Scheduling in a Two-Machine Flowshop with Batch
+Processing Machine(s) for Earliness/Tardiness Measure under a Common Due
+Date," European Journal of Operational Research 131, 95-106.
+Uzsoy, R. (1994) "Scheduling a Single Batch Processing Machine with Non-identical Job
+Sizes," International Journal of Production Research 32, 1615-1635.
+Van Oyen, M.P., I. Duenyas and C.-Y. Tsai (1999) "Stochastic Sequencing with Job
+Families," Journal of Systems Science 30, 175-181.
+Webster, S. and M. Azizoglu (2001) "Dynamic Programming Algorithms for Scheduling
+Parallel Machines with Family Setup Times," Computers and Operations Research
+28, 127–137.
+Webster, S. and K.R. Baker (1995) "Scheduling Groups of Jobs on a Single Machine,"
+Operations Research 43, 692-703.
+
+

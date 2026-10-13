@@ -1,0 +1,793 @@
+An Optimal Algorithm for On-line Bipartite Matching
+Richard M. Karp
+University of California at Berkeley &
+International Computer Science Institute
+Umesh V. Vazirani
+University of California at Berkeley
+Vijay V. Vazirani
+Cornell University
+
+1. Introduction
+
+G (U,V,E) on-line. Assume that the girl vertices arrive
+in a preselected order, and that the edges incident to a
+vertex are revealed to us only when the vertex arrives.
+The task is to decide, as each girl vertex arrives, which
+boy vertex to match her to, so that the size of the matching obtained is maximized. Alternatively, we can view
+the matching as being constructed while the matrix is
+revealed column-by-column. As a convention we will
+assume that columns are revealed in the order
+n , n - 1 , . . . 1.
+
+There has been a great deal of interest recently in
+the relative power of on-line and off-line algorithms. An
+on-line algorithm receives a sequence of requests and
+must respond to each request as soon as it is receiveD. An
+off-line algorithm may wait until all requests have been
+received before determining its responses. One approach
+to evaluating an on-line algorithm is to compare its performance with that of the best possible off-line algorithm
+for the same problem. Thus, given a measure of "profit",
+the performance of an on-line algorithm can be measured
+by the worst-case ratio of its profit to that of the optimal
+off-line algorithm. This general approach has been
+applied in a number of contexts, including data structures
+[SITa], bin packing [CoGaJo], graph coloring [GyLe] and
+the k-server problem [MaMcSI]. Here we apply it to
+bipartite matching and show that a simple randomized
+on-line algorithm achieves the best possible performance.
+
+The performance of a randomized algorithm A for this
+task is denoted by p (A) and is defined to be:
+
+MIN
+
+E [size of matching achieved by A ]
+
+where the expectation is taken over the internal coin flips
+of A.
+
+Remark:
+A greedy algorithm which always matches a
+girl if possible (to an arbitrarily chosen boy among the
+eligible ones), achieves a maximal matching - and theren
+fore a matching of size at least ~-. On the other hand an
+
+2. Problem Statement
+Let G (U ,V,E) be a bipartite graph on 2n vertices
+such that G contains a perfect matching. Let B be an
+n xn matrix representing the structure of G (U ,V,E). The
+rows of B correspond to vertices in U (the boys) and the
+columns to vertices in V (the girls); each edge is
+represented by a 1 in the appropriate position. We consider the problem of constructing a large matching in
+
+adversary can limit any deterministic algorithm to a
+n
+
+matching of size ~ : for example, by letting the first ~2
+n
+
+columns contain all ones and the last ~ columns contain
+ones only in those rows which are matched by the detern
+ministic algorithm in the first ~- steps.
+
+Many of the results in the literature of on-line algorithms
+concern the performance of randomized on-line algorithms against an adaptive on-line adversary [BeBoKaTaWi]. In the context of the present problem, adaptive-
+
+Permission to copy without fee all or part of this material is granted provided that the copies are not made or distributed for direct commercial
+advantage, the ACM copyright notice and the title of the publication and
+its date appear, and notice is given that copying is by permission of the
+Association for Computing Machinery. To copy otherwise, or to republish,
+requires a fee and/or specific permission.
+
+© 1990 ACM 089791-361-2/90/0005/0352
+
+MIN
+
+G order of girl vertic~
+
+$1.50
+
+352
+
+ness means that the adversary is permitted to specify the
+matrix column-by-column, and to take into account, in
+specifying any given column, the decisions that the randomized algorithm has made in response to the arrivals
+of earlier columns. The fact that the adversary is on-line
+means that the adversary must construct his own perfect
+matching column-by-column, choosing the row to be
+matched in each column at the same time as he specifies
+the column. An adaptive on-line adversary can limit any
+randomized on-line algorithm to a matching of expected
+size n/2+0 (logn) by choosing the matrix, and his own
+perfect matching, as follows: for i--0 to n/2, there is a 1
+in position j , n - i if and only if row j does not lie in the
+matching constructed so far by the algorithm, and also
+does not lie in the matching constructed so far by the
+adversary; for his perfect matching, the adversary chooses
+a 1 in column n - i at random. For i=n/2+1 to n, there is
+a 1 in position j , n - i if and only if row j does not lie in
+the matching constructed so far by the adversary; in this
+case also, the adversary chooses for his perfect matching
+a random 1 in column n - i . To show that no randomized
+algorithm can achieve more than n/2+O(logn) on the
+average against this adversary, we argue as follows. First,
+any non-greedy randomized algorithm can be replaced by
+a greedy one that performs at least as well on the average.
+Secondly, for any greedy algorithm A, let T(A) be the set
+of rows that are matched in columns n, n - 1 ..... n/2+l by
+both A and the adversary. Then the expected cardinality
+of T(A) is O(logn), and the size of the matching produced by algorithm A does not exceed n/2+ I T(A) I.
+
+on the following matrix: Bii=l if i=j or if ~<j<n and
+
+The Ranking Algorithm:
+
+Lemma 1: For any fixed orderings of the boy and girl
+vertices, the matching picked during the matching phase
+of RANKING remains unchanged if the roles of the boy
+and girl vertices are interchanged.
+
+We shall analyze the performance of the following
+randomized on-line matching algorithm, which we shall
+refer to as the RANKING algorithm:
+
+Initialization: Pick a random permutation of the boy vertices - thereby assigning to each boy a random priority or
+ranking.
+
+Matching Phase: As each girl arrives, match her to the
+eligible boy (if any) of highest rank.
+
+Remark: At first sight it might appear more natural to
+analyze the algorithm RANDOM, which picks a boy at
+random from among the eligible boys each time a girl
+arrives. However, RANDOM performs nearly as poorly
+as a deterministic greedy algorithm;
+it achieves a matching of expected size only n + o (logn)
+
+353
+
+l ~ < n / 2 , and 0 otherwise. RANDOM performs poorly in
+this example because it concentrates too much effort on
+n
+the dense upper half of the matrix for the first -~ moves,
+thereby missing out on the crucial edges in the sparse
+lower half of the matrix. RANKING has an implicit selfcorrecting mechanism that tends to favor those currendy
+eligible boys who have been eligible least often in the
+past. It is this feature of RANKING that allows it to perform well even on graphs where local density considerations are misleading.
+
+2. Analysis of the Ranking Algorithm
+The Duality Principle:
+After the initialization phase of RANKING, there is
+an ordering on both the boy and girl vertices (the
+preselected ordering on girls and the randomly chosen
+ordering on the boys). At this point there is a symmetry
+between the boy vertices and the girl vertices: the performance of RANKING remains unchanged if we interchange the roles of the boys and girls by letting the boys
+arrive according to their ranking and picking the highest
+ranked eligible girl.
+
+Proof: The proof is by induction on the number of boys
+and girls. Let b be the highest ranked boy, and g, the
+highest ranked girl that b has an edge to. Now, if the
+matching is found from the boys' side, b will be matched
+to g in the first step. Also, if the matching is found from
+the girls' side, the first time that b is eligible to be
+matched is when g arrives; clearly, they are matched at
+that time. The lemma follows by removing b and g from
+the graph, and applying the induction hypothesis to the
+remaining graph.
+
+Henceforth we shall regard the columns as ordered
+from 1 to n with column n having highest rank and
+column 1 lowest, and the rows as arriving in random
+order. As each row arrives it is matched to the highest
+ranking available eligible column. Viewing rows as
+
+arriving in random order gives us a new notion of time
+which is crucial to our analysis of the algorithm. Let
+6(1) .. • or(n) be an ordering of the rows. By time t we
+mean the instant of the t th row arrival, i.e. 6(t).
+
+We next give a technical lemma that will be useful at
+several points. Consider a variant of RANKING which, as
+each boy arrives, either matches him to the highest ranking eligible girl, or else refuses to match him at all, even
+though one or more eligible girls may be available. The
+rule that determines whether this algorithm refuses may
+be quite arbitrary.
+L e m m a 2: For any fixed ordering of the boys and ranking
+of the girls, the set of girls matched by RANKING is a
+superset of the set matched by any refusal algorithm.
+Proof: By induction on t. By the induction hypothesis,
+the set of girls eligible to be matched at time t+l by the
+refusal algorithm forms a superset of those eligible to
+RANKING. Now, since both algorithms use the same
+ranking on the girls, if the refusal algorithm chooses to
+match a girl who is also eligible for RANKING, then
+RANKING must match her too. Thus, in all cases, the set
+of girls matched by RANKING remains a superset of the
+set matched by the refusal algorithm.
+Next, we prove that we can assume w.l.o.g, that the adjacency matrix B of the graph is upper-triangular.
+L e m m a 3: The expected size of the matching produced
+by RANKING is minimum for some upper-triangular
+matrix.
+Proof: Let B be any matrix. Renumber the rows of B so
+that a perfect matching sits on the main diagonal (i.e.
+Bil = 1 for l #_/<n). This renumbering has no effect on the
+performance of RANKING, since the rows arrive in a
+random order. Let B' be the matrix obtained when all
+entries of B below the main diagonal are replaced by 0
+(i.e. B'ij = Bij if i <j and 0 if i >j). Now RANKING on
+B" may be viewed as a refusal algorithm on B. Thus, by
+lemma 2, the expected size of matching obtained by ranking on B" is at most as large as on B. []
+
+Remark: We conjecture that in fact the expected size of
+matching achieved by RANKING is minimized by the
+complete upper-triangular matrix. However, we do not
+know how to prove this directly. We shall show a performance guarantee for RANKING that is matched to within
+low order terms by its performance on the complete
+upper-triangular matrix, thus proving indirectly that this is
+
+354
+
+the worst case (to within lower order terms). Proving the
+conjecture will yield the stronger result that RANKING
+has the best performance guarantee.
+Henceforth we will assume that B is uppertriangular, with diagonal entries 1, corresponding to the
+unique perfect matching in the graph. Consider the symmetric difference of this perfect matching with the maximal matching M produced by RANKING. If IM I = n/2,
+each connected component of the symmetric difference is
+an augmenting path is of length 3, and no diagonal entries
+are picked. In this case, for each i, either row i or
+column i is matched, but not both. On the other hand,
+whenever many diagonal elements are chosen or many
+long augmenting paths occur, there will correspondingly
+be a large number of indices i such that row i and column
+i are both matched. The idea behind our proof is that,
+under a random ordering of the rows, RANKING is likely
+to yield a large number of such indices, and hence a large
+matching. This last implication is made precise in the following lemma.
+L e m m a 4: Let B be an n xn upper triangular matrix with
+diagonal entries 1. Let M be any matching in the associated graph such that for each i .either row i or column i is
+matched, and let D ={i: row i and column i are both
+matched in M}. Then IMI= n+ ID I
+2
+Proof: For each i, either row i or column i is matched,
+i.e. covered by some edge in M. ID I= number of i such
+that both row i and column i are covered. Now, the
+number of vertices covered by M is n+ IDI and the
+n+lDI
+number of edges in M is
+2
+Corollary: E [ I M I ] = n / 2 + 1/2E[IDI].
+We
+
+will
+
+lower-bound E [ IM I ] by
+
+lower-bounding
+
+E [ I D I ] = ~; Pr [column i and row i both get matched],
+i=1
+
+where the probability is over random row arrivals.
+
+For the purpose of analyzing the performance of RANKING, it is useful to consider a modification - the algorithm
+EARLY - which refuses to match row i if it arrives after
+column i has already been matched. Notice that on the
+complete upper-triangular matrix algorithm EARLY is
+identical to RANKING.
+
+L e m m a 5: For every ordering of the rows, RANKING
+produces at least as large a matching as that produced by
+algorithm EARLY.
+
+Proof: This follows from Lemma 2, since EARLY is a
+refusal algorithm.
+
+We will lower-bound E [ I D I ] for algorithm EARLY.
+Algorithm EARLY has the property that row i gets
+matched if and only if column i is not already matched
+when row i arrives. In particular, if in some ordering
+column i gets matched at time t and row i arrived at time
+<t then row i must also get matched (because, in particular, column i was available for row i). Index i enters the
+set D in precisely this way.
+
+Definition: Let cr be a permutation of the rows, and let
+c~~) be the sequence obtained by deleting i from its original position in ff and moving it to the last position. If
+EARLY does not match column i under a, then define
+W(c,i) = 0. Otherwise, define W(~,/) to be the time at
+which column i gets matched under the permutation ff¢i);
+if column i remains unmatched under c~¢i) then define
+W (or,i) = n. Now, define
+
+ings ff and rc are equivalent if c~¢I) = ~¢i). Clearly, each
+equivalence class has n orderings, and row i falls in one
+of the first t positions in t of these. The proof follows by
+Lemma 6. []
+
+-
+
+Letwt=__Zlw
+~.,
+
+~:t
+
+B y L e m m a 6 , E [ I D I ] = t=l --W,.n We
+
+will now lower-bound E[ID I] by lower-bounding the
+right hand side. We first present an easy bound establishing that the expected size of the matching is at least
+(2-~r-2)n.
+
+Lemma 8: If column i gets matched at time t under c~
+then under O"(i) column i either remains unmatched, or
+gets matched at some time > t - 1 .
+Proof: The algorithm under a (i) for the first t - 1 steps
+can be regarded as a refusal algorithm for our algorithm
+run on c~ for t steps. Now the lemma follows by applying
+lemma 2.
+Definition: Let mt = Pr [some column is matched at
+time t ].
+
+w[ = Pr [W(~,i) = t] for O~_t<n.
+where ff is a random permutation of the rows. Clearly, Pr
+
+Corollary: E ws < E ms.
+s~t
+
+n
+
+s~t+l
+
+[column i gets matched] = Z w~. The next lemma shows
+t=l
+
+what fraction of this probability corresponds to the favorable event that column i and row i both get matched.
+
+Lemma 6: Let W(c,i) = t and t<n. Obtain permutation
+o" from c~¢i) by moving row i into the jth position. Then,
+under o", EARLY will match row i as well as column i
+by time t + l , ifj<_t, and will not match row i at all i f j > t .
+Proof." I f j > t then column i will get matched under o" at
+time t, before row i arrives, so row i will not get
+matched. If j<t then the i th column is eligible when row
+i arrives; therefore EARLY matches row i. Running
+EARLY on ~(z)for t steps can be regarded as a refusal
+algorithm on oJ run for t + l steps. So by lemma 2, the
+columns matched under o¢ by time t + l form a super-set
+of the columns matched under a¢i) by time t; hence
+column i gets matched under o" by time t + l .
+
+Lemma 7: Pr[row i and column i both get matched] =
+
+--' w;.
+
+t=l !l
+
+Proof: Firstly, notice that if W~r,/) = n, then row i must
+have arrived at or before the ~ e when column i got
+matched in a, and hence r o w ~ ' m u s t also have gotten
+matched. Consider any time t, l<t<n, and consider the
+orderings such that W(c~,/) = t. Say that two such order-
+
+355
+
+Lemma 9: EARLY produces a matching of size at least
+(2--/--2)n on an n ><n upper-triangular matrix.
+Proof: Let c~ be the size of matching produced. Then,
+by Lemmas 3 and 6,
+n
+
+I ~ Iwt.
+
+ff.n >~ + -~n ,=1
+
+Since mt < 1 and ~: wt = c ~ , we see by the corollary to
+t=l
+
+lemma
+
+7
+
+that
+
+n
+
+Z twt
+
+is
+
+minimized
+
+by
+
+setting
+
+t=l
+
+m l = m 2 = - ' ' =man= 1~, Wl=ml+m 2 and wt =mr+l,
+t > l . Substituting the resulting bound into the above inequality yields ~ 2-~--2. []
+In Lemma 9, we have made the pessimistic assumption that mt = 1 for l<t<_ctn, which would mean that the
+first ¢xn rows to arrive all get matched. This is, of course,
+not the case, since, even early in the process, a row may
+arrive after its column is already matched. Thus the mt 's,
+and hence also the wt 's, are spread out in time. Lemma 10
+makes this observation more precise.
+
+Lemma 10: For all t, m t = 1 - n s~<'t "
+Proof: Let m[ = P r [ r o w i occurs at time t and gets
+
+matched].
+
+(v) y. w, _< t - ±
+s.~t
+
+Then clearly mt = Z m~. Now, Pr [row i occurs at
+i--1
+
+time t and does not get matched] = 1
+
+E w,/. i.e. pick a
+
+II s < t
+
+permutation o such that W ( c , i ) <t, and move row i into
+the t ~ place. Therefore, m[•= 1
+II
+
+1 y. w~.
+i The lemma
+t l s <t
+
+z ( t - s ) w,
+
+I'1 s <t
+
+Suppose for contradiction that the wi "s that minimize
+Ft
+
+~: twt are not picked greedily according to conditions (i)
+t=l
+
+and (v). Let t be the last time such that wt is not as large
+as possible. Let the deficiency in wt be e. Increase wt by
+e, decrease wt+1 by e(l+l/n), and increase w, by e/n. The
+n
+
+follows by summing over i. []
+
+new wi's satisfy (i) and (v), and have a smaller Y. twt.
+
+Let om be the expected size of matching produced
+pl
+
+t=l
+
+Contradiction. []
+
+by EARLY. We need to lower-bound Y. twt subject to:
+t=l
+
+Remark: The greedy solution resulting from condition
+(v) is w, = ( 1 - 1 ),-1
+
+(i). ~ wt=an
+
+n
+
+t=l
+
+(ii). m t = 1- 1
+
+I; ws, and
+
+n
+
+(iii). Z w s <
+s~
+
+s<t
+
+Theorem 1: The performance of algorithm EARLY is
+
+Z ms.
+
+n ( 1 - 1 ) + o (n)
+
+s~t+l
+
+e
+
+The solution is much simpler if condition (iii) is replaced
+by condition (iii)' below:
+(iii)' Y. ws -< 2; ms
+s.~t
+
+sSt
+
+Proof: By Lemma I0 and I 1, it is sufficient to pick wi "s
+greedily subject to conditions (i), (ii) and (iii)'. This
+yields
+
+Also, we will drop condition (ii) for t=n (this does not
+affect the validity of our bound). Lemma 11 establishes
+that replacing (iii) by condition (iii)' does not change the
+desired lower-bound by much. Lemma 12 asserts that,
+
+where T is such that E wt = o~n. Substituting for wt and
+
+subject to (i), (ii) and (iii)', ~ twt is minimized by pick-
+
+solving for T yields T< - n In(l-c0.
+
+t=l
+
+ing the w i ' s
+greedily, i.e. by making
+w i ,i=1,2, • • • in turn as large as possible.
+
+each
+
+w, = ( 1 - 1 ) t-I ,for t=l,2 .... T
+n
+T
+t=l
+
+Let ( 1 - 1 ) = 0. Then, 0 r = 1-a. Now,
+n
+T
+
+Lemma 11: Let ff = (w 1 ,w2, • • • w, ) be any solution
+to conditions (i), (ii), and (iii). Then there is a solution
+x = (xl ,x2, " " x~ ) to conditions (i), (ii) and (iii)' such
+that the L 1 norm of (ff - ~) is at most 2.
+
+T
+
+Z t w, = Y~ tO'-1= (1--(0r)-- TOT (1--0)) >__
+t=l
+t=l
+(1-0) 2
+
+n 2 (Ot+(1-e01n(1 - a ) )
+Substituting this into our lower-bound of n/2 + E [ID I]
+on the size of the matching yields:
+
+Proof: By conditions (ii) and (iii) we have
+(iv).
+
+Y. ws < t + l - 1
+a~
+
+n
+1 T
+~.n >- "-~ + -~n t~=ltwt
+
+y. ( t + l - s ) w s .
+
+n a~t
+
+~" is obtained from ~ by moving one unit from the lowest
+
+n
+> -~
++ ~n (~ + (1-~) In (1-~))
+
+k
+
+possible indices to wn, Pick k such that ~ wi ---I and
+k+l
+
+5". wi > 1.
+i=1
+
+i=I
+
+Set
+
+xl = 0
+
+for
+
+1 ~ <__k,
+
+k
+
+xk+l = wk+l -- (1-- iE1 wi ) and x , = w~+l. The remaining
+
+indices of £ are the same as those of ft. Clearly if
+satisfies (iv), then ~ satisfies condition (v) stated below,
+and the L 1 norm of (ff - x--)is at most 2.
+
+Lemma 12: Subject to conditions (i), (ii) and (iii)' ~; twt
+t=l
+
+is minimized by picking wi "s greedily.
+
+This gives (¢t-1) > (1-o01n(/-¢ 0
+Thus c~2 ( 1 - 1 ). []
+e
+
+Remark: A simple consequence of our proof is that if
+RANKING is applied to a n ×n matrix B for which the
+size of the maximum matching is m <n, then the expected
+size of the matching produced by RANKING is at least
+
+(l-Lira + o(m).
+e
+
+Proof: By conditions (ii) and (iii)' we have:
+
+356
+
+3. Bounding the Performance of Any
+On-Line Algorithm
+
+where the maximum is over all deterministic algorithms.
+W.l.o.g. the best deterministic algorithm is greedy (by
+simulating A, and matching the current column to the row
+matched by A, if the row is available, and to an arbitrary
+eligible row otherwise). The proof follows from Lemma
+13. []
+
+In this section we will show that RANKING is
+optimal, up to lower order terms.
+Theorem 2: The performance of any on-line bipartite
+
+L e m m a 16: The expected size of matching produced by
+
+matching algorithm is < n (1- e ) + o (n).
+
+algorithm RANDOM on T is n ( 1 - 1 ) + o(n).
+e
+
+Let T be the n x n complete upper-triangular
+matrix. As before, we assume that the columns of T
+arrive in the order n ,n-1 ..... 1. By the k *h column arrival
+we mean the arrival of column number n-k+l. Consider
+the algorithm RANDOM, which matches each column to
+a randomly chosen eligible row.
+
+Proof: The proof rests on the following crucial observation made in Lemma 13: given that there are l rows still
+eligible at the k *h arrival column, they are equally likely
+to be any set of I rows from among the first n-k+l rows
+of T.
+
+Definition: Let T be the n ×n complete upper-triangular
+matrix. With every permutation n on (1, - . . n} associate a problem instance (T,n), where the adjacency matrix
+is obtained by permuting the rows of T under n, and the
+columns arrive in the order n , n - I , • • • 1. Let P denote
+the uniform probability distribution over these n!
+instances.
+
+Let x (t) and y (t) be random variables representing
+the number of columns remaining and the number of rows
+still eligible at time t. Let Ax = x ( t + l ) - x ( t ) and
+Ay = y ( t + l ) - y ( t ) . Then Ax = - 1 and Ay is - 2 if the
+diagonal entry in the t+l a column was eligible but was
+not matched, and -1 otherwise. Using the fact that the set
+of eligible rows is randomly chosen from among the first
+n-t:
+
+L e m m a 13: Let A be a deterministic on-line algorithm
+that is 'greedy' in the sense that it never leaves a column
+unmatched if there is an eligible row. Then, the expected
+size of matching produced by A when given an instance
+(T,~) from P is the same as the expected size of matching
+produced by RANDOM on T.
+
+E[Ay] = - 1 - y(t) . y(t)--1 = - 1 - y ( t ) - I
+x(t)
+y(t)
+x(t)
+
+Therefore E[Ay] = 1+ y ( t ) - I
+E[Ax]
+x(t) "
+
+Proof: The lemma follows from the two claims listed
+below, which may be proved by a straightforward induction on time:
+1. For algorithm A on (T,r0, as well as for RANDOM on
+T, if there are k eligible rows at time t, then they are
+equally likely to be any set of k rows from among the first
+n - t + l rows of T.
+2. For each k, the probability that there are k eligible
+rows at time t is the same for RANDOM run on T as it is
+for A run on (T,n). []
+L e m m a 14: The performance of any on-line matching
+algorithm is upper bounded by the expected size of
+matching produced by the algorithm RANDOM on the
+complete upper-triangular matrix.
+
+Proof: Let E [R (T,~)] denote the expected size of
+matching produced by the given randomized on-line algorithm, and let E[A(P)] denote the expected size of
+matching produced by a deterministic algorithm A when
+given an input from distribution P . By Yao's lemma
+[Ya],
+min{E [R (T,r0]} <_max{E [A(P)]}.
+A
+
+357
+
+Kurtz's theorem [Ku] says that with probability tending to
+1 as n tends to infinity, the solutions of the above stochastic difference equation are closely approximated by the
+solution of the differential equation:
+dy = 1+Y-1
+dx
+x
+Solving this differential equation with the initial condition
+x--y =n, we get
+y = 1 + x ( n - 1 - In x )
+n
+
+n
+
+So, when only one row is eligible, the number of columns
+remaining is n + o (n). Therefore, the expected size of
+e
+matching produced is n (1 - - ~ ) + o (n).
+, i
+
+e
+
+Remark: 1) There is an interesting alternative description of the behavior of algorithm RANDOM on T. In this
+description, the algorithm begins by specifying a random
+permutation ¢r=(cs(1),¢s(2)..... cs(n)) of {1, 2 ..... n}.
+Then, as each column n - i arrives, RANDOM matches
+that column with row x, where x is the first element of cs
+which has not previously been matched and is less than or
+
+equal to n-i. It is easy to see that this is a faithful
+description of RANDOM, and as a consequence, the following two random variables have the same distribution:
+(i) the size of the matching produced by RANDOM on T;
+(ii) the length of the longest subsequence of a random
+permutation such that, for all k, the k th element of the
+subsequence is greater than or equal to k. Thus, as a
+byproduct of Lemma 16 we obtain the interesting combinatorial result that the expectation of this latter random
+
+[Ku] T. G. Kurtz, "Solutions of Ordinary Differential
+Equations as Limits of Pure Jump Markov Processes',
+Journal of Applied Probability, vol. 7, 1970, pp. 49-58.
+[MaMcSI] M. Manasse, L.A. McGeoch, D. Sleator,
+"Competitive Algorithms for Online Problems', STOC
+1988, pp.322-333.
+[S1,Ta] D. Sleator, R.E. Tarjan, "Amortized Efficiency of
+List Update and Paging Rules', Comm. ACM, vol. 28,
+
+, i
+
+variable is n (1---I)+o (n).
+e
+
+1985, pp. 202-208.
+
+2). It is easy to show that the expected size of matching
+produced by RANDOM and RANKING is the same on
+T. So, proving the conjecture that T is the worst matrix
+for RANKING together with Lemmas 13 and 14 will
+show that RANKING is the best possible on-line bipartite
+matching algorithm.
+
+[Ya] A.C. Yao, "Probabilistic Computations: Towards a
+Unified Measure of Complexity', FOCS 1977, pp. 222227.
+
+4. Open Questions:
+1. Is the complete upper-triangular matrix the worst-case
+input for RANKING?
+2. Is RANKING an optimal on-line matching algorithm in
+the non-bipartite case?
+
+Acknowledgements:
+We would like to acknowledge helpful discussions with
+Rajeev Motwani.
+
+References:
+[BeBoKaTaWi] S. Ben-David, A. Borodin, R. Karp, G.
+Tardos, A. Wigderson, "On the Power of Randomization
+in On-Line Algorithms', STOC 1990.
+[CoGaJo] E. G. Coffman, M. R. Garey, D. S. Johnson,
+'Dynamic Bin Packing', SIAM J. comput., vol 12, 1983,
+pp. 227-258.
+[Gy,Le] A. Gyarfas, J. Lehel, 'Online and First Fit Colorings of Graphs', J. Graph theory, Vol. 12, No. 2, pp. 217227, 1988.
+
+358
+
+

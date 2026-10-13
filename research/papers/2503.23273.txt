@@ -1,0 +1,804 @@
+Improved algorithms for single machine
+serial-batch scheduling to minimize makespan and
+maximum cost
+
+arXiv:2503.23273v1 [cs.DS] 30 Mar 2025
+
+Shuguang Li1*, Zhenxin Wen1 and Jing Wei1
+1 School of Computer Science and Technology, Shandong Technology and
+
+Business University, Yantai, 264005, China.
+*Corresponding author(s). E-mail(s): sgliytu@hotmail.com;
+Contributing authors: 2023420176@sdtbu.edu.cn;
+2023420185@sdtbu.edu.cn;
+Abstract
+This paper studies the bicriteria problem of scheduling n jobs on a serial-batch
+machine to minimize makespan and maximum cost simultaneously. A serial-batch
+machine can process up to b jobs as a batch, where b is known as the batch
+capacity. When a new batch starts, a constant setup time is required for the
+machine. Within each batch, the jobs are processed sequentially, and thus the
+processing time of a batch equals the sum of the processing times of its jobs. All
+the jobs in a batch have the same completion time, namely, the completion time
+of the batch. The main result is an O(n3 )-time algorithm which can generate
+all Pareto optimal points for the bounded model (b < n) without precedence
+relation. The algorithm can be modified to solve the unbounded model (b ≥
+n) with strict precedence relation in O(n3 ) time as well. The results improve
+the previously best known running time of O(n4 ) for both the bounded and
+unbounded models.
+Keywords: Scheduling, Pareto optimization, serial-batch, makespan, maximum cost
+MSC Classification: 90B35 , 68Q25
+
+1
+
+1 Introduction
+Let a set of n jobs J = {J1 , J2 , . . . , Jn } and a serial-batch machine be given. Each
+job Jj becomes available for processing at time zero, and has a processing time pj and
+a due date dj which indicates a preferred completion time. The jobs are processed
+in batches on the serial-batch machine. When a new batch starts, a constant setup
+time s is required for the machine. Jobs within each batch are processed sequentially
+so that the processing time of a batch equals the sum of the processing times of all
+jobs in the batch. All the jobs in a batch have the same completion time, namely, the
+completion time of the batch.
+The serial-batch machine can process up to b jobs as a batch, where b is known as
+the batch capacity. There are two models in the literature with respect to the batch
+capacity b: the bounded model and the unbounded model, for which b < n and b ≥ n,
+respectively.
+A schedule specifies a partition of the jobs into batches and the start times of the
+batches. The order of jobs within a batch is immaterial due to the definition of the job
+completion times. For a given schedule σ, let Cj (σ) and Lj (σ) = Cj (σ)− dj denote the
+completion time and lateness of job Jj in σ, respectively. Let Cmax (σ) = maxj Cj (σ)
+and Lmax (σ) = maxj Lj (σ) denote the maximum completion time (makespan) and
+maximum lateness of all jobs in σ, respectively. We omit the argument σ when it is
+clear to which schedule we are referring.
+The maximum lateness can be generalized to maximum cost fmax (σ) =
+maxj fj (Cj (σ)), where fj (Cj (σ)) is the cost associated with job Jj . It is assumed that
+all the cost functions are regular (non-decreasing in the completion times of the jobs),
+and the values of fj (t) for every given time t ≥ 0 can be calculated in constant time.
+In addition, there may be a precedence relation imposed on the jobs. Two types
+of precedence relation are involved: (1) strict precedence relation (≺): if Ji ≺ Jj , then
+Ci (σ) ≤ Sj (σ) in a feasible schedule σ; (2) weak precedence relation (): if Ji  Jj ,
+then Si (σ) ≤ Sj (σ) in a feasible schedule σ.
+In this paper, we study the problems of scheduling jobs, without or with precedence relations, on a serial-batch machine so as to simultaneously optimize makespan
+Cmax and maximum cost fmax . The problems fall under the category of Pareto optimization scheduling (Hoogeveen, 2005; T’Kindt and Billaut, 2006). A feasible schedule
+σ is Pareto optimal with respect to Cmax and fmax if there is no feasible schedule
+σ ′ such that Cmax (σ ′ ) ≤ Cmax (σ) and fmax (σ ′ ) ≤ fmax (σ), where at least one of
+the inequalities is strict. The objective vector (Cmax (σ), fmax (σ)) is called a Pareto
+optimal point. Following the notation scheme of T’Kindt and Billaut (2006), the problems under consideration can be denoted as 1|s − batch, b < n|(Cmax , fmax ), 1| 
+, s−batch, b ≥ n|(Cmax , fmax ) and 1| ≺, s−batch, b ≥ n|(Cmax , fmax ), where “s−batch”
+stands for the serial-batch scheduling, “b < n” (“b ≥ n”) means that the batch
+capacity is bounded (unbounded), “” (“≺”) stands for the weak (strict) precedence
+relation, and the objective “(Cmax , fmax )” represents the simultaneous optimization
+for criteria Cmax and fmax . Note that if jobs have different release dates, then both
+1|rj |Lmax (b = 1, minimizing maximum lateness) and 1|s − batch, b ≥ n, rj |Lmax
+(without precedence relation, minimizing maximum lateness) are NP-hard problems
+(Brucker, 2007; Lenstra et al., 1977).
+2
+
+The main contribution of this paper is an O(n3 )-time algorithm for 1|s − batch, b <
+n|(Cmax , fmax ) which can generate all Pareto optimal points and find a corresponding
+schedule for each Pareto optimal point. The algorithm can be modified to solve 1| ≺
+, s − batch, b ≥ n|(Cmax , fmax ) in O(n3 ) time as well. The two problems have the
+previously best known running time of O(n4 ) (Geng et al., 2018).
+The paper is organized as follows. In Section 2, the previous related studies are
+reviewed. In Section 3, an O(n3 )-time algorithm for 1|s − batch, b < n|(Cmax , fmax ) is
+presented. In Section 4, an O(n3 )-time algorithm for 1| ≺, s−batch, b ≥ n|(Cmax , fmax )
+is presented. Finally, some concluding remarks are provided in Section 5.
+
+2 Related work
+In the last two decades, serial-batch scheduling problems have been widely investigated
+(Geng et al., 2018; Baptiste, 2000; Cheng and Kovalyov, 2001; Yuan et al., 2004; Ng
+et al., 2002; Webster and Baker, 1995; He et al., 2008, 2013, 2015). Along with other
+results, Baptiste (2000) presented an O(n14 log n)-time algorithm for 1|s − batch, b ≥
+n, rj , pj = p|Lmax and 1|s − batch, b < n, rj , pj = p|Lmax (jobs have different release
+dates and equal processing times). Cheng and Kovalyov (2001) studied serial batch
+scheduling problems for minimizing some regular cost functions. When the jobs have
+equal release dates, they presented dynamic programming algorithms for minimizing
+the maximum lateness, the number of late jobs, the total tardiness, the total weighted
+completion time, and the total weighted tardiness when all due dates are equal, which
+are polynomial if there is a fixed number of distinct due dates or processing times.
+They also derived more efficient algorithms for some special cases, and proved the
+NP-hardness of several special cases of the bounded model.
+By appropriately modifying the release dates and due dates, problems 1| , s −
+batch, b ≥ n, rj , pj = p|Lmax (weak precedence relation) and 1| , s − batch, b ≥
+n|Lmax ( jobs have different processing times and equal release dates) can be reduced
+in O(n2 ) time to 1|s − batch, b ≥ n, rj , pj = p|Lmax and 1|s − batch, b ≥ n|Lmax (Yuan
+et al., 2004; Ng et al., 2002), and the latter problems can be solved in O(n14 log n)
+and O(n2 ) time, respectively (Baptiste, 2000; Webster and Baker, 1995).
+He et al. (2008) presented an O(n2 )-time algorithm for 1|s − batch, b ≥
+n|(Cmax , Lmax ). Later, the result has been extended to an O(n5 )-time algorithm for
+1|s − batch, b ≥ n|(Cmax , fmax ) (He et al., 2013). He et al. (2015) obtained an O(n6 )time algorithm for 1|s − batch, b < n|(Cmax , Lmax ). Geng et al. (2018) presented
+O(n4 )-time algorithms for the problems studied in this paper, i.e., 1|s − batch, b <
+n|(Cmax , fmax ) and 1| ≺, s − batch, b ≥ n|(Cmax , fmax ). They also gave an O(n2 )time algorithm for 1| , s − batch, b ≥ n|(Cmax , Lmax ), and proved that problems
+1| , s − batch, b = 2|Lmax and 1| ≺, s − batch, b = 2|Lmax are strongly NP-hard.
+
+3 The bounded case
+In this section we will present an O(n3 )-time algorithm for 1|s − batch, b <
+n|(Cmax , fmax ). As a by-product, the last schedule constructed by the algorithm is
+optimal for 1|s − batch, b < n|fmax .
+
+3
+
+P
+For a batch Bi , let p(Bi ) denote the processing time of Bi , i.e., p(Bi ) = Jj ∈Bi pj .
+Let S(Bi ) and C(Bi ) denote the start time and completion time of batch Bi , respectively. We have: C(Bi ) = S(Bi ) + p(Bi ). To coincide with the definition of CSF (which
+will be defined later), we allow empty batches to appear in a schedule. The setup time
+and processing time of an empty batch are zero. Let s(Bi ) denote the setup time of
+batch Bi , which is s if Bi is nonempty, and 0 otherwise.
+For a feasible schedule, we index its batches left-to-right (earliest-to-latest) as
+B1 , B2 , . . . , Bn , where the last l batches Bn−l+1 , Bn−l+2 , . . . , Bn are nonempty and
+form a partition of J , and the first n − l batches B1 , B2 , . . . , Bn−l are empty. Since
+both criteria Cmax and fmax are regular, we can consider only the schedules without
+idle times. Therefore, we have:
+Lemma 1. In a feasible schedule σ = (B1 , B2 , . . . , Bn ), S(B1 ) = s(B1 ), S(Bi ) =
+C(Bi−1 ) + s(Bi ), i = 2, . . . , n.
+The following definition generalizes the idea used in (Lazarev et al., 2017) for
+1|rj , pj = p|(Cmax , Lmax ) (the classical scheduling problem where the machine can
+process at most one job at a time), which plays a key role in our algorithm.
+A family of (possibly empty) sets F = {J1 , J2 , . . . , Jn } is called a Candidate Set
+Family (CSF for short) if these sets are disjoint, their union is J , and for i = 1, 2, . . . , n,
+Ji consists of the jobs which cannot be assigned to any batch whose index is larger
+than i.
+The definition captures the idea of maintaining implicitly a position indicator for
+each job in the algorithm. The initial CSF is {∅, ∅, . . . , J }, meaning that the jobs can
+be assigned to any batches. Let us fix a particular iteration in the algorithm, a batch
+and a job in this batch. We check an inequality to find whether this job is suitable
+for the batch. If the inequality does not hold, then we have to move this job from
+the batch into another one to its left and update the CSF accordingly. We will prove
+that during the iterations the completion time of any batch will not decrease, which
+implies that any job can only be moved to the left (a crucial observation in the time
+complexity analysis). Therefore, when a job is accommodated into component Ji of
+the current CSF, we know that this job cannot be assigned to any batch whose index
+is larger than i.
+Pi
+Obviously, we require that h=1 |Jh | ≤ i · b, i = 1, 2, . . . , n. We say that a feasible schedule (B1 , B2 , . . . , Bn ) satisfies a given CSF F = S
+{J1 , J2 , . . . , Jn } if (1) for
+n
+i = n, n − 1, . . . , 1, all the jobs in batch Bi come from h=i Jh ; and (2) batches
+Bk , Bk+1 , . . . , Bn are all nonempty, where Bk is the first (the earliest) nonempty batch
+in (B1 , B2 , . . . , Bn ). Equivalently speaking, each job in Ji must be processed in a batch
+which is earlier than at least n−i nonempty batches in the schedule, i = n, n−1, . . . , 1.
+Let Π (J ) denote the set of all feasible schedules for J . Let Π (J , F, y) ⊆ Π (J )
+denote the set of the schedules which
+ satisfy CSF F and have maximum cost less than
+y. Clearly, we have Π J , F 0 , +∞ = Π (J ), where F 0 = {∅, ∅, . . . , J }.
+We first give an O(n3 log n)-time algorithm for the following auxiliary problem, and
+then improve its time complexity to O(n3 ). The improved algorithm will be used as a
+central subroutine in the main procedure for solving 1|s − batch, b < n|(Cmax , fmax ).
+Auxiliary Problem: Find a schedule σ in Π (J , F, y) with minimum makespan.
+
+4
+
+Algorithm 1 (Algorithm Aux1)
+Step 1. Initially, set m = 0. Let F m = {J1m , J2m , . . . , Jnm }, where Jim = Ji and
+the jobs in Jim are stored in a Max-heap ordered by processing times, i = 1, 2, . . . , n.
+Step 2. Form the batches of schedule σ m : For i = n,
+Snn − 1, . . .S, n1 (this ordering
+is used crucially), let batch Bim consist of the min{b, | h=i Jhm \ g=i+1 Bgm |} jobs
+Sn
+Sn
+with largest processing times in h=i Jhm \ g=i+1 Bgm . If Bim = ∅ but there is
+Jem 6= ∅ with e < i, then return ∅.
+m
+Step 3. Schedule the batches in σ m : Let S(B1m ) = s(B1m ), S(Bim ) = C(Bi−1
+)+
+s(Bim ), i = 2, . . . , n.
+Step 4. Adjust F m : For i = n, n − 1, . . . , 1, check the inequality fj (C(Bim )) < y
+for each job Jj in Bim . If the inequality does not hold, then find the largest index
+k such that fj (C(Bkm )) < y. Delete Jj from its original set in F m and insert it in
+Jkm . If k does not exist, then return ∅.
+Step 5. If no adjustment has been done for F m after Step 4 (i.e., for all pairs i, j the
+Pi
+inequality is correct), then return σ m . Otherwise, check the condition h=1 |Jhm | ≤
+i · b for i = 1, 2, . . . , n. If for any i the condition does not hold, then return ∅.
+Otherwise, let F m+1 = F m (F m has been adjusted already) and then set m = m+1.
+Go to the next iteration (Step 2).
+In Step 1 of Algorithm AUX1, we use a Max-heap to store the jobs in Jim , i =
+1, 2, . . . , n. These jobs are ordered by their processing times. A heap data structure
+is an array object which can be viewed as a nearly complete binary tree (Cormen et
+al., 2009). The tree is completely filled on all levels except possibly the lowest, which
+is filled from the left up to a point. In a Max-heap, the value of any tree node is at
+most the value of its parent. Thus, the largest element is stored at the root. The Maxheap (with τ elements) data structure is equipped with several basic procedures: (1)
+MAX-HEAPIFY, running in O(log τ ) time, is the key to maintaining the Max-heap
+property; (2) BUILD-MAX-HEAP, running in O(τ ) time, produces a Max-heap from
+an unordered input array; (3) MAX-HEAP-INSERT, running in O(log τ ) time, inserts
+an element into the Max-heap; (4) MAX-HEAP-EXTRACT, running in O(log τ ) time,
+gets the maximum element and delete it from the Max-heap.
+Step 1 of AUX1 can be implemented in O(n) time (BUILD-MAX-HEAP). Step
+2 can be implemented in O(n log n) time in each iteration (MAX-HEAPIFY, MAXHEAP-INSERT and MAX-HEAP-EXTRACT). Steps 3 and 5 require O(n) time in
+each iteration.
+In Step 4, each job deletion (can be accomplished via MAX-HEAPIFY) or insertion
+(MAX-HEAP-INSERT) requires O(log n) time. Since there are n jobs and each job
+goes through at
+Pmost n − 1 sets (from Jn to J1 ), the total number of job deletion and
+insertion is O( i |Ji |) = O(n2 ), and the total number of iterations is O(n2 ). Checking
+the inequalities for all jobs in one iteration requires O(n) time. Hence, the complexity
+contribution of Step 4 for all iterations is O(n3 ).
+The overall running time of Algorithm AUX1 is O(n3 log n), which is determined
+by Step 2 for all iterations.
+
+5
+
+Lemma 2. Let σ m = (B1m , B2m , . . . , Bnm ) be the schedule obtained at iteration
+m (m = 0, 1, . . .) of Algorithm AUX1 subject to F m , where the last lm batches
+m
+m
+Bn−l
+, Bn−l
+, . . . , Bnm are nonempty. Let σ = (B1 , B2 , . . . , Bn ) be any feasible
+m +1
+m +2
+schedule subject to F m , where the last l batches Bn−l+1 , Bn−l+2 , . . . , Bn are nonempty.
+Then the following properties hold:
+(1) lm ≤ l, i.e., σ m has the minimum number of nonempty batches among all the
+feasible schedules subject to F m ;
+(2) S(Bim ) ≤ S(Bi ), i = 1, 2, . . . , n;
+(3) C(Bim ) ≤ C(Bi ), i = 1, 2, . . . , n;
+(4) Cmax (σ m ) ≤ Cmax (σ), i.e., σ m has the minimum makespan among all the
+feasible schedules subject to F m .
+Proof. We will show a transformation of σ into σ m . To prove the lemma, we ensure
+that the start time and completion time of any batch will not increase during the
+transformation.
+Algorithm AUX1 forms the batches of schedule σ m backwards (i.e., from highernumbered batches to lower-numbered batches), in a greedy manner such that each
+batch consists of as many as possible of the available jobs with largest processing
+times. We will compare the batches Bim and Bi in schedules σ m and σ, and modify
+′
+′
+Bi accordingly to get Bi such that Bi = Bim , i = n, n − 1, . . . , 1.
+We first compare Bnm and Bn . Note that |Bnm | ≥ |Bn |. Let Am
+n denote the set of the
+|Bn | jobs with largest processing times in Bnm . Let Jj be one of the jobs in Am
+n \Bn . In
+.
+Obviously,
+we have:
+σ, Jj is in an earlier batch than Bn . Let Jj ′ be a job in Bn \Am
+n
+pj ≥ pj ′ . We exchange Jj and Jj ′ in σ. Note that in σ the start time and completion
+time of any batch will not increase. Repeat the operation until all the jobs in Bn are
+the jobs in Bnm \Am
+replaced by the jobs in Am
+n from other batches in
+n . We then move
+′
+σ into modified Bn . Thereby, we get Bn = Bnm . The obtained schedule still satisfies
+F m because all the jobs in Bn and Bnm belong to Jn .
+′
+Now suppose that for i = n, n − 1, . . . , k + 1 (1 ≤ k ≤ n − 1) we have Bi = Bim ,
+and no batch starts or completes later during the transformation. (At this point,
+although the batches B1 , B2 , · · · , Bk may also have been changed, we will not change
+the notations for these batches.) Note that |Bkm | ≥ |Bk |. Let Am
+k denote the set of the
+|Bk | jobs with largest processing times in Bkm . Let Jj be one of the jobs in Am
+k \Bk . In
+.
+We
+have:
+p
+≥
+pj ′ . We
+σ, Jj is in an earlier batch than Bk . Let Jj ′ be a job in Bk \Am
+j
+k
+exchange Jj and Jj ′ in σ. Repeat the operation until all the jobs in Bk are replaced
+m
+m
+by the jobs in Am
+k . We then move the jobs in Bk \Ak from other batches in σ into
+m
+′
+m
+modified Bk . Thereby, we get B k = Bk . The
+Snobtained schedule still satisfies F
+m
+because all the jobs in Bk and Bk belong to h=k Jh . Since we always exchange a
+longer job in an earlier batch with a shorter job (possibly with processing time zero)
+in a later batch, the start time and completion time of any batch will not increase
+during the transformation. Using Lemma 1, it is easily checked that properties (1)
+through (4) hold.
+Lemmas 3 and 5 below and their proofs are adapted from (Lazarev et al., 2017)
+for the serial-batch setting.
+
+6
+
+Lemma 3. For
+m = 1, 2, . . ., Algorithm AUX1 ensures that Π (J , F m , y) =
+
+Π J , F m−1 , y .
+
+Proof. Obviously, we have
+Π (J , F m , y) ⊆ Π J , F m−1 , y . Thus, it is sufficient to
+
+prove that Π J , F m−1 , y ⊆ Π (J , F m , y).
+
+Let σ ∈ Π J , F m−1 , y . Let Jim−1 ∈ F m−1 and Jim ∈ F m with Jj ∈
+Sn
+m−1
+m−1 m−1
+but Jj ∈ Jim . Then we have: fj (C(Bi+1
+(σ
+))) ≥ y. By Lemma
+h=i+1 Jh
+m−1
+m−1 m−1
+2, we have: fj (C(Bi+1
+(σ))) ≥ fj (C(Bi+1
+(σ
+))) ≥ y, which means that
+in σ job Jj cannot be assigned to a batch whose index is larger than i, and
+m−1
+m−1
+Bi+1
+(σ), Bi+2
+(σ), . . . , Bnm−1 (σ) are all nonempty batches. It follows that σ ∈
+Π (J , F m , y).
+Combining Lemmas 2 and 3, we get the following theorem, which shows that
+Algorithm AUX1 solves the Auxiliary Problem.
+Theorem 4. Let σ last be the schedule obtained at the last iteration of Algorithm
+AUX1. If σ last = ∅, then Π (J , F, y) = ∅; Otherwise σ last is a schedule which has
+minimum makespan among all schedules in Π (J , F, y).
+Next, we give an improved algorithm for solving the auxiliary problem. The idea is
+motivated from (Koehler and Khuller, 2013), which solved a parallel batch scheduling
+problem on parallel machines where jobs have release dates, deadlines, and identical
+processing times. (In parallel batch scheduling setting, jobs within each batch are
+processed in parallel so that the processing time of a batch equals the largest processing
+time of all jobs in the batch.)
+The difference between Algorithms AUX1 and IMPROAUX1 is that IMPROAUX1
+runs Step 2 only once (for forming the batches of σ 0 ). For m > 0, σ m is constructed by
+adjusting σ m−1 . In fact, σ m can be obtained by running Step 2 for F m (with a higher
+time complexity). The correctness of IMPROAUX1 follows. Step 4 of IMPROAUX1
+requires O(n) time for adjusting an inequality violation. Since there are O(n2 ) such
+adjustments, the overall running time of Algorithm IMPROAUX1 is O(n3 ).
+Note that Lemma 2, Lemma 3 and Theorem 4 still hold for Algorithm
+IMPROAUX1.
+Now, we are ready to describe the main algorithm for constructing the Pareto set
+Ω(J ) for 1|s − batch, b < n|(Cmax , fmax ).
+Lemma 5.  For u = 0, 1, . . ., Algorithm MAIN1 ensures that Π (J , F u , y u ) =
+Π J , F 0 , y u , where F 0 = {∅, ∅, . . . , J } and y 0 = +∞.
+Proof. At the first iteration of Algorithm MAIN1,
+σ1 and F 1 were obtained. By
+
+Lemma 3, we have: Π J , F 1 ,y 0 = Π J , F 0 , y 0 . Since y 1 = fmax(σ1 ) < y 0 , we have:
+
+Π J , F 1 , y 1  = Π J , F 0 , y 1 . By Lemma3, we get: Π J , F 2 , y 1 = Π J , F 1 , y 1 =
+Π J , F 0 , y 1 . Hence we get: Π J , F 2 , y 2 = Π J , F 0 , y2 . Repeating the argument
+for all iterations we obtain Π (J , F u , y u ) = Π J , F 0 , y u , u = 0, 1, . . ..
+The proof of the following theorem applies a generic approach of Pareto optimization scheduling. Please refer to (Hoogeveen, 2005; He et al., 2014; Geng and Yuan,
+2015) for more detailed illustrations.
+7
+
+Algorithm 2 (Algorithm IMPROAUX1)
+Step 1. Initially, set m = 0. Let F m = {J1m , J2m , . . . , Jnm }, where Jim = Ji ,
+i = 1, 2, . . . , n.
+Step 2. The same as Step 2 of Algorithm AUX1.
+Step 3. The same as Step 3 of Algorithm AUX1.
+Step 4. Adjust F m and σ m : For i = n, n − 1, . . . , 1, check the inequality
+fj (C(Bim )) < y for each job Jj in Bim . If the inequality does not hold, delete Jj from
+m
+its original set in F m and insert it in Ji−1
+. Then, adjust σ m as follows. Remove Jj
+S
+i−1
+from Bim . Let E(Bim ) = {j ′ |j ′ ∈ g=1 Bgm ∧ fj ′ (C(Bim )) < y}. We distinguish two
+different cases:
+Case 1. E(Bim ) = ∅.
+If the modified Bim (some jobs may have been removed from Bim ) becomes
+m
+m
+empty, then return ∅. Otherwise, if Bi−1
+, Bi−2
+, . . . , B1m are all full batches, then
+return ∅; else find the largest index e ≤ i − 1 such that |Bem | < b. The adjustment
+m
+of σ m moves right-to-left over consecutive batches, starting from Bi−1
+and ending
+m
+m
+by Be . Let Bc denote the current batch. Let Jr denote the current job, initially
+Jj . If c > e, let Jz denote the job with the smallest processing time in Bcm ∪ {Jr }.
+m
+Update Bcm to be Bcm ∪ {Jr }\{Jz }. Continue with batch Bc−1
+and job Jz . If c = e,
+m
+simply put Jr into Bc .
+Case 2. E(Bim ) 6= ∅.
+Pick the job in E(Bim ) with the largest processing time, say Jx . Remove Jx
+from its current batch Bem (e < i) and put it into Bim . It is easy to check that e is
+the largest index such that e ≤ i − 1 and |Bem | < b. The adjustment of σ m moves
+m
+right-to-left over consecutive batches, starting from Bi−1
+and ending by Bem , in the
+same way as described in Case 1.
+Step 5. If no adjustment has been done for F m after Step 4, then return σ m .
+Otherwise, let F m+1 = F m , σ m+1 = σ m (F m and σ m have been adjusted already)
+and then set m = m + 1. Go to Step 3.
+Theorem 6. Algorithm MAIN1 solves 1|s − batch, b < n|(Cmax , fmax ) in O(n3 ) time.
+Consequently, problem 1|s − batch, b < n|fmax can also be solved in O(n3 ) time.
+Proof. Note that
+with minimum makespan among all schedules
+ σi+1 is the schedule
+
+in Π J , F i , y i = Π J , F 0 , y i , and y i+1 = fmax (σi+1 ), i = 0, 1, . . ..
+Let Ω(J ) = {(Cmax (πk ), fmax (πk ), πk ) : k = 1, 2, . . . , l} be the set returned by
+Algorithm MAIN1. We have: Cmax (π1 ) < Cmax (π2 ) < · · · < Cmax (πl ), fmax (π1 ) >
+fmax (π2 ) > · · · > fmax (πl ).
+Let π be a Pareto optimal schedule for 1|s − batch, b < n|(Cmax , fmax ) whose
+objective vector is (Cmax (π), fmax (π)).
+If fmax (π) ≥ fmax (π1 ), since fmax (π) < +∞ and π1 is optimal for 1|s − batch, b <
+n, fmax < +∞|Cmax , we have Cmax (π) ≥ Cmax (π1 ). Therefore, (Cmax (π), fmax (π))
+cannot be a Pareto optimal point unless (Cmax (π), fmax (π)) = (Cmax (π1 ), fmax (π1 )).
+If fmax (πk ) > fmax (π) ≥ fmax (πk+1 ) (1 ≤ k < l), since πk+1 is optimal for
+1|s − batch, b < n, fmax < fmax (πk )|Cmax , we have Cmax (π) ≥ Cmax (πk+1 ). Therefore,
+
+8
+
+Algorithm 3 (Algorithm MAIN1)
+Step 1. Initially, set u = 0, y u = +∞ and σu = ∅. Let F u = {J1u , J2u , . . . , Jnu },
+where Jnu = J and Jiu = ∅ for i = 1, 2, . . . , n − 1. Let Ω(J ) = ∅, k = 0.
+Step 2. If u = 0, run Algorithm IMPROAUX1 to get a schedule σu+1 with minimum
+makespan among all schedules in Π (J , F u , y u ). If u > 0, starting with σu from
+Step 3 of IMPROAUX1, run IMPROAUX1 to get a schedule σu+1 with minimum
+makespan among all schedules in Π (J , F u , y u ). (That is, during the entire run of
+Algorithm MAIN1, Step 2 of IMPROAUX1 is executed only once. For u > 0, σu+1
+is constructed by adjusting a series of tentative schedules, starting with σu from
+Step 3 of IMPROAUX1.) Let upon the completion of Algorithm IMPROAUX1
+F u+1 = {J1u+1 , J2u+1 , . . . , Jnu+1 } be obtained.
+Step 3. If σu+1 6= ∅, then:
+(i) Set π ∗ (J ) = σu+1 and y u+1 = fmax (σu+1 ).
+(ii) If Cmax (σu ) < Cmax (σu+1 ) and u > 0, then set k = k + 1 and πk = σu .
+Include (Cmax (πk ), fmax (πk ), πk ) into Ω(J ).
+(iii) Set u = u + 1. Go to the next iteration (Step 2).
+Step 4. If σu+1 = ∅, then set k = k + 1 and πk = σu . Include
+(Cmax (πk ), fmax (πk ), πk ) into Ω(J ) and return {Ω(J ), π ∗ (J )}.
+(Cmax (π), fmax (π)) cannot be a Pareto optimal point unless (Cmax (π), fmax (π)) =
+(Cmax (πk+1 ), fmax (πk+1 )).
+If fmax (π) < fmax (πl ), then π does not exist.
+The above analysis shows that Ω(J ) consists of all Pareto optimal points together
+with the corresponding schedules.
+At the last iteration of Algorithm
+MAIN1, we get σu+1 = ∅, which means that
+
+Π (J , F u , y u ) = Π J , F 0 , y u = ∅ (by Lemma 5). That is, there is no feasible schedule
+with maximum cost lower than y u . Thus, π ∗ (J ) = σu is optimal for single criterion
+fmax .
+Similarly to the analysis of time complexity of Algorithm IMPROAUX1, we know
+that the overall running time of Algorithm MAIN1 is O(n3 ).
+In this section, we present experimental results of our 1|s − batch, b <
+n|(Cmax , fmax ) algorithm. The algorithm, implemented in PyCharm, was tested on
+randomly generated instances. We varied key factors. In each experiment, we assign
+a different number of jobs(J ∈ {10, 100}), randomly generate processing times and
+deadlines for each jobs, and provide an appropriate batch capacity based on the number of jobs. The processing times uniformly distributed as integers with p ∈ {40, 60}.
+The deadlines times uniformly distributed as integers with d ∈ {60, 90}.The average
+and maximum running times of Algorithm in the paper is showed in Table 1.
+For this problem, a research method with a time complexity of O(n4 ) was proposed
+in previous studies. In this section, we compare two methods. By allocating jobs of
+different orders of magnitude and randomly generating the processing time of each job
+while keeping the range of the deadline consistent. Table 2 presents the average and
+maximum running times of the previous original algorithm.
+
+9
+
+Table 1
+number
+
+Average-time(s)
+
+Max-time(s)
+
+10
+20
+30
+40
+50
+60
+70
+80
+90
+100
+
+1.2922E-04
+3.1762E-04
+5.4915E-04
+8.6671E-04
+1.2306E-03
+1.6678E-03
+2.1799E-03
+2.7600E-03
+3.3715E-03
+4.0715E-03
+
+2.3246E-04
+7.5841E-04
+7.5346E-04
+1.1714E-03
+1.2851E-03
+2.4214E-03
+2.2566E-03
+4.9174E-03
+3.4635E-03
+4.1931E-03
+
+number
+
+Average-time(s)
+
+Max-time(s)
+
+10
+20
+30
+40
+50
+60
+70
+80
+90
+100
+
+8.6974E-04
+1.7994E-03
+2.8178E-03
+3.9610E-03
+5.0637E-03
+6.1722E-03
+7.4670E-03
+8.8014E-03
+1.0215E-02
+1.1952E-02
+
+9.0196E-04
+1.8218E-03
+4.5974E-03
+8.0907E-03
+8.0278E-03
+6.2468E-03
+9.6190E-03
+1.0946E-02
+1.2403E-02
+2.6776E-02
+
+Table 2
+
+In order to deeply analyze the operational performance of the algorithm, we utilize
+the visualization tool of line charts to visually present the differences between the
+average and maximum running times of the algorithm. By fitting the data points of
+the average and maximum running times under different job scales and drawing line
+charts, we can clearly demonstrate the trends of changes with the job scale and the
+differences between them.
+
+10
+
+2
+
+·10−2
+
+Comparison of Average and Max Times
+
+Time (s)
+
+MAIN1 Average Time
+Algorithm PO Average Time
+
+1
+
+0
+
+10
+
+20
+
+30
+
+40 50 60 70
+Number of Jobs
+
+80
+
+90 100
+
+4 The unbounded case with strict precedence
+relation
+In this section we will modify the algorithm developed in the preceding section to solve
+1| ≺, s − batch, b ≥ n|(Cmax , fmax ). As a by-product, the last schedule constructed by
+the modified algorithm is optimal for 1| ≺, s − batch, b ≥ n|fmax .
+Without causing confusion, we can re-use some notations and terminologies defined
+in the preceding section, such as S(Bi ), C(Bi ), Candidate Set Family (CSF) F =
+{J1 , J2 , . . . , Jn }, Π (J , F, y), to name a few. In addition, let O(j, F ) denote the ordinal
+number of job Jj in CSF F , i.e., O(j, F ) = i means that Jj ∈ Ji in F . Note that
+Lemma 1 still holds for 1| ≺, s − batch, b ≥ n|(Cmax , fmax ).
+Precedence relation on J can be represented as a graph G =< V, E >, where V
+consists of all the jobs in J , and E consists of all the edges < Jp , Jj > if Jp ≺ Jj and
+there is no Jk such that Jp ≺ Jk ≺ Jj . To determine the set of direct predecessors
+for each job, we purposely use the inverse adjacency list representation of G. For each
+job Jj , its inverse adjacency list contains all the jobs Jp such that there is an edge
+< Jp , Jj >∈ E.
+There is an natural initial CSF F 0 = {J10S
+, J20 , . . . , Jn0 }, where Ji0 consists of all
+n
+the vertices whose out-degrees are zero in G\ h=i+1 Jh0 , i = n, n − 1, . . . , 1. Clearly,
+0
+F obeys the precedence relation and can be constructed from G in O(n2 ) time.
+We first modify Algorithm AUX1 to solve the following auxiliary problem for the
+unbounded model with strict precedence relation.
+Auxiliary Problem: Find a schedule σ in Π (J , F, y) with minimum makespan.
+
+11
+
+Algorithm 4 (Algorithm Aux2)
+Step 1. Initially, set m = 0. Let F m = {J1m , J2m , . . . , Jnm }, where Jim = Ji ,
+i = 1, 2, . . . , n. Determine O(j, F m ) for job Jj , j = 1, 2, . . . , n.
+Step 2. Form the batches of schedule σ m : For i = n, n − 1, . . . , 1, let batch Bim =
+Jim .
+m
+Step 3. Schedule the batches in σ m : Let S(B1m ) = s(B1m ), S(Bim ) = C(Bi−1
+)+
+m
+s(Bi ), i = 2, . . . , n.
+Step 4. Adjust F m : We handle the batches in σ m in decreasing order of their
+indices and modify the components of F m accordingly. Batch Bim is handled after
+m
+m
+all the batches Bnm , Bn−1
+, . . . , Bi+1
+have already been handled. It is possible that the
+ordinal numbers of some jobs in the lower-numbered components of F m may have
+been modified when a higher-numbered batch in σ m is handled. Suppose that we
+are handling batch Bim (i = n, n − 1, . . . , 1). Check the inequality fj (C(Bim )) < y
+for each job Jj in Bim . If the inequality holds, then k1 = i; Otherwise let k1 be
+the largest index such that fj (C(Bkm )) < y. If k1 does not exist (i.e., fj (C(B1m )) ≥
+1
+y), then return ∅; otherwise update the ordinal number of Jj in F m to be k =
+min{k1 , O(j, F m )}. If k = i, then Jj will not be moved (i.e., Jj is still in Jim ).
+Otherwise, delete Jj from Jim in F m and insert it in Jkm . For the latter case (i.e.,
+k < i), if Jim becomes empty then return ∅; otherwise we further check the inverse
+adjacency list of Jj . For each job Jp in this list, update its ordinal number in F m
+to be min{k − 1, O(p, F m )} (but Jp is not moved yet).
+Step 5. If no adjustment has been done for F m after Step 4 (i.e., for all pairs i, j
+the inequality is correct), then return σ m . Otherwise, let F m+1 = F m (F m has been
+adjusted already) and then set m = m + 1. Go to the next iteration (Step 2).
+Step 1 can be implemented in O(n) time. Steps 2, 3 and 5 require O(n) time
+in each iteration. Since there are at most O(n2 ) iterations, Steps 2, 3 and 5 can be
+implemented in O(n3 ) time for all iterations.
+Let us explain Step 4 a little. If we use adjacency list instead of inverse adjacency
+list, then Step 4 can be implemented easily in O(n2 ) time for each iteration. Suppose
+that we are handling batch Bim . For each job Jj in Bim , we simply update O(j, F m )
+to be k ′ = min{k1 , min<Jj ,Jq >∈E O(q, F m ) − 1}, where k1 is just the one defined in
+Step 4 of Algorithm AUX2. If k ′ < i, delete Jj from Jim in F m and insert it in Jkm′ .
+The implementation is easy to understand, since the ordinal number of any job can
+be modified only once, when the batch containing it is handled. The disadvantage of
+this implementation is that it requires O(n4 ) time for all iterations.
+Instead, we use inverse adjacency list in Step 4, and we distinguish the jobs in
+Bim between moved and unmoved. For the unmoved jobs in Bim , we do nothing again,
+because they will not affect the ordinal numbers of their predecessors. On the other
+hand, for each moved job, we update the ordinal numbers of its direct predecessors in
+F m . Note that any job can be moved at most n − 1 times. Therefore, the complexity
+contribution of Step 4 for all iterations is O(n3 ).
+In a word, the running time of Algorithm AUX2 is O(n3 ).
+Lemma 2, Lemma 3, and Theorem 4 still hold for Algorithm AUX2.
+
+12
+
+We now present the main algorithm for constructing the Pareto set Ω(J ) for
+1| ≺, s − batch, b ≥ n|(Cmax , fmax ).
+Algorithm 5 (Algorithm MAIN2)
+Step 1. Initially, set u = 0, y u = +∞ and σu = ∅. Let F u be just the one defined
+at the beginning of this section (the natural initial CSF F 0 ). Let Ω(J ) = ∅, k = 0.
+Step 2. Run Algorithm AUX2 to get a schedule σu+1 with minimum makespan
+among all schedules in Π (J , F u , y u ). Let upon the completion of Algorithm AUX2
+F u+1 = {J1u+1 , J2u+1 , . . . , Jnu+1 } be obtained.
+Step 3. The same as Step 3 of Main1.
+Step 4. The same as Step 4 of Main1.
+In this section, we present experimental results of our 1| ≺, s − batch, b ≥
+n|(Cmax , fmax ) algorithm. The algorithm, implemented in PyCharm, was tested on
+randomly generated instances. We varied key factors. In each experiment, we assign a
+different number of jobs(J ∈ {10, 100}), randomly generate the processing time, deadline, and priority relationship for each job. The average and maximum running times
+of Algorithm in the paper is showed in Table 2.
+Table 3
+number
+
+Average-time(s)
+
+Max-time(s)
+
+10
+20
+30
+40
+50
+60
+70
+80
+90
+100
+
+1.2894E - 02
+2.8576E - 02
+4.8141E - 02
+6.6872E - 02
+1.6463E - 01
+1.7970E - 01
+2.7272E - 01
+3.7795E - 01
+5.2272E - 01
+6.3204E - 01
+
+3.0905E - 02
+9.443E - 02
+1.8098E - 01
+3.5355E - 01
+8.4042E - 01
+9.982E - 01
+2.0207E + 00
+2.4787E + 00
+3.9724E + 00
+5.0993E + 00
+
+Lemma 5 still holds for Algorithm Main2 and the natural initial CSF F 0 . We then
+get:
+Theorem 7. Algorithm MAIN2 solves 1| ≺, s − batch, b ≥ n|(Cmax , fmax ) in O(n3 )
+time. Consequently, problem 1| ≺, s − batch, b ≥ n|fmax can also be solved in O(n3 )
+time.
+
+5 Conclusions
+In this paper we investigated the bicriteria problem of scheduling jobs on a serial-batch
+machine to minimize makespan and maximum cost simultaneously. We improved the
+earlier results by presenting O(n3 )-time algorithms for the bounded model without
+precedence relation and the unbounded model with strict precedence relation. For
+13
+
+future research, it is interesting to design an algorithm with better time complexity.
+It is also interesting to improve the algorithms presented in (Baptiste, 2000) for the
+problem of scheduling jobs with equal processing times and unequal release dates on
+a serial-batch machine.
+Acknowledgments. This work is supported by Natural Science Foundation of
+Shandong Province China (No. ZR2020MA030).
+
+Declarations
+The authors certify that they have no affiliations with or involvement in any organization or entity with any financial interest or non-financial interest in the subject
+matter or materials discussed in this manuscript.
+
+References
+Brucker, P. (2007). ‘Scheduling algorithms, fifth ed.’. Springer. doi: 10.1007/978-3540-69516-5
+Baptiste, P. (2000). Batching identical jobs. Mathematical Methods of Operations
+Research, 52(3), 355-367. https://doi.org/10.1007/s001860000088
+Cheng, T., Kovalyov, M. Y. (2001). Single machine batch scheduling with sequential
+job processing. IIE Transactions, 33(5), 413-420.
+Cormen, T. H., Leiserson, C. E., Rivest, R. L., Stein, C. (2009) ‘Introduction to
+Algorithms, third Ed.’. MIT press.
+Geng, Z. C., Yuan, J. J. (2015). A note on unbounded parallel-batch scheduling.
+Information Processing Letters, 115(12), 969-974. doi: 10.1016/j.ipl.2015.07.002
+Geng, Z. C., Yuan, J. J., Yuan, J. L. (2018). Scheduling with or without precedence
+relations on a serial-batch machine to minimize makespan and maximum cost.
+Applied Mathematics & Computation, 332, 1-18. doi: 10.1016/j.amc.2018.03.001
+He, C., Lin, Y. X., Yuan, J. J. (2008). Bicriteria scheduling of minimizing maximum
+lateness and makespan on a serial-batching machine. Foundations of Computing &
+Decision Sciences, 33(4), 369-376
+He, C., Lin, H., Lin, Y. X., Tian, J. (2013). Bicriteria scheduling on a series-batching
+machine to minimize maximum cost and makespan. Central European Journal of
+Operations Research, 21(1), 177-186. doi: 10.1007/s10100-011-0220-9
+He, C., Lin, H., Yuan, J. J., Mu, Y. D. (2014). Batching machine scheduling with bicriteria: maximum cost and makespan. Asia-Pacific Journal of Operational Research,
+31(4). https://doi.org/10.1142/S0217595914500250
+
+14
+
+He, C., Lin, H., Lin, Y. X. (2015). Bounded serial-batching scheduling for minimizing maximum lateness and makespan. Discrete Optimization, 16, 70-75. doi:
+10.1016/j.disopt.2015.02.001
+Hoogeveen, H. (2005). Multicriteria scheduling. European Journal of Operational
+Research, 167(3), 592-623. doi: 10.1016/j.ejor.2004.07.011
+Koehler, F., Khuller, S. (2013). Optimal batch schedules for parallel machines. International Conference on Algorithms & Data Structures. https://doi.org/10.1007/9783-642-40104-6 41
+Lazarev, A. A., Arkhipov, D. I., Werner, F. (2017). Scheduling jobs with equal processing times on a single machine: minimizing maximum lateness and makespan.
+Optimization Letters, 11(1), 165-177. doi: 10.1007/s11590-016-1003-y
+Lenstra, J. K., Kan, A. R., Brucker, P. (1977). Complexity of machine scheduling problems. Annals of discrete mathematics, 1, 343-362. doi: 10.1016/S01675060(08)70743-X
+Ng, C. T., Cheng, T., Yuan, J. J. (2002). A note on the single machine serial batching
+scheduling problem to minimize maximum lateness with precedence constraints.
+Operations Research Letters, 30(1), 66-68. doi: 10.1016/S0167-6377(01)00105-5
+T’Kindt, V., Billaut, J. C. (2006). Multicriteria Scheduling: Theory, Models and
+Algorithms. Springer Verlag, Berlin.
+Yuan, J. J., Yang, A. F., Cheng, T. (2004). A note on the single machine serial batching
+scheduling problem to minimize maximum lateness with identical processing times.
+European Journal of Operational Research, 158(2), 525-528. doi: 10.1016/S03772217(03)00361-8
+Webster, S., Baker, K. R. (1995). Scheduling groups of jobs on a single machine.
+Operations Research, 43(4), 692-703.
+
+15
+
+

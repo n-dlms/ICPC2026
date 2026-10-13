@@ -1,0 +1,42 @@
+> **Post-contest archive note (Oct 2026):** Pre-contest preparation completed. Contest ended Aug 28 2026 — final rank #56 worldwide (top 1.3%). Checklists, TODOs, and "to verify / will / pending" items below are preserved as historical pre-contest working notes. Anything still open is a Post-contest follow-up (not part of the #56 run). Author: Ntokozo Dlamini (with assistant support for fetching/summaries/checks). Technical content unchanged.
+
+# 207 — Research report: deadlines, admission control, rejection
+
+Author: Ntokozo Dlamini (with assistant support). Date: 2026-08-05. Status: pre-spec research completed on the assumed protocol (docs/07). Per-paper details in notes 201–206.
+
+## Papers (id → note)
+
+| id                                 | Title                                                                                                                          | Fetch                                             |       |                                                       |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | ----- | ----------------------------------------------------- |
+| bartal2000msr                      | Bartal, Leonardi, Marchetti-Spaccamela, Sgall, Stougie — Multiprocessor scheduling with rejection (SIAM JDM 13(1):64–78, 2000) | ok (TU/e repository VoR copy; not on arXiv) → 201 |       |                                                       |
+| arXiv:2104.06210                   | Cheriyan, Ravi, Skutella — A simple proof of the Moore–Hodgson Algorithm (ORL 2021)                                            | ok (arXiv PDF) → 202                              |       |                                                       |
+| — (Algorithmica 50:312–328)        | Uthaisombut — Generalization of EDF and LLF: all optimal online algorithms for 1\                                              | r_j,pmtn\                                         | L_max | **unavailable** (Springer); second-hand summary → 203 |
+| — (J. Scheduling 16(1):3–28, 2013) | Shabtay, Gaspar, Kaspi — A survey on offline scheduling with rejection                                                         | **unavailable** (Springer); second-hand → 204     |       |                                                       |
+| arXiv:2607.16347                   | Menezes & Plaxton — Greedy minimization of the number of late jobs: deadline trees, optimal prefixes, tier matroids (2026)     | ok (arXiv PDF) → 205                              |       |                                                       |
+| — (TCS 262:437–458, 2001)          | Seiden — Preemptive multiprocessor scheduling with rejection                                                                   | **unavailable** (Elsevier); second-hand → 206     |       |                                                       |
+
+All PDFs in `research/papers/` with extracted `.txt`; manifest updated (external copy noted).
+
+## Top-3 findings, ranked by expected score leverage
+
+1. **Admission order should be shortest-work-first (SPT insertion rule), not EDD** — Moore–Hodgson (202) is the optimal unweighted "drop to maximize on-time count" rule and its deletion step is not executable online; Moore's SPT insertion rule (205) is the online-safe equivalent with provable lex-first optimality. One-line: our `admit_prefills` admits in EDD order, which is optimal for Lmax but provably suboptimal for # on-time — the exact gap MH/SPT fixes, and admission decisions lock ~90% of the recoverable gap (doc 05).
+2. **Laxity-aware ordering for decode grants is provably as strong as EDD and strictly more informed** — Uthaisombut (203) shows EDF and LLF are both optimal for the preemptive single-machine model (indeed all optimal online algorithms form one compound-laxity family); LLF adds remaining-work information EDD ignores, relevant because our tokens are granted preemptively one at a time. One-line: `D − t − tokens_left·per` is a one-comparator variant of the existing EDD key, aligned with theory and cheap to A/B.
+3. **Rejection thresholds (Bartal) justify, with constants, the "reject early, simple threshold" doctrine — and say preemption won't rescue bad admission (Seiden)** — online rejection is a threshold-on-work problem (φ≈1.618-optimal for m=2, matching our two sites); allowing preemption only moves the ratio 2.618→2.387 with identical rejection logic. One-line: under overload, decide admission by a work threshold and do not bet on later repair; this validates "never force" as *provably near-optimal*, not just conservative.
+
+## Recommended port (ONE)
+
+**Variant `ADMIT_SJF`: shortest-serial-work-first admission in `admit_prefills`.**
+
+- **Plug-in point:** src/Solution.cpp:130 — replace the candidate sort key in `admit_prefills` (currently `cmp_key`, EDD-primary) with a work-ascending key `w = pe + COMM + pc + COMM + Lout·per` (ties: EDD, USA1 desc, A), where `pe,pc` come from `prefill_durations` (line 134, already computed). Leave `grant_decodes`'s `cmp_key` (line 103) untouched — EDD stays for dispatch. Also gate behind `#ifdef ADMIT_SJF` so `tools/ab_test.py` can run it vs baseline/LOOKAHEAD. The per-candidate acceptance test (est ≤ min(D,T), line 136; `free_window`, lines 141–142) is unchanged, so every emitted action remains legal — only *which* WAIT requests get capacity when not all fit changes.
+- **Complexity:** the tick already sorts the candidate list: O(n_wait log n_wait) per tick, identical to baseline; no new state. (Phase-2 upgrade — literal insertion rule with a deadline-tree `SlackX(d)` feasibility oracle, note 205 — adds O(log k) per query, but is NOT part of this port.)
+- **Expected effect vs greedy EDD baseline:** on overloaded burst cases (c3_burst, gen_burst_*): +1..3 on-time completions, because EDD admission can let a long-work request (large Lin·PSCALE prefill and/or large Lout decode) grab the only slot that would have carried 2–3 short requests to on-time completion; SJF admission packs short requests first. On sequential/spread cases: neutral. On latency tiebreak V: slightly better or equal (lex-first ⇒ min-work accepted set). Validity risk: zero by construction (same legality checks); runtime: no change.
+- **A/B gate:** `make variants` → `python3 tools/ab_test.py` baseline vs ADMIT_SJF over the 20-case suite under the shared 120 s budget; also A/B `ADMIT_SJF` combined with LOOKAHEAD (the lookahead candidate ordering at line 276 should then also use the SJF key so the sim and the policy agree).
+
+## Risks / mis-transfers (skeptical)
+
+- **Moore–Hodgson does NOT transfer as stated.** Its optimality requires deleting an already-accepted job; our interactive protocol cannot revoke an admitted request (only pre-admission `doomed`). Any port must be an insertion-only pre-filter on the WAIT pool, or it is not legal. (202, 205)
+- **The deadline-prefix feasibility oracle is an approximation here.** 1||ΣU_j feasibility ("EDD meets all prefix deadlines") assumes one machine, no windows, no comm, no release times. Our serial lower bound `per` ignores concurrency and window conflicts; the SJF *ordering* transfers, the *acceptance guarantee* does not — window checks remain the real gate.
+- **LLF/EDF optimality is single-machine.** Our two sites are not interchangeable machines (edge vs cloud stages are fixed), and global EDF/LLF on m>1 is not optimal in general (203, §S). The laxity variant is a heuristic, to be validated by A/B, not adopted on faith.
+- **Competitive ratios are adversarial worst-case; the suite is random/bursty.** The constants (φ, 2.387) bound the *shape* of good policies; they predict nothing about realized score on `cases/`. Expect the ordering variants to be ±; the suite gate is the only referee.
+- **Weighted-case NP-hardness bounds ambition.** 1||Σw_jU_j is NP-hard (knapsack), 1|r_j|ΣU_j strongly NP-hard (204); our objective (on-time + latency tiebreak) is at least as hard, so exact offline re-optimization with rejection (doc-05 P2) should be DP/local-search over a pruned candidate set, never an exact oracle.
+- **Do not add a `clock()`-driven "overload regime" switch** for tuning α — the suite-wide timeout is fatal (the archived working discipline, see README.md); any threshold tuning must be static per build config.

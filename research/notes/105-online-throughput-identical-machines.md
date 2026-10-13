@@ -1,0 +1,30 @@
+> **Post-contest archive note (Oct 2026):** Pre-contest literature review completed before the Aug 14–28 2026 contest window. Contest ended Aug 28 2026 — final rank #56 worldwide (top 1.3%). "Port plan" proposals below are preserved as historical working notes; what was adopted or rejected is recorded in `research/notes/experiments-log.md`, `research/notes/rejected-ideas.md`, and `docs/DECISIONS.md`. Author: Ntokozo Dlamini (with assistant support for fetching/summaries/checks). Technical content unchanged.
+
+# 105 — O(1)-Competitive Online Throughput on Identical Machines (SRPT + MLax)
+
+**Claim.** Online preemptive scheduling of jobs (release r_j, size x_j, deadline d_j) on m identical machines to maximize the number completed by deadline admits a **deterministic O(1)-competitive** algorithm for **every m ≥ 2** (open for 20 years; note: on m = 1 no O(1)-competitive deterministic algorithm exists at all — BKM'92).
+The algorithm **FinalAlg** splits the machines three ways and runs: **LMNY** (the speed-augmentation algorithm of LMNY'13) on *high-laxity* jobs (ℓ_j = d_j − r_j − x_j > x_j), **SRPT** (run the m feasible jobs with shortest remaining processing time) on *low-laxity* jobs that Opt does not preempt, and **MLax** (stack/LIFO schedules per machine + "frontier" + pseudo-release times) on *low-laxity* jobs that Opt preempts. (Moseley–Pruhs–Stein–Zhou, arXiv 2021 / Math. Prog. 2024.)
+
+**Relevance.** Three load-bearing lessons for our solver, all about *which job class the deadline-urgent work belongs to*:
+
+1. **Laxity dichotomy**: high-laxity jobs (slack > work) are easy — any reasonable policy (LMNY/EDD) works; all the difficulty is in **low-laxity** jobs. Our current single `cmp_key` (EDD primary, USA1 tiebreak, Solution.cpp:77–94) treats both classes identically. A two-class policy is theoretically principled.
+2. **SRPT wins for low-laxity work**: running shortest-remaining-work-first among feasible jobs is (provably) competitive with the non-preempted part of Opt — i.e., when decode tokens of several requests compete for the same resource and deadlines are tight, granting the *shortest remaining* request first maximizes throughput (matches note 104's SPT rule; here with the m-machine proof).
+3. **MLax's admission guard** (§1.3, Def. 3): a job only joins the frontier when it can displace a frontier job **and ≥ 3/4·m stacks have a second-top job able to absorb it** — a "majority of spare absorbency" condition. Translated to bookings: *only displace a planned booking when enough other capacity remains free to re-absorb the displaced work*. This is a quantitative safety rule for the augmenting-path port (note 102) that prevents replacement cascades from killing throughput.
+
+**Algorithm sketch.** FinalAlg: partition machines into 3 groups of m/3 (Lemma 21: losing a constant fraction of machines only costs a constant factor of Opt). Group 1: LMNY on J_hi = {ℓ_j > x_j}. Groups 2–3: on J_lo = {ℓ_j ≤ x_j}, run SRPT and MLax *simultaneously* (two virtual schedules share the machines; when both would run job j, the one with the shorter remaining time actually runs it).
+MLax: per-machine stacks H_i; run top of stack; pseudo-release time r̃_j = earliest t ∈ [r_j, r_j + ℓ_j/2] with ≥ 8m/7 frontier jobs j′ satisfying α·x_{j′} ≥ ℓ_j; push/replace per rules (a)/(b) using the 3m/4 second-top condition; pop completed jobs, then keep popping infeasible tops.
+
+**Port plan.**
+
+- `-DLAX2` variant in `grant_decodes` (Solution.cpp:96): compute laxity per DW-phase request `lax = D − (t + tokens_left·per)` and remaining work `w = tokens_left·per`. Split: requests with `lax ≤ w` (low-laxity) get **SRPT order** (w ascending, deadline tiebreak); `lax > w` keep EDD. The guard: never grant a low-laxity token if granting it makes another feasible low-laxity request infeasible (the est check at line 107 already enforces per-request feasibility — the addition is a *pairwise* check: prefer the grant set that keeps the most requests feasible, computed cheaply by sorting only).
+- `-DMLAX_GATE` in `admit_prefills` (Solution.cpp:123): before booking a window, apply the majority-absorbency rule: admit only if, after booking, the number of *currently free edge ticks* within the candidate's `[t, min(D,T)]` stays ≥ 3/4·Ecap·(window length) — i.e., require spare re-absorbency so future displacements are possible. Tunable fraction (start 1/2, sweep).
+- A/B each against baseline and against each other; the SRPT-grant piece is the least invasive (one comparator change).
+
+**Weaknesses / mis-transfers.**
+
+- **Migratory, arbitrary-granularity preemption** on a *single* resource class; our decode round trip spans edge and cloud with fixed COMM offsets, and tokens of one request are strictly serial — "shortest remaining work" must be the full per-token round trip, and the m-machine proof (about per-tick selection among m parallel slots) does not cover the two-site pipeline; SRPT here is a heuristic with strong motivation, not a proven guarantee.
+- The m/3 machine partition is analysis machinery (constants ≥ 48 machines in Theorem 12); nothing similar transfers to E+C resources.
+- Competitive analysis is worst-case cardinality; our objective mixes deadlines with 1e-6 latency terms and admission control rejects infeasibles. The MLax frontier constants (8/7, 3/4, α) are analysis constants, not tuned values — port the *structure*, tune the numbers on the local suite.
+- m=1 impossibility (BKM'92) explains why a pure EDD/greedy on a *single* saturated resource can't have guarantees — a caution for cases where E=1 or C=1 (sequential profiles): expect the theory to give nothing there; keep the conservative incumbent.
+
+**Sources.** Moseley, Pruhs, Stein, Zhou, "A Competitive Algorithm for Throughput Maximization on Identical Machines", arXiv:2111.06564 (`research/papers/2111.06564.txt`; Def. 2 SRPT p. 4, MLax + Def. 3 pp. 4–5, Theorem 12 p. 4, Table 1 p. 3). Lineage: KP00 (scalable single machine), LMNY'13 (speed augmentation for m machines), KP03 (randomized m=1, the origin of the "region/Lax" idea), BKM'92 (m=1 lower bound).

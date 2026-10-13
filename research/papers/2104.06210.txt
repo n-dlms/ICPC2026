@@ -1,0 +1,236 @@
+A simple proof of the Moore-Hodgson Algorithm for minimizing the
+number of late jobs
+Joseph Cheriyana,1,∗, R. Ravib,2 , Martin Skutellac,3
+a C&O Dept., University of Waterloo, Waterloo, ON, Canada N2L 3G1
+b Tepper School of Business, Carnegie Mellon University, Pittsburgh, USA
+c Institute of Mathematics, Technische Universität Berlin, Germany
+
+arXiv:2104.06210v1 [cs.DS] 13 Apr 2021
+
+Abstract
+The Moore-Hodgson Algorithm minimizes the number P
+of late jobs on a single machine. That is, it
+finds an optimal schedule for the classical problem 1 | |
+Uj . Several proofs of the correctness of this
+algorithm have been published. We present a new short proof.
+Keywords: Scheduling theory, Moore-Hodgson Algorithm, number of late jobs
+
+1. Introduction
+In 1968, J. M. Moore [5] presented an algorithm and analysis for minimizing the number of late
+jobs on a single machine. Moore stated “The algorithm developed in this paper, however, consists of
+only two sorting operations performed on the total set of jobs, . . . Consequently, this method will
+be computationally feasible for very large problems and can be performed manually on many smaller
+problems.” At the end of the paper, Moore presented a version of his algorithm that he attributed to
+T. E. Hodgson; we follow that version. In hindsight, the algorithm is “just right” for the problem, and
+it is a popular topic in courses on Scheduling. Several proofs of correctness have been published in the
+literature, see, e.g., [5, 2, 1, 6]. But, in our opinion, none of these proofs matches the simplicity of the
+algorithm. We present a proof that, hopefully, remedies this discrepancy.
+Our notation usually follows the notation of Pinedo [6]. For a positive integer ℓ, we use [ℓ] to denote
+the set {1, 2, . . . , ℓ}.
+P
+An instance I of the scheduling problem 1 | |
+Uj consists of one machine and n jobs; the jobs are
+denoted 1, . . . , n (we identify a job with its index). Each job j has a non-negative processing time pj
+and a non-negative due date dj .
+A schedule for this problem is a permutation of the n jobs. For a given schedule S, the completion
+time of job j, denoted Cj , is the sum of the processing times of job j and the processing times of the
+jobs that precede j in S. A job j is called late (in the schedule S) if Cj > dj . The goal is to find a
+schedule such that the number of late jobs is minimum. We use opt(I) or opt to denote the minimum
+number of late jobs of the instance I (over all possible schedules).
+A key feature of our proof is that we do not use induction on a particular instance (which is the plan
+of Moore’s proof), and instead, we use induction on opt over all instances.
+2. The algorithm and analyis
+The EDD rule (earliest due date rule) orders the jobs in non-decreasing order of their due dates;
+this results in an EDD sequence. From here on, we assume that the jobs are indexed according to the
+EDD rule; that is, d1 ≤ d2 ≤ · · · ≤ dn .
+∗ Corresponding author
+
+Email addresses: jcheriyan@uwaterloo.ca (Joseph Cheriyan ), ravi@cmu.edu (R. Ravi ),
+martin.skutella@tu-berlin.de (Martin Skutella )
+1 This author acknowledges support from the Natural Sciences & Engineering Research Council of Canada (NSERC),
+No. RGPIN-2019-04197.
+2 This material is based upon work supported in part by the U. S. Office of Naval Research under award number
+N00014-21-1-2243 and the Air Force Office of Scientific Research under award number FA9550-20-1-0080.
+3 Supported by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) under Germany’s Excellence
+Strategy – The Berlin Mathematics Research Center MATH+ (EXC-2046/1, project ID: 390685689).
+Preprint submitted to Elsevier
+
+April 14, 2021
+
+Proposition 1. If the EDD sequence has a late job, then opt is ≥ 1.
+P
+Proof: Let k be the first late job in the EDD sequence. Thus, Ck = i∈[k] pi > dk = maxi∈[k] di .
+Consider any
+P schedule S. Let ℓ be the last of the jobs in [k] in S. Then, the completion time of ℓ in S
+
+is at least i∈[k] pi > dℓ . Thus ℓ is a late job of S.
+′
+′
+Clearly, if there is a sub-instance I that consists of a subset of the jobs such that opt(I ) = 0, then,
+the EDD sequence of I ′ has no late jobs.
+The Moore-Hodgson Algorithm applies a number of iterations. Each iteration maintains an EDD sequence σ of a subset of the jobs. Initially, σ = 1, 2, . . . , n. Each iteration either rejects one job from
+the sequence σ, or terminates with the guarantee that σ has no late jobs. The algorithm finishes by
+outputting the concatenated schedule σ, ζ, where σ is the sequence from the last iteration (that has no
+late jobs), and ζ is an arbitrary permutation of all the rejected (i.e., late) jobs.
+At the start of each iteration, σ is an EDD sequence of the non-rejected jobs. An iteration of the
+algorithm examines the sequence of jobs σ1 , σ2 , . . . , σℓ (where ℓ ≤ n), and finds the smallest index k such
+that the job σk is late (thus, Cσk > dσk and Cσj ≤ dσj , ∀j ∈ [k − 1]). The iteration terminates if there
+are no late jobs; otherwise, it examines the “prefix” subsequence σ1 , . . . , σk , picks an index m such that
+pσm is maximum among pσ1 , . . . , pσk , and rejects the job σm .
+The following example illustrates the working of the algorithm; the example is from Moore’s paper [5].
+There is one “Completion time” row for each iteration. Whenever a job is rejected, its index is noted in
+the right-most column, and its completion time in subsequent iterations is indicated by an asterisk.
+EDD sequence:
+Due date dj :
+Processing time pj :
+Completion time Cj :
+Cj :
+Cj :
+Cj :
+Cj :
+
+1
+6
+4
+4
+4
+4
+4
+4
+
+2
+8
+1
+5
+5
+5
+5
+5
+
+3
+9
+6
+11
+∗
+∗
+∗
+∗
+
+4
+11
+3
+
+5
+20
+6
+
+6
+25
+8
+
+7
+28
+7
+
+8
+8
+8
+
+14
+14
+14
+
+22
+∗
+∗
+
+29
+21
+21
+
+8
+35
+10
+
+31
+
+Rejected Jobs
+
+3
+3
+3, 6
+3, 6
+
+Theorem 2. The Moore-Hodgson Algorithm outputs an optimal schedule for the problem 1 | |
+
+P
+
+Uj .
+
+Our proof of Theorem 2 is based on the following result.
+Lemma 3. Assume that there are late jobs in the EDD sequence σ = 1, 2, . . . , n. Let k be the first late
+job, and let m ∈ [k] be the job rejected by the Moore-Hodgson Algorithm, i.e., pm = maxi∈[k] pi . There
+is an optimal schedule π that rejects job m.
+Proof: Consider an optimal schedule π. Let Rπ ⊆ [n] denote its subset of rejected (i.e., late) jobs, and
+let Aπ := [n] \ Rπ denote its subset of on-time (i.e., non-late) jobs. By Proposition 1, we may assume
+that π schedules the jobs in Aπ in EDD order first, followed by the jobs in Rπ in arbitrary order.
+If m ∈ Rπ , we are done.
+Otherwise, by Proposition 1, there is a job r ∈ Rπ ∩ ([k] \ {m}). Consider the schedule π ′ that
+sequences the jobs in Aπ′ := (Aπ \ {m}) ∪ {r} in EDD order first, followed by the jobs in [n] \ Aπ′ =
+(Rπ \ {r}) ∪ {m} in arbitrary order. We will prove that π ′ schedules all jobs in Aπ′ on time. It is thus
+optimal since |Rπ′ | = |Rπ |; moreover, by construction, π ′ rejects job m.
+the EDD rule completes
+all jobs in [k − 1]
+First, the jobs in Aπ′ ∩ [k − 1] are completed on time sinceP
+P
+on time. Second, if k ∈ Aπ′ , then its completion time is ≤ i∈[k]\{m} pi ≤ i∈[k−1] pi ≤ dk−1 ≤ dk .
+Third, compared to the former schedule π, the completion times of jobs in Aπ′ \ [k] = Aπ \ [k] have been
+changed in the new schedule π ′ by pr − pm ≤ 0, hence, these jobs also remain on time.
+
+Proof: [of Theorem 2] We use induction on opt over all instances of the problem.
+Induction basis: If an instance has opt = 0, then by Proposition 1, the algorithm outputs the EDD
+sequence with no late jobs.
+Induction step: Let I be an instance with opt(I) ≥ 1 late jobs, and let I ⊖ be obtained from I by
+deleting the job m rejected in the first iteration of the algorithm. By Lemma 3, opt(I ⊖ ) ≤ opt(I) − 1.
+Thus, by the induction hypothesis, the algorithm finds an optimal schedule S ⊖ for I ⊖ . The algorithm
+for I outputs the schedule S such that S is the same as S ⊖ except that job m is added at the end, as a
+rejected job. Clearly, S has at most opt(I ⊖ ) + 1 ≤ opt(I) rejected jobs and is thus optimal.
+
+2
+
+Remark: Some of the previous proofs ([5], [2], [6, 2nd edition], [4], [7]) use an induction-type argument
+on a particular instance; then, the argument has to track the parameters of the sequence of rejected jobs
+throughout; this is not difficult, but, a rigorous presentation
+P takes more than one page.
+Remark: Our proof generalizes to the problem of 1 | |
+wj Uj where jobs j are provided with a weight
+wj in addition to their processing time and the minimization objective is now the weighted number
+of late jobs, in the special case when the the processing times and job weights are oppositely ordered:
+i.e., pi ≤ pj implies wi ≥ wj (see [3]). The key observation is that in the proof of Lemma 3 when we
+replace the alternate choice r that was rejected in Rπ by the correct choice m in the first bad prefix [k],
+the opposite ordering relation implies that since pr ≤ pm , then wr ≥ wm . Since we replace wr in the
+weighted objective with the potentially smaller wm , this change also makes the weighted objective no
+worse. The remaining elements of the proof are unchanged.
+
+Acknowledgments: We thank several colleagues for insightful discussions over the years. The idea of
+the presented proof stems from a discussion between the authors at the Tenth Cargèse Workshop on
+Combinatorial Optimization at the Institut d’Études Scientifiques de Cargèse, Corsica (France). We are
+much indebted to the organizers of the workshop, in particular for putting the focus of the 2019 edition
+on “Proofs from the Book in Combinatorial Optimization.”
+References
+[1] M.v.d.Akker and H.Hoogeveen, “Minimizing the number of tardy jobs,” Chapter 12, Handbook of Scheduling: Algorithms, Models, and Performance Analysis, CRC Press, 2004.
+[2] S.French, Sequencing and Scheduling: An Introduction to the Mathematics of the Job-Shop, Ellis Horwood Limited,
+John Wiley & Sons, 1982.
+[3] Jan Karel Lenstra and David B. Shmoys (eds.), “Elements of Scheduling,” https://elementsofscheduling.nl/,
+Accessed April 2021.
+[4] W. L. Maxwell, “On Sequencing n Jobs on One Machine to Minimize the Number of Late Jobs,” Management Science,
+16(5): 295–297, 1970.
+[5] J.M.Moore, “An n job, one machine sequencing algorithm for minimizing the number of late jobs,” Management
+Science, 15(1):102–109, 1968.
+[6] M.L.Pinedo, Scheduling: Theory, Algorithms, and Systems, Springer Science+Business Media, LLC 2016.
+[7] L. B. J. M. Sturm, “A simple optimality proof of Moore’s sequencing algorithm,” Management Science, 17(1): 116-118,
+1970.
+
+3
+
+

@@ -1,0 +1,34 @@
+# Build artifacts (regenerable via Makefile)
+build/
+*.o
+*.d
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Profiling / scratch outputs
+gmon.out
+/submission
+
+# Submission hygiene (post-contest archive)
+# Third-party papers: copyrighted, large (~89M). Keep .txt extracts + USAGE.md only.
+research/papers/*.pdf
+*.pdf
+# Judge API dumps (other participants' data, 1-2M each)
+research/scoring/artifacts/api_*.json
+# Experiment traces / score tables (regenerable scratch, up to ~5M each)
+experiments/**/tr*.txt
+experiments/**/exp*.txt
+experiments/**/*.csv
+experiments/**/*.log
+research/techniques/SB03_SB10_PROMPTS.md
+docs/EXPERIMENTS.md
+/tmp/
+# Internal continuity docs (never for submission)
+docs/AI_HANDOFF*.md
+docs/advisor-reports/*TRANSCRIPT*.txt
+*TRANSCRIPT.txt
+
+# Editors
+*~

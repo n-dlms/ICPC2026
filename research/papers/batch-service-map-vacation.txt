@@ -1,0 +1,5039 @@
+short title
+
+1
+
+arXiv:2208.13043v1 [math.PR] 27 Aug 2022
+
+On state dependent batch service queue with single and
+multiple vacation under Markovian arrival process
+Abstract: An infinite buffer batch service vacation queue has been studied where
+service rate of the batch is dependent on the size of the batch and vacation rate is
+dependent on the queue size at vacation initiation epoch. The arrivals follow the
+Markovian arrival process (MAP). For service rule, general bulk service (GBS)
+rule is considered. The service time and vacation time both are considered to
+be generally distributed. Several joint distributions of interest are obtained using
+the bivariate vector generating function method and the supplementary variable
+technique (SVT). Numerical results are presented to show the behavior of the
+system performance to validate the analytical results.
+Keywords: MAP; Infinite buffer; GBS rule; Bivariate VGF; SVT.
+
+1 Introduction
+Queues in which the server processes customers in groups, known as bulk (batch) service
+queues. In the study of bulk service queues, several kinds of bulk service rules are well known
+viz., fixed batch size bulk service rule, general bulk service (GBS) or (a, b) rule, random
+batch size bulk service rule, etc. In addition to its many applications in telecommunication,
+blood testing, etc., the GBS rule proposed by Neuts (1967) is most familiar. Under the GBS
+rule, the server determines the thresholds a (minimum) and b (maximum), respectively,
+to serve the customers. Once service is completed, if the customers waiting in queue are
+between a and b, all the customers are serviced. If the customers waiting in queue are
+more than b, it takes b customers for the service, and if the customers waiting in queue are
+< a, then it falls into a dormant state until the queue size a is reached. Apart from this, in
+the vacation queue proposed by Levy and Yechiali (1975) the server may use the dormant
+period for some secondary work (viz., maintenance, promoting the revised policy of the
+company, etc.). In the single vacation (SV) queue, after a service, if the required number of
+customers is not present in the queue, then the server is sent on vacation. After returning
+from vacation, if the required number of customers is present in the queue, the customer is
+operated; otherwise, it stays dormant in the system. However, in the multiple vacation (MV)
+queue, the server takes repeated vacations until it finds the necessary number of customers
+in the system at the end of the vacation. Due to their direct applicability in transportation,
+telecommunication, production management, etc., bulk service queues with vacations have
+greatly impacted the researchers. For current work in bulk service queues with vacation,
+readers are invoked to see Tamrakar and Banerjee (2020, 2021); Gupta et al. (2020); Nandy
+and Pradhan (2021); Deepa and Azhagappan (2022) and the references therein. Remarkable
+survey carried out on vacation model by Doshi (1986) and Ke et al. (2010). The literature
+that provides a key understanding on bulk service (vacation) queues readers are invited to
+see the books by Chaudhry and Templeton (1983) and Medhi (2002) (Takagi (1991) and
+Tian and Zhang (2006)).
+
+2
+
+author
+
+Bulk service non vacation queue where the arrival process is non-renewal analyzed by
+few researchers, see Banerjee et al. (2015); Pradhan and Gupta (2017, 2020); Singh et al.
+(2013); Bank and Samanta (2020); Samanta and Bank (2020). Banerjee et al. (2015),
+Pradhan and Gupta (2017), and Pradhan and Gupta (2020), respectively, considered
+(a,b)
+(a,b)
+(a,b)
+M AP/Gr /1/N , M AP/Gr /1 and BM AP/Gr /1 queue and obtained the joint
+distribution of queue and number with server at various epochs. Singh et al. (2013), Bank
+and Samanta (2020) and Samanta and Bank (2020), respectively, analyzed M AP/R(a,b) /1,
+BM AP/G(a,Y ) /1, and BM AP/R(a,b) /1 queue for queue length distribution at different
+epochs. The authors of Banerjee et al. (2015); Pradhan and Gupta (2017, 2020); Singh et al.
+(2013); Bank and Samanta (2020); Samanta and Bank (2020) conducted their analysis using
+the SVT, embedded Markov chain technique (EMCT) and roots method.
+In most of the bulk service queueing system with vacation authors have been considered
+Poisson/renewal arrival process, see, e.g., Sikdar and Samanta (2016); Gupta et al.
+(2020); Ayyappan and Karpagam (2020); Nandy and Pradhan (2021); Chang and Choi
+(2005); Sikdar and Gupta (2008); Haridass and Arumuganathan (2012); Jeyakumar and
+Senthilnathan (2014); Ayyappan and Deepa (2018), however, in most of the queues (for ex.
+telecommunication, computer network, etc.) the Poisson/renewal arrival process do not fit
+due to highly irregular traffic. A good representation for analyzing such bursty and correlated
+traffic is a non-renewal arrival process, i.e., the Markovian arrival process (MAP) proposed
+by Lucantoni et al. (1990). Some other input process is also included in MAP, viz., Markov
+modulated Poisson process (MMPP), the phase (PH)-type renewal process, the interrupted
+Poisson process (IPP), Poisson process. Gupta and Sikdar (1900) and Sikdar and Samanta
+(2016), respectively, discussed M AP/G(a,b) /1/N queue with SV and BM AP/GY /1/N
+queue with SV (MV), respectively, and obtained queue length distribution at various epoch
+using EMCT and SVT. In discrete-time set-up, Nandy and Pradhan (2021) considered
+discrete-time batch size dependent batch service queue with SV and MV. They carried out
+their analysis for queue and server content and queue length probabilities using the SVT
+and bivariate probability generating function technique.
+In most of the vacation queueing models, authors considered the length of vacation
+of the server as random and unaffected by the queue size at the vacation initiation epoch.
+The queueing model with vacation where the length of vacation depends on the queue
+size (length) at the vacation initiation epoch is known as the queue size dependent (QSD)
+vacation model. Such a QSD vacation models are analyzed by a few researchers, see Shin
+and Pearce (1998); Banik (2013); Thangaraj and Rajendran (2017); Gupta et al. (2020);
+(a,b)
+Tamrakar and Banerjee (2021). Gupta et al. (2020) considered M/Gr /1/N queue with
+QSD SV (MV) and obtained the joint distribution of queue and server content and the joint
+distribution of queue content and vacation type using the SVT. Later, Tamrakar and Banerjee
+(2021) analyzed the same model as Gupta et al. (2020) for infinite buffer queue using the
+SVT and bivariate generating function approach. To the extent of the authors’ knowledge,
+(a,b)
+an infinite capacity queueing system M AP/Gr /1 queue with queue size dependent SV
+and MV has not been investigated previously in the literature. Further, we have considered
+that the queue size dependent vacation policy remarkably reduces congestion.
+In a computer network with highly irregular traffic, the proposed model is applicable.
+A desktop computer system connects to a local area network (LAN) via Ethernet
+(IEEE802.11h) link. Digital signals are transmitted over Ethernet in the form of a group
+(packet), with the transmission rate varying with the packet under transmission. Power
+utility (power utility increases with transmission rate) depends on transmission rate. The
+medium access control (MAC) handshake protocol is helpful in decreasing the average
+
+short title
+
+3
+
+power utility. It is achieved by measuring the queue size (signals) waiting for transmission.
+After a transmission, if the number of signals lower than the previously established lower
+threshold, the handshake mechanism (vacation period) activates, and it depends on the queue
+size at the vacation initiation epoch.
+A model description of the considered model can be found in section 2. In Section 3, we
+have analyzed the model mathematically. Section 4 presents some marginal distributions.
+Section 5 contains the performance measures. Numerical results are presented in Section
+6, and for the conclusion, we present Section 7.
+
+2 Model
+The single server with infinite capacity, batch size-dependent bulk service queue, and queue
+size-dependent vacation (single and multiple) is introduced. Markovian arrival process
+(MAP) governs the customer’s arrival to the system, which is governed by the underlying
+Markov chain (UMC). In the UMC, there is a change from state i to state j (1 ≤ i, j ≤
+m). We set di,j to be the transition rate with an arrival and ci,j to be the transition rate
+without an arrival. The m × m matrix C = (ci,j ) has non-negative off diagonal and negative
+diagonal members, whereas the m × m matrix D = (di,j ) only has non-negative elements.
+The infinitesimal generator of the UMC is presented by the matrix (C + D). Assume that
+ξ = (ξ1 , ξ2 , ..., ξm ) is a stationary probability vector such that ξ(C+D) = 0, ξe=1, where e
+is m × 1 column matrix with each element 1 and 0 is 1 × m zero matrix. The fundamental
+arrival rate is determined by λ = ξDe. We suppose that I refers to an identity matrix with
+an appropriate dimension. According to GBS rule, the consumers are serviced in batches
+(groups). The service time (Tr ) of a batch of size r (h ≤ r ≤ H) is generally distributed
+with probability density function (pdf) sr (t), distribution function (DF) Sr (t), the Laplace(1)
+Satieties transform (LST) S̃r (θ) and the mean service time µ1r = sr = −S̃r (0) (h ≤ r ≤
+(1)
+
+H), where S̃r (0) is the derivative of S̃r (θ) evaluated at θ=0. When a service is finished,
+and if the server determines that the queue length is l (≥ h), it begins service in accordance
+with the GBS rule, i.e., it serves a batch of size min(l, H), where H is the server’s maximum
+capacity. If the queue length is k (< h) after a service, the server begins the vacation, which
+has a random length and is dependent on the queue length k (0 ≤ k ≤ h − 1). Let Vk (t)
+{vk (t)} [Ṽk (θ)] be the DF {pdf} [LST] of a typical vacation time Vk (0 ≤ k ≤ h − 1) which
+(1)
+(1)
+is generally distributed. The mean vacation time ν1k = xk = −Ṽk (0) where Ṽk (0) is
+the derivative of Ṽk (θ) at θ=0. If the server finds at least h waiting customers at the end
+of the vacation, it operates those customers in accordance with GBS rule; otherwise, it
+enters a state of dormancy until the queue length reaches the minimum threshold h, or it
+takes another vacation depending on the vacation policy being considered, namely either
+single vacation (SV) or multiple vacation (MV). The system’s stability is ensured by the
+traffic intensity, which is λsHH (< 1). Using the following definition of the variable , we
+have examined single vacation (SV) and multiple vacation (MV) queues in this article in a
+unified manner.
+(
+1, for MV,
+=
+0, for SV.
+
+4
+
+author
+
+3 System analysis
+The following random variables at time t are necessary for the mathematical analysis of
+our considered model.
+• q(t) ≡ Size of customers waiting in line (queue).
+• S(t) ≡ Customer size with the server when the server is busy.
+• Kv (t) ≡ Vacation type, when the server is on vacation.
+• J(t) ≡ State of the underlying Markov chain of the MAP.
+• Rs (t) ≡ Remaining service time.
+• Rv (t) ≡ Remaining vacation time.
+S(t) = 0 reflects the server’s dormant status at time t. Depending on vacation policy we
+have the following Markov process
+(
+
+
+{(q(t), S(t)), J(t)} ∪ { q(t), S(t), J(t), Rs (t) ∪ q(t), Kv (t), J(t), Rv (t) }, for SV,
+
+
+{ q(t), S(t), J(t), Rs (t) ∪ q(t), Kv (t), J(t), Rv (t) },
+for MV,
+with state space
+
+S
+S
+{(n, 0, i); 0 ≤ n ≤ h − 1, 1 ≤ i ≤ m} {(n, r, i, u); n ≥ 0, h ≤ r ≤ H, 1 ≤ i ≤ m, u ≥ 0}
+
+
+
+{(n, k, i, u); 0 ≤ k ≤ h − 1, n ≥ k, 1 ≤ i ≤ m, u ≥ 0},
+for SV,
+S
+
+{(n, r, i, u); n ≥ 0, h ≤ r ≤ H, 1 ≤ i ≤ m, u ≥ 0}
+
+
+
+{(n, k, i, u); 0 ≤ k ≤ h − 1, 1 ≤ i ≤ m, n ≥ k, u ≥ 0},
+for MV.
+The state probabilities at time t are defined as:
+• Ri (n, 0, t) ≡ P r{q(t) = n, S(t) = 0, J(t) = i, u ≤ Rs (t) ≤ u + du}, 1 ≤ i ≤
+m, 0 ≤ n ≤ h − 1, (for SV only).
+• ξi (n, r, u, t)du ≡ P r{q(t) = n, S(t) = r, J(t) = i, u ≤ Rs (t) ≤ u + du}, 1 ≤ i ≤
+m, n ≥ 0 , h ≤ r ≤ H.
+• γi (n, k, u, t)du ≡ P r{q(t) = n, Kv (t) = k, J(t) = i, u ≤ Rv (t) ≤ u + du}, 1 ≤
+i ≤ m, n ≥ k , 0 ≤ k ≤ h − 1.
+In steady state, as t → ∞ we have,
+Ri (n, 0) = lim Ri (n, 0, t), 0 ≤ n ≤ h − 1, 1 ≤ i ≤ m, (exist only for SV),
+t→∞
+
+ξi (n, r, u) = lim ξi (n, r, u, t), n ≥ 0, h ≤ r ≤ H, 1 ≤ i ≤ m,
+t→∞
+
+γi (n, k, u) = lim γi (n, k, u, t), n ≥ k, 0 ≤ k ≤ h − 1, 1 ≤ i ≤ m.
+t→∞
+Further, we define
+• R(n, 0)=(R1 (n, 0), R2 (n, 0), .., Rm (n, 0)), 0 ≤ n ≤ h − 1.
+• ξ(n, r, u)=(ξ1 (n, r, u), ξ2 (n, r, u), ..., ξm (n, r, u)), n ≥ 0, h ≤ r ≤ H.
+• γ(n, k, u)=(γ1 (n, k, u), γ2 (n, k, u), ..., γm (n, k, u)), n ≥ k, 0 ≤ k ≤ h − 1.
+
+short title
+
+5
+
+Following an analysis of the system at time t and t + dt, the related steady state equations
+are obtained as follows:
+
+
+
+0 = (1 − ) R(0, 0)C + γ(0, 0, 0) ,
+
+(1)
+
+
+
+n
+X
+0 = (1 − ) R(n, 0)C + R(n − 1, 0)D +
+γ(n, k, 0) , 1 ≤ n ≤ h − 1,
+k=0
+
+(2)
+d
+− ξ(0, h, u) = ξ(0, h, u)C + (1 − )R(h − 1, 0)Dsh (u)
+du
+ h−1
+
+H
+X
+X
++
+γ(a, k, 0) +
+ξ(a, r, 0) sh (u),
+k=0
+
+−
+
+d
+ξ(0, r, u) = ξ(0, r, u)C +
+du
+
+(3)
+
+r=h
+
+ h−1
+X
+
+γ(r, k, 0) +
+
+k=0
+
+H
+X
+
+
+ξ(r, j, 0) sr (u), h + 1 ≤ r ≤ H,
+(4)
+
+r=h
+
+d
+− ξ(n, r, u) = ξ(n, r, u)C + ξ(n − 1, r, u)D, h ≤ r ≤ H − 1, n ≥ 1,
+du
+ h−1
+X
+d
+γ(n + H, k, 0)
+− ξ(n, H, u) = ξ(n, H, u)C + ξ(n − 1, H, u)D +
+du
+k=0
+
+H
+X
+ξ(n + H, r, 0) sH (u), n ≥ 1,
++
+
+(5)
+
+(6)
+
+r=h
+
+d
+− γ(k, k, u) = γ(k, k, u)C +
+du
+
+X
+H
+r=h
+
+ξ(k, r, 0) + 
+
+k
+X
+
+
+γ(k, j, 0) vk (u), 0 ≤ k ≤ h − 1
+
+j=0
+
+(7)
+d
+− γ(n, k, u) = γ(n, k, u)C + γ(n − 1, k, u)D, n ≥ k + 1, 0 ≤ k ≤ h − 1.
+du
+Further, for Re(θ) ≥ 0, we define,
+Z ∞
+
+Z ∞
+e−θu dSr (u) =
+e−θu sr (u)du, h ≤ r ≤ H,
+0
+0
+Z ∞
+˜
+ξ(n, r, θ) =
+e−θu ξ(n, r, u)du, h ≤ r ≤ H, n ≥ 0,
+0
+Z ∞
+˜
+ξ(n, r) ≡ ξ(n, r, 0) =
+ξ(n, r, u)du, h ≤ r ≤ H, n ≥ 0,
+0
+Z ∞
+Z ∞
+Ṽk (θ) =
+e−θu dVk (u) =
+e−θu vk (u)du, 0 ≤ k ≤ h − 1,
+0
+0
+Z ∞
+−θu
+γ̃(n, k, θ) =
+e
+γ(n, k, u)du, 0 ≤ k ≤ h − 1, n ≥ k,
+0
+Z ∞
+γ(n, k) ≡ γ̃(n, k, 0) =
+γ(n, k, u)du, 0 ≤ k ≤ h − 1, n ≥ k.
+S̃r (θ) =
+
+0
+
+(9)
+(10)
+(11)
+(12)
+(13)
+(14)
+
+(8)
+
+6
+
+author
+• R(n, 0)=(R1 (n, 0), R2 (n, 0), ..., Rm (n, 0)), 0 ≤ n ≤ h − 1.
+• ξ(n, r)=(ξ1 (n, r), ξ2 (n, r), ..., ξm (n, r)), n ≥ 0, h ≤ r ≤ H.
+• γ(n, k)=(γ1 (n, k), γ2 (n, k), ..., γm (n, k)), n ≥ k, 0 ≤ k ≤ h − 1.
+
+Here the probability (Ri (n, 0)) {ξi (n, r)} [γi (n, k)] denotes that (queue size is n and the
+sever is dormant, and the arrival process is in phase i, 0 ≤ n ≤ h − 1) {queue size is n and
+r customers are being serviced, and the arrival process is in phase i, h ≤ r ≤ H, n ≥ 0}
+[queue size is n and k − th vacation type performs by the server, and the arrival process is
+in phase i, 0 ≤ k ≤ h − 1, n ≥ k] at arbitrary epoch.
+If we multiply e−θu in (3)-(8) and integrate with respect to variable u with limits 0 to ∞,
+we get
+˜ h, θ) = ξ(0,
+˜ h, θ)C + (1 − )R(h − 1, 0)DS˜h (θ) +
+−θξ(0,
+
+ h−1
+X
+
+γ(h, k, 0) +
+
+k=0
+
+H
+X
+
+
+ξ(h, r, 0) S˜h (θ)
+
+r=h
+
+−ξ(0, h, 0),
+˜ r, θ) = ξ(0,
+˜ r, θ)C +
+−θξ(0,
+
+(15)
+ h−1
+X
+
+γ(r, k, 0) +
+
+k=0
+
+H
+X
+
+
+
+ξ(r, j, 0) S˜r (θ)
+
+r=h
+
+−ξ(0, r, 0), h + 1 ≤ r ≤ H,
+(16)
+˜
+˜
+˜
+−θξ(n, r, θ) = ξ(n, r, θ)C + ξ(n − 1, r, θ)D − ξ(n, r, 0), n ≥ 1, h ≤ r ≤ H − 1,
+(17)
+
+ h−1
+H
+X
+X
+˜ H, θ) = ξ(n,
+˜ H, θ)C + ξ(n
+˜ − 1, H, θ)D +
+γ(n + H, k, 0) +
+ξ(n + H, r, 0) S˜H (θ)
+−θξ(n,
+k=0
+
+r=h
+
+−ξ(n, H, 0), n ≥ 1,
+(18)
+
+X
+k
+H
+X
+γ(k, j, 0) Ṽk (θ) − γ(k, k, 0), 0 ≤ k ≤ h − 1,
+ξ(k, r, 0) + 
+−θγ̃(k, k, θ) = γ̃(k, k, θ)C +
+r=h
+
+j=0
+
+(19)
+−θγ̃(n, k, θ) = γ̃(n, k, θ)C + γ̃(n − 1, k, θ)D − γ(n, k, 0) n ≥ k + 1, 0 ≤ k ≤ h − 1.
+Our aim is to perceive the probability vector of the joint probabilities of the queue content
+and server content (queue content and vacation type) at any time. However, direct analysis
+of these is quite challanging.The arbitrary epoch probabilities determine in terms of service
+(vacation) completion epoch probabilities after characterizing the system’s state at the
+service (vacation) completion epoch. The following probabilities are defined in this context
+at the service (vacation) completion epoch while the arrival process is in phase i:
+ξi+ (n, r) = P r{At the service completion epoch of a batch of size r,
+queue size is n.}, n ≥ 0, h ≤ r ≤ H,
+
+(21)
+
+ξi+ (n) = P r{At the service completion epoch, queue size is n}
+=
+
+H
+X
+
+ξi+ (n, r), n ≥ 0,
+
+r=h
+
+γi+ (n, k) = P r{At k − th type of vacation termination epoch,
+
+(22)
+
+(20)
+
+short title
+
+7
+
+queue size is n}, 0 ≤ k ≤ h − 1, n ≥ k,
+
+(23)
+
+γi+ (n) = P r{At vacation termination epoch, queue size is n
+min(n,h−1)
+X
+=
+γi+ (n, k), n ≥ 0.
+k=0
+
+(24)
+
+Consequently, we obtain the probability vector.
++
+ξ + (n, r) = (ξ1+ (n, r), ξ2+ (n, r), ..., ξm
+(n, r)), n ≥ 0, h ≤ r ≤ H,
++
++
++
++
+γ (n, k) = (γ1 (n, k), γ2 (n, k), ..., γm
+(n, k)), n ≥ k, 0 ≤ k ≤ h − 1,
++
+ξ + (n) = (ξ1+ (n), ξ2+ (n), ..., ξm
+(n)), n ≥ 0,
++
+γ + (n) = (γ1+ (n), γ2+ (n), ..., γm
+(n)), n ≥ 0.
+Lemma 1: The probability vectors ξ + (n, r), γ + (n, k), ξ(n, r, 0) and γ(n, k, 0) (h ≤ r ≤
+H, 0 ≤ k ≤ h − 1) are given by,
+ξ + (n, r) = σξ(n, r, 0), n ≥ 0,
+
+(25)
+
+γ + (n, k) = σγ(n, k, 0), n ≥ k,
+
+(26)
+
+∞ P
+H
+P
+
+where σ −1 =
+
+ξ(m, r, 0)e+
+
+m=0 r=h
+
+∞ min(m,h−1)
+P
+P
+m=0
+
+γ(m, k, 0)e.
+
+k=0
+
+Proof: As a result of the fact that ξ + (n, r) and γ + (n, k) are proportional to
+∞ P
+H
+P
+ξ(n, r, 0) and γ(n, k, 0), respectively, applying Bayes’ theorem and
+ξ + (n, r)e +
+n=0 r=h
+∞ min(n,h−1)
+P
+P
+n=0
+
+γ + (n, k)e =1 we get the desired outcome.
+
+k=0
+
+Lemma 2: R(n, 0)De=
+
+n P
+m
+P
+
+γ(m, k, 0)e
+
+m=0 k=0
+
+Proof: using (1) and (2) after some simplification we accomplish the intented outcome.
+Lemma 3: The expression for σ −1 is
+1 − (1 − )
+σ
+
+−1
+
+h−1
+P
+
+R(n, 0)e
+
+n=0
+
+=
+sH
+
+∞
+X
+
+H
+X
+
+
+ξ (n) + γ (n) e +
+ξ + (n) + γ + (n) esn
++
+
+n=H+1
+
++
+
+.
+
+(27)
+
++
+
+n=h
+
+h−1
+X
+
+
+ξ + (n)xn + (1 − )γ + (n)sh + γ + (n)xn e
+
+n=0
+
+Proof: Post multiplying (15)-(20) by column vector e and summing them using Lemma 2
+after some simplification we get
+∞ X
+H
+X
+m=0 r=h
+
+˜
+ξ(m,
+r, θ) +
+
+∞ min(m,h−1)
+X
+X
+m=0
+
+k=0
+
+X
+
+∞
+H
+h−1
+X
+1 − S̃H (θ) X
+γ̃(m, k, θ) =
+ξ(n, r, 0) +
+γ(n, k, 0)
+θ
+n=H+1
+
+r=h
+
+k=0
+
+author
+
+8
+
+H X
+H
+X
+
+h−1
+X
+
+
+
+1 − S̃n (θ)
+θ
+n=h
+r=h
+k=0
+
+
+h−1
+H
+n
+X X
+X
+1 − Ṽn (θ)
++
+ξ(n, r, 0) + 
+γ(n, k, 0)
+θ
+n=0
+
++
+
+ξ(n, r, 0) +
+
+r=h
+
++(1 − )
+
+θ→0
+
+applying
+
+in
+
+(28)
+
+and
+
+L’Hôspital’s
+
+rule,
+
+and
+
+k=0
+
+h−1
+n
+XX
+
+1 − S̃h (θ)
+θ
+n=0
+
+(1 − )
+
+γ(n, k, 0)
+
+h−1
+P
+
+γ(n, k, 0).
+
+k=0
+
+R(n, 0)e +
+
+n=0
+∞ P
+H
+P
+
+∞ min(n,h−1)
+P
+P
+
+ξ(n, r)e +
+
+n=0 r=h
+
+n=0
+
+γ(n, k)e=1, after few simplification we get desired
+
+k=0
+
+outcome.
+Further, define a few necessary generating functions, which are as follows:
+Π̃i (z, y, θ) =
+
+H
+∞ X
+X
+
+˜ r, θ)z n y r ,
+ξ(n,
+
+(29)
+
+ξi+ (n, r)z n y r ,
+
+(30)
+
+n=0 r=h
+
+Π+
+i (z, y) =
+
+∞ X
+H
+X
+n=0 r=h
+
+Ψ+
+i (z) =
+
+∞ X
+H
+X
+
+ξi+ (n, r)z n =
+
+n=0 r=h
+
+Õi (z, y, θ) =
+
+h−1
+∞
+XX
+
+∞
+X
+
+ξi+ (n)z n = Π+
+i (z, 1),
+
+(31)
+
+n=0
+
+γ̃i (n, k, θ)z n y k ,
+
+(32)
+
+γi+ (n, k)z n y k ,
+
+(33)
+
+k=0 n=k
+
+Oi+ (z, y) =
+
+∞
+h−1
+XX
+k=0 n=k
+
+Oi+ (z) =
+
+h−1
+∞
+XX
+
+γi+ (n, k)z n =
+
+∞ min(n,h−1)
+X
+X
+n=0
+
+k=0 n=k
+
+γi+ (n, k)z n =
+
+k=0
+
+∞
+X
+
+γi+ (n)z n ,
+
+n=0
+
+(34)
+where, |z| ≤ 1 and |y| ≤ 1. Consequently we have,
+Π̃(z, y, θ) = (Π̃1 (z, y, θ), Π̃2 (z, y, θ), ..., Π̃m (z, y, θ))
++
++
+Π+ (z, y) = (Π+
+1 (z, y), Π2 (z, y), ..., Πm (z, y))
++
++
++
++
+Ψ (z) = (Ψ1 (z), Ψ2 (z), ..., Ψm (z))
+Õ(z, y, θ) = (Õ1 (z, y, θ), Õ2 (z, y, θ), ..., Õm (z, y, θ)
++
+O+ (z, y) = (O1+ (z, y), O2+ (z, y), ..., Om
+(z, y))
++
++
++
++
+O (z) = (O1 (z), O2 (z), ..., Om (z))
+Lemma 4:
+O+ (z) =
+
+∞
+X
+n=0
+
+γ + (n)z n =
+
+h−1
+X
+
+(ξ + (k) + γ + (k))B (k) (z)z k
+
+k=0
+
+(35)
+
+(28)
+
+short title
+
+9
+
+Proof: Equations (19) and (20) are multiplied by the appropriate powers of z and y and
+added throughout the range of n and k we get
+Õ(z, y, θ)(−θI − (C + Dz)) =
+
+h−1
+H
+XX
+k=0
+
+−
+
+ξ(k, r, 0) + 
+
+
+γ(j, k, 0) Ṽk (θ)z k y k
+
+j=0
+
+r=h
+
+h−1
+∞
+XX
+
+k
+X
+
+γ(n, k, 0)z n y k .
+
+(36)
+
+k=0 n=k
+
+If the eigenvalues of −(C + Dz) are α1 (z), α2 (z), .., αm (z) and δ1 (z), δ2 (z), ..., δm (z) be
+the corresponding eigenvectors, then
+−(C + Dz)δi (z) = αi (z)δi (z), 1 ≤ i ≤ m.
+
+(37)
+
+If we substitute θ = αi (z) in (36) and post multiplying by δi (z), using Lemma 1 and Lemma
+3 we get
+h−1
+∞
+XX
+
+γ + (n, k)z n y k δi (z) =
+
+h−1
+X
+
+(ξ + (k) + γ + (k))Ṽk (αi (z))δi (z)z k y k ,
+
+(38)
+
+k=0
+
+k=0 n=k
+
+Equation (38) is true for all αi (z), 1 ≤ i ≤ m, hence
+h−1
+∞
+XX
+
+γ + (n, k)z n y k =
+
+k=0 n=k
+
+h−1
+X
+
+−1 k k
+(ξ + (k) + γ + (k))∆(z)diag{Ṽk (αi (z))}m
+z y .
+i=1 (∆(z))
+
+k=0
+
+(39)
+where ∆(z) = (δ1 (z), δ2 (z), ..., δm (z)) and diag{Ṽk (αi (z))}m
+i=1 is a diagonal matrix
+whose (i, i) entry is Ṽk (αi (z)), i = 1, 2, ..., m.
+(k)
+
+(Bl (x))i,j = P r{Given a departure at time 0 which left k costumer in the queue,
+k − th vacation type begins and the arrival process is in phase i
+at the end of the k − th vacation type occurs no later than time x, with the arrival process is in
+phase j, and during the k − th vacation type l customers arrive}, 0 ≤ k ≤ h − 1.
+(k)
+
+(k)
+
+Let B (k) (z) be the probability generating function of Bl = (Bl (x))i,j , and hence,
+∞
+R∞
+P
+(k)
+−1
+B (k) (z) =
+Bl z l = 0 e−(C+Dz)t vk (t)dt = ∆(z)diag{Ṽk (αi (z))}m
+,
+i=1 (∆(z))
+l=0
+
+0 ≤ k ≤ h − 1.
+Hence, equation (39) expresses as,
+h−1
+∞
+XX
+k=0 n=k
+
+γ + (n, k)z n y k =
+
+h−1
+X
+
+(ξ + (k) + γ + (k))B (k) (z)z k y k .
+
+k=0
+
+substituting y = 1 in (40) we get desired result (35).
+
+(40)
+
+10
+
+author
+
+When we multiply (15)-(18) by the appropriate powers of z and y and add the results
+over the range of n and r, we get
+
+Π̃(z, y, θ)(−θI − (C + Dz)) = (1 − )
+
+h−1
+n
+XX
+
+γ(n, k, 0)D̃h−n S̃h (θ)y h
+
+n=0 k=0
+
++
+
+H  h−1
+X
+X
+r=h
+
+k=0
+
+ h−1
+∞
+X
+X
+
++
+
+n=H+1
+
+−
+
+γ(r, k, 0) +
+
+∞ X
+H
+X
+
+H
+X
+
+
+ξ(r, j, 0) S̃r (θ)y r
+
+(41)
+
+r=h
+
+γ(n, k, 0) +
+
+k=0
+
+H
+X
+
+
+
+ξ(n, r, 0) S̃H (θ)z n−H y H
+
+r=h
+
+ξ(n, r, 0)z n y r ,
+
+n=0 r=h
+
+where D̃ = (−C)−1 D. Now we substitute θ = αi (z) in (41) and post multiplying by
+δi (z), using Lemma 1 and Lemma 3 we get
+H
+∞ X
+X
+
+ξ + (n, r)z n y r δi (z) = (1 − )
+
+h−1
+X
+
+γ + (n)D̃h−n S̃h (αi (z))δi (z)y h
+
+n=0
+
+n=0 r=h
+
++
++
+
+H 
+X
+
+
+γ + (r) + ξ + (r) S̃r (αi (z))δi (z)y r
+
+r=h
+∞
+X
+
+
+
+γ + (n) + ξ + (n) S̃H (αi (z))δi (z)z n−H y H .
+
+n=H+1
+
+(42)
+Equation (42) is true for all αi (z), 1 ≤ i ≤ m, hence
+∞ X
+H
+X
+
+ξ + (n, r)z n y r = (1 − )
+
+n=0 r=h
+
+h−1
+X
+
+γ + (n)D̃h−n ∆(z)diag{S̃h (αi (z))}m
+i=1 (∆(z))
+
+−1 h
+
+y
+
+n=0
+
++
++
+
+H 
+X
+
+
+−1 r
+γ (r) + ξ (r) ∆(z)diag{S̃r (αi (z))}m
+y
+i=1 (∆(z))
+
+r=h
+∞
+X
+
++
+
++
+
+(43)
+
+
+
+−1 n−H H
+γ + (n) + ξ + (n) ∆(z)diag{S̃H (αi (z))}m
+z
+y .
+i=1 (∆(z))
+
+n=H+1
+
+Further, we define
+(r)
+
+(Al (x))i,j = P r{Given a departure at time 0 which left r (h ≤ r ≤ H) costumer in the queue,
+and the arrival process is in phase i, next departure occurs no later than
+time x with the arrival process is in phase j, and during the
+service time of r customers l customers arrive}.
+
+short title
+
+11
+(r)
+
+(r)
+
+Let A(r) (z) be the probability generating function of Al = (Al (x))i,j , and hence,
+∞
+R∞
+P
+(r)
+−1
+Al z l = 0 e−(C+Dz)t sr (t)dt = ∆(z)diag{S̃r (αi (z))}m
+,
+A(r) (z) =
+i=1 (∆(z))
+l=0
+
+h ≤ r ≤ H.
+Substituting y = 1 in (42) and using Lemma 4 and equation (31) we get the following
+result
+ h−1
+X
+
+ +
+
+(ξ (n) + γ + (n)) B (n) (z) − I A(H) (z)z n
+
+n=0
+
++
+Ψ+ (z) =
+
++(1 − )γ + (n) D̃h−n A(h) (z)z H − A(H) (z)z n
+
+
+
+H−1
+X
+
+
+
+(γ + (n) + ξ + (n)) A(n) (z)z H − A(H) (z)z n
+
+n=h
+
+z H I − A(H) (z)
+
+
+
+.
+
+(44)
+
+Now using (44) in (42) after algebraic manipulation the following expression is obtained,
+h−1
+X
+
+
+
+(1 − )γ + (n) D̃h−n z H A(h) (z)y h − A(H) (z)z n y H
+
+n=0
+
+
++(1 − )γ + (n)D̃h−n A(h) (z)A(H) (z) y H − y h
+
+
++y H (ξ + (n) + γ + (n)) B (n) (z) − I A(H) (z)z n
++
+Π+ (z, y) =
+
+H−1
+X
+
+
+
+
+γ + (n) + ξ + (n) z H y n A(n) (z) + y H − y n A(n) (z)A(H) (z) − y H A(H) (z)z n
+
+n=h
+
+(45).
+
+z H I − A(H) (z)
+
+The above bivariate vector generating function given in (45) contains H unknowns vectors
++
+H−1
+{ξ + (n)}H−1
+n=0 i.e., total mH unknowns {ξi (n)}n=0 , 1 ≤ i ≤ m which has to be determine
+first. From (45), the bivariate generating function Π+ (z, y) has been represented in compact
+H−1
+form, excluding the H unknowns {ξ + (n)}n=0
+. Additionally, if we obtain ξ + (k) (0 ≤ k ≤
+h − 1) then from Lemma 4 the probability vectors γ + (n, k) (0 ≤ k ≤ h − 1) are known.
+As a result, in order to determine all of the probability vectors at the service (vacation)
+H−1
+completion epoch, it is necessary to identify the unknowns {ξ + (n)}n=0
+.
+
+3.1 Procedure of obtaining the unknowns ξ + (n) (0 ≤ n ≤ H − 1)
+Let us take S̃r (θ) and Ṽk (θ) both are rational function. Then each element of A(r) (z)
+(h ≤ r ≤ H) and B (k) (z) (0 ≤ k ≤ h − 1) are rational functions having same denominator
+say d(r) (z) (0 ≤ r ≤ H) and d(k) (z) (0 ≤ k ≤ h − 1), respectively. Assign the (i, j)-th
+f
+
+(r)
+
+(z)
+
+(k)
+element of A(r) (z) say di,j
+(z) say
+(r) (z) , 1 ≤ i, j ≤ m, and the (i, j)-th element of B
+(k)
+
+fi,j (z)
+, 1 ≤ i, j ≤ m. Consequently, the (i, j)-th element of z H I − A(H) (z) is
+d(k) (z)
+
+(z H I − A(H) (z))i,j =
+
+νi,j (z)
+d(H) (z)
+
+(46)
+
+author
+
+12
+where
+
+(
+νi,j (z) =
+
+(H)
+
+z H d(H) (z) − fi,j (z), i = j,
+(H)
+−fi,j (z), i 6= j.
+
+Hence from (44) we have m system of equations in the matrix form
+Ψ+ (z)M (z) = Ω(z)
+
+(47)
+
+where (i, j)-th entry of the matrix M (z) is νi,j (z), and Ω(z) = (Ω1 (z), Ω2 (z), ..., Ωm (z))T
+is an m × 1 column matrix such that
+
+(1 − )
+
+h−1
+Y
+
+(r)
+
+d
+
+
+(z)
+
+r=0
+
+H−1
+Y
+
+(r)
+
+d
+
+(z)
+
+m
+XX
+ h−1
+
+γi+ (n)
+
+ X
+m
+(h−n) (h)
+zH
+d˜i,l fl,j (z)d(H) (z)
+
+n=0 i=1
+
+r=h+1
+
+l=1
+
+
+
+(H)
+
+−z n d(h) (z)fi,j (z) +
+
+H−1
+Y
+
+d(r) (z)
+
++γi+ (n))
+
+(n)
+
+(H)
+
+ui,l (z)fl,j (z)z n
+
+l=1
+
++
+
+h−1
+X
+r=0
+
+d(r) (z)
+
+h−1
+Y
+
+d(r) (z)
+
+r=0,r6=n
+
+H−1
+m
+XX
+
+
+(n)
++
++
+(ξi (n) + γi (n)) z H d(H) (z)fi,j (z)
+
+n=h i=1
+
+
+
+(H)
+−z n fi,j (z)d(n) (z)
+
+H−1
+Y
+r=h,r6=n
+
+Ωj (z) =
+
+(ξi+ (n)
+
+n=0 i=1
+
+r=h
+m
+X
+
+h−1
+m
+XX
+
+QH−1
+
+(r) (z)
+r=0 d
+
+d(r) (z)
+, 1 ≤ j ≤ m.
+(48)
+
+(k)
+
+(k)
+
+(k)
+
+(k)
+
+where ui,j (z) = fi,j (z) − d(k) (z), i 6= j, 0 ≤ k ≤ h − 1 and ui,j (z) = fi,j (z), i = j,
+(h−n)
+0 ≤ k ≤ h − 1. d˜k,l
+is the (k, l)-th element of D̃h−n . To solve the system of equation
+given in (47) we apply the cramer’s rule. The result is as follows:
+Ψ+
+j (z) =
+
+|Mj (z)|
+, 1≤j≤m
+|M (z)|
+
+(49)
+(
+
+[Mj (z)]k,l =
+
+Ωk (z), j = l,
+νl,k (z), j 6= l.
+
+Suppose that |M (z)| is a non-zero polynomial in variable z must posses a nonzero coefficient
+|M (z)|
+of the power of z. It is clear to observe that |z H I − A(H) (z)| = (d(H)
+has precisely
+(z))m
+mH zeros in {z : |z| ≤ 1} say p1 , p2 , ..., pl with multiplicity q1 , q2 , ..., ql , respectively,
+l
+
+P
+where (l ≤ mH − 1) and
+qi = (mH − 1) and pH = 1 is a simple zero. Since Ψ+
+j (z)
+i=1
+
+is analytic in |z| ≤ 1 therefore, these roots are also the roots of the numerator of Ψ+
+j (z).
+
+short title
+
+13
+
+Hence taking one component of Ψ+ (z) say Ψ+
+j (z) (1 ≤ j ≤ m), we are led to mH − 1
+equation
+
+
+
+di−1
+|Mj (z)|
+= 0, 1 ≤ x ≤ l & 1 ≤ i ≤ qj ,
+dz i−1
+z=px
+
+(50)
+
+0
+
+d
+where dz
+0 h(z) = h(z).
+One more equation is obtained by the normalization condition Ψ+ (1)e + O+ (1)e = 1, i.e,
+
+
+
+
+h−1
+X
+d
+d
++
++
+|Mj (z)|
++
+|M (z)|
+(ξ (k) + γ (k))e =
+|M (z)| (51).
+dz
+dz
+dz
+z=1
+z=1
+z=1
+
+m 
+X
+d
+j=1
+
+
+
+
+
+k=0
+
+Solving (50) and (51) together we get mH unknowns ξj+ (n) (1 ≤ j ≤ m, 0 ≤ n ≤ H − 1).
+Theorem 5: The probability vectors of the joint probability of queue and server content
+are given by
+
+
++
+
+(1 − )
+
+ξ (n, h) =
+
+h−1
+X
+
++
+
+h−m
+
+γ (m)D̃
+
+
++ γ (h) + ξ (h) A(h)
+n ,
++
+
++
+
+(52)
+
+m=0
+
+ξ + (n, r) =
+
+
+
+
+γ + (r) + ξ + (r) A(r)
+n , h + 1 ≤ r ≤ H − 1.
+
+(53)
+
+Proof: Using (30) in (45) collecting the multiples of y r (h ≤ r ≤ H − 1), we obtain
+∞
+X
+
+multiple of y h :
+r
+
+multiple of y :
+
++
+ξn,h
+zn =
+
+n=0
+∞
+X
+
+
+(1 − )
+
+h−1
+X
+
+
+γ + (m)D̃h−m + γ + (h) + ξ + (h) A(h)(54)
+(z)
+
+m=0
++ n
+ξn,r
+z =
+
+
+
+
+γ (r) + ξ (r) A(r) (z), h + 1 ≤ r ≤ H − 1
++
+
++
+
+(55)
+
+n=0
+
+Accumulating the coefficients of z n , from both side of (54) and (55), we readily obtain
+desired result (52) and (53). Now our current objective is to collect the remaining probability
+vectors ξ + (n, H) (n ≥ 0). Towards this end, using (30) in (45) and then collecting the
+multiple of y H we get
+ h−1
+X
+A(H) (z)
+(ξ + (n) + γ + (n))(B (n) (z) − I)z n
+n=0
++
+
++(1 − )γ (n)(D̃
+
+∞
+X
+n=0
+
++
++
+
+n
+
+ξ (n, H)z =
+
+H−1
+X
+
++
+
+h−n
+
++
+
+A
+
+(γ (n) + ξ (n))(A
+
+n=h
+
+z H I − A(H) (z)
+
+(h)
+
+(n)
+
+
+(z) − z I)
+n
+
+
+(z) − z I)
+n
+
+.
+
+(56)
+
+author
+
+14
+
+Assign a symbol
+
+∞
+P
+n=0
+
++
++
+ξ + (n, H)z n as £+ (z) = (£+
+1 (z), £2 (z), ..., £m (z)), and we replace
+
+Ψ+ (z) and Ωj (z) by £+ (z) and Θj (z), respectively, where Θj (z), (1 ≤ j ≤ m) is given
+by
+
+(1 − )
+
+h−1
+Y
+
+H−1
+Y
+
+
+d(r) (z)
+
+r=0
+
+X
+m
+m X
+m
+XX
+ h−1
+(h−n) (h)
+(H)
+d(r) (z)
+γi+ (n)
+d˜i,l fl,w (z)fw,j (z)
+n=0 i=1
+
+r=h+1
+
+w=1 l=1
+
+ H−1
+h−1
+m
+Y
+XX
+(H)
+−z n d(h) (z)fi,j (z) +
+d(r) (z)
+(ξi+ (n)
+n=0 i=1
+
+r=h
+
++γi+ (n))
+
+m
+X
+
+(n)
+
+h−1
+Y
+
+(H)
+
+ui,l (z)fl,j (z)z n
+
+l=1
+
++
+
+h−1
+Y
+
+d(r) (z)
+
+r=0
+
+r=0,r6=n
+
+H−1
+m
+XX
+
+m 
+X
+
+n=h i=1
+
+w=1
+
+(ξi+ (n) + γi+ (n))
+
+(n)
+
+H−1
+Y
+r=h,r6=n
+
+QH−1
+r=0
+
+(H)
+
+fi,w (z)fw,j (z)
+
+
+(H)
+−z n fi,j (z)d(n) (z)
+Θj (z) =
+
+d(r) (z)
+
+d(r) (z)
+
+d(r) (z)
+, 1 ≤ j ≤ m.
+(57)
+
+As a result, £+
+j (z) is expressed as
+£+
+j (z) =
+
+|Nj (z)|
+, 1 ≤ j ≤ m,
+|M (z)|
+
+(58)
+
+where,
+(
+[Nj (z)]k,l =
+
+Θk (z), j = l,
+νl,k (z), j 6= l.
+
+ˆ
+It is assumed that degree of |Nj (z)| is dˆj and degree of |M (z)| is d.
+The roots of |Nj (z)| of modules with more than one must be known in order to derive
+the probability vectors ξ + (n, H) (n ≥ 0).
+Since (56) is analytic, in |z| ≤ 1, the roots of |M (z)| lying in |z| ≤ 1 are also the roots
+of |Nj (z)|, hence, the roots lying in |z| ≤ 1 can not be used to calculate ξ + (n, H) (n ≥ 0).
+let us assume β1 , β2 , ..., βl are the zeros of |M (z)| of modules greater than one having
+l
+P
+ˆ Here, two cases arrise
+multiplicity η1 , η2 , ..., ηl , respectively, and
+ηj < d.
+j=1
+
+Case A: dˆ ≤ dˆj
+now we apply the partial fraction method on (58), £+
+j (z) can be written as,
+dˆj −dˆ
+
+£+
+j (z) =
+
+X
+i=0
+
+%i,j z i +
+
+ηw
+l X
+X
+
+Bi,w,j
+,
+(z − βw )ηw −i+1
+w=1 i=1
+
+(59)
+
+short title
+
+15
+
+where
+ i−1 
+dηw
+ηw 
+|Nj (z)| dz
+1
+d
+ηw (z − βw )
+Bi,w,j =
+, w = 1, 2, ..., l, i = 1, 2, ..., ηw ,
+dηw
+(i − 1)! dz i−1
+z=βw
+dz ηw |M (z)|
+j = 1, 2, ..., m.
+Collecting the coefficients of z n (n ≥ 0) from both side of (59) for (1 ≤ j ≤ m) we obtain,
+
+ηw
+l P
+
+P
+
+Bi,w,j
+ηw −i+n
+ˆ
+%n,j +
+, 0 ≤ n ≤ dˆj − d,
+
+ηw −i+1 β ηw +n−i+1
+η
+−i
+w
+(−1)
+w
++
+w=1 i=1
+ξj (n, H) =
+ηw
+l P
+
+P
+
+Bi,w,j
+ηw −i+n
+
+ˆ
+
+,
+n > dˆj − d.
+η +n−i+1
+w=1 i=1
+
+(−1)ηw −i+1 βww
+
+ηw −i
+
+Case B: dˆ > dˆj
+We remove the first summation term on the right hand side of (59) then,
+ξj+ (n, H) =
+
+ηw
+l X
+X
+
+
+
+ηw − i + n
+, n ≥ 0.
+ηw −i+1 β ηw +n−i+1
+ηw − i
+w
+w=1 i=1 (−1)
+Bi,w,j
+
+(60)
+
+Theorem 6: Arbitrary epoch probability vectors are given by,
+n
+P
+
+γ + (m)D̃n−m (−C)−1
+
+m=0
+
+, 0 ≤ n ≤ h − 1 (exist only f or SV )
+(61)
+ +
+
++
++
+ξ (h) + γ (h) − ξ (0, h)
+ξ(0, h) = (1 − )R(h − 1, 0)D +
+(−C)−1 , n ≥ 0,
+E
+(62)
+ +
+
+ξ (r) + γ + (r) − ξ + (0, r)
+ξ(0, r) =
+(−C)−1 , n ≥ 0, h + 1 ≤ r ≤ H − 1,
+(63)
+E
+
+
+ξ + (n, r)
+ξ(n, r) = ξ(n − 1, r)D −
+(−C)−1 , n ≥ 1,
+(64)
+E
+
+
+ξ + (n + H) + γ + (n + H) − ξ + (n, H)
+(−C)−1 , n ≥ 0,
+ξ(n, H) = ξ(n − 1, H)D +
+E
+(65)
+ +
+
++
++
+ξ (k) + γ (k) − γ (k, k)
+(−C)−1 , 0 ≤ k ≤ h − 1,
+γ(k, k) =
+(66)
+E
+
+
+γ + (n, k)
+(−C)−1 , n ≥ k + 1, 0 ≤ k ≤ h − 1.
+(67)
+γ(n, k) = γ(n − 1, k) −
+E
+R(n, 0) =
+
+where E = ŵ + (1 − )
+
+E
+
+h−1
+P
+
+n
+P
+
+γ + (m)D̃(n−m) (−C)−1 e,
+
+n=0 m=0
+∞
+P
+
+H
+h−1
+
+
+P
+P +
+ξ + (n) + γ + (n) e +
+ξ + (n) + γ + (n) esn +
+ξ (n)exn +
+n=0
+n=H+1
+n=h
+
+(1 − )γ + (n)esh + γ + (n)exn .
+
+ŵ = sH
+
+Proof: Dividing σ −1 in equation (1) and (2) after simple algebraic manipulation we obtain
+(61). Futher, taking θ → 0 in (3)-(9) and then diving σ −1 after simple algebraic manipulation
+we get desired outcome (62)-(67).
+
+author
+
+16
+
+4 Marginal Probabilities
+Some marginal probabilities are given as follows:
+1. Queue length distribution is given by
+
+min(n,h−1)
+H
+
+P
+P
+
+(1 − )R(n, 0)e +
+ξ(n, r)e +
+γ(n, k)e, 0 ≤ n ≤ h − 1,
+
+r=h
+k=0
+Pnqueue =
+min(n,h−1)
+H
+
+P
+P
+
+
+ξ(n, r)e +
+γ(n, k)e, n ≥ h.
+
+r=h
+
+k=0
+
+2. The probability that the server is in a dormant state (P dor )=
+
+h−1
+P
+
+R(n, 0)e.
+
+n=0
+
+3. Probability of r customers with the server (Prser )=
+
+∞
+P
+
+ξ(n, r)e, h ≤ r ≤ H.
+
+n=0
+[k]
+
+4. Probability of server’s vacation is k − th vacation type (γvac )=
+
+∞
+P
+
+γ(n, k)e, 0 ≤ k ≤
+
+n=k
+
+h − 1.
+5. The probability that the server is busy (Pbusy )=
+
+H P
+∞
+P
+
+ξ(n, r)e.
+
+r=h n=0
+h−1
+∞
+P P
+
+6. The probability that the server is on vacation (γvac )=
+
+γ(n, k)e.
+
+k=0 n=k
+
+5 Performance measure
+Performance measure is collected for observing the system performance. It helps the system
+manager for observe the system behavior so that he can modify the system getting for more
+efficient result. In this section, we collect significant performance measures which are as
+follows.
+1. The
+
+expected
+
+∞ P
+H
+P
+
+number
+
+nξ(n, r)e +
+
+n=0 r=h
+
+in
+
+h−1
+∞
+P P
+
+the
+
+queue
+
+(Lq )
+
+nγ(n, k)e=(1 − )
+
+h−1
+P
+n=0
+
+k=0 n=k
+
+=
+
+(1 − )
+
+∞
+h−1
+P P
+
+nPnqueue .
+
+n=h−h
+h−1
+P
+
+nR(n, 0)e +
+
+n=0
+
+r)ξ(n, r)e +
+
+nR(n, 0)e +
+
+n=0
+∞
+P
+
+nPnqueue +
+
+2. The expected number in the system (Ls ) = (1 − )
+
+h−1
+P
+
+∞ P
+H
+P
+
+(n +
+
+n=0 r=h
+
+nγ(n, k)e.
+
+k=0 n=k
+L
+
+3. The expected waiting time in the queue (Wq ) = λq .
+4. The expected waiting time in the system (Ws ) = Lλs .
+5. Expected number with the server when server is busy (Lser ) =
+
+H
+P
+
+(rPrser /Pbusy ).
+
+r=h
+
+short title
+
+17
+
+6. Expected vacation type when server is on vacation (Lvac ) =
+
+h−1
+P
+
+[k]
+
+(kγvac /γvac ).
+
+k=0
+
+6 Numerical results
+The main objective for presenting this section is to validate the mathematical results
+presented in the previous section with some numerical results. These results are displayed
+in the tabular and graphical form, considering the service (vacation) time distribution as
+phase (PH) - type, which is also known as the representation as (α, T ), where α is a row
+vector of order 1 × n, and T is a square matrix of order n. The joint probabilities with
+(5,9)
+predefined notations are presented for M AP/Gr /1 queue with queue size dependent
+SV (MV) in the tabular form (Table 1 - Table 8). The service time of each batch and
+vacation time of the server follow the PH-type distribution. The
+ other input parameters
+ are
+−91.8125 14.1250
+given below. The M AP is represented by the matrices C =
+and
+49.4375 −77.6875
+
+
+49.4375 28.2500
+D=
+. The service time of each batch under service follow the Erlang
+7.0625 21.1875
+
+
+−µr µr 0.0
+(E3 ) distribution having PH-type representation (αr , Tr ), where Tr =  0.0 −µr µr ,
+0.0 0.0 −µr
+
+r(5.2)
+server follows
+µr = 2 , αr = 1.0 0.0 0.0, , 5 ≤ r ≤ 9. The vacation time
+ of the 
+−νk νk
+E2 distribution, having PH-type representation (αk , Tk ), Tk =
+, νk = (k +
+0.0 −νk
+
+1.0)2 0.5, 0 ≤ k ≤ 4. αk = 1.0 0.0 , 0 ≤ k ≤ 4. ξ=[0.57143, 0.42857], λ = 56.50.
+
+Table 1 Joint probabilities (queue size and server content) at service completion epoch for SV
+n
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+31
+32
+33
+151
+152
+153
+301
+302
+303
+372
+373
+442
+443
+444
+459
+460
+461
+≥ 462
+Total
+
++
+ξ1 (n, 5)
+0.00243
+0.00430
+0.00508
+0.00500
+0.00443
+0.00366
+0.00288
+0.00219
+0.00162
+0.00117
+0.00083
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.0353
+
++
+ξ2 (n, 5)
+0.00173
+0.00317
+0.00379
+0.00376
+0.00334
+0.00277
+0.00219
+0.00166
+0.00123
+0.00089
+0.00063
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.0265
+
++
+ξ1 (n, 6)
+0.00227
+0.00371
+0.00405
+0.00369
+0.00302
+0.00231
+0.00168
+0.00118
+0.00080
+0.00054
+0.00035
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.0242
+
++
+ξ2 (n, 6)
+0.00162
+0.00275
+0.00304
+0.00278
+0.00229
+0.00175
+0.00128
+0.00090
+0.00061
+0.00041
+0.00027
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.0181
+
++
+ξ1 (n, 7)
+0.00256
+0.00390
+0.00395
+0.00334
+0.00254
+0.00181
+0.00122
+0.00080
+0.00050
+0.00031
+0.00019
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.021
+
++
+ξ2 (n, 7)
+0.00183
+0.00289
+0.00297
+0.00253
+0.00193
+0.00138
+0.00093
+0.00061
+0.00039
+0.00024
+0.00015
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.0160
+
++
+ξ1 (n, 8)
+0.00274
+0.00389
+0.00368
+0.00291
+0.00207
+0.00137
+0.00087
+0.00053
+0.00031
+0.00018
+0.00010
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.0188
+
++
+ξ2 (n, 8)
+0.00196
+0.00289
+0.00278
+0.00221
+0.00158
+0.00105
+0.00066
+0.00040
+0.00024
+0.00014
+0.00008
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.0141
+
++
+ξ1 (n, 9)
+0.00283
+0.00626
+0.00888
+0.01035
+0.01086
+0.01074
+0.01027
+0.00964
+0.00897
+0.00832
+0.00773
+0.00294
+0.00285
+0.00277
+0.00047
+0.00046
+0.00046
+0.00006
+0.00006
+0.00006
+0.00002
+0.00002
+0.00001
+0.00001
+0.00001
+0.00001
+0.00001
+0.00001
+0.00000
+0.363
+
++
+ξ2 (n, 9)
+0.00203
+0.00459
+0.00659
+0.00773
+0.00814
+0.00807
+0.00772
+0.00725
+0.00675
+0.00626
+0.00581
+0.00220
+0.00214
+0.00208
+0.00035
+0.00035
+0.00034
+0.00004
+0.00004
+0.00004
+0.00001
+0.00001
+0.00001
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.272
+
+18
+
+author
+
+Table 2 Joint probabilities (queue size and vacation type) at vacation termination epoch for SV
+n
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+31
+32
+33
+151
+152
+153
+301
+302
+303
+501
+502
+503
+≥504
+Total
+
++
+γ1 (n, 0)
+0.00000
+0.00001
+0.00001
+0.00001
+0.00002
+0.00002
+0.00002
+0.00003
+0.00003
+0.00003
+0.00004
+0.00007
+0.00007
+0.00007
+0.00004
+0.00004
+0.00004
+0.00001
+0.00001
+0.00001
+0.00000
+0.00000
+0.00000
+0.00000
+0.0123
+
++
+γ2 (n, 0)
+0.00000
+0.00001
+0.00001
+0.00001
+0.00001
+0.00002
+0.00002
+0.00002
+0.00002
+0.00002
+0.00003
+0.00005
+0.00005
+0.00005
+0.00003
+0.00003
+0.00003
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.0094
+
++
+γ1 (n, 1)
+0.00000
+0.00010
+0.00018
+0.00025
+0.00031
+0.00036
+0.00041
+0.00045
+0.00048
+0.00050
+0.00052
+0.00038
+0.00037
+0.00035
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.02192
+
++
+γ2 (n, 1)
+0.00000
+0.00007
+0.00013
+0.00019
+0.00023
+0.00027
+0.00031
+0.00033
+0.00036
+0.00037
+0.00039
+0.00029
+0.00028
+0.00027
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.0164
+
++
+γ1 (n, 2)
+0.00000
+0.00000
+0.00049
+0.00084
+0.00108
+0.00124
+0.00134
+0.00139
+0.00140
+0.00138
+0.00133
+0.00020
+0.00018
+0.00016
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.0256
+
++
+γ2 (n, 2)
+0.00000
+0.00000
+0.00035
+0.00062
+0.00080
+0.00093
+0.00100
+0.00104
+0.00105
+0.00103
+0.00100
+0.00015
+0.00013
+0.00012
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.0192
+
++
+γ1 (n, 3)
+0.00000
+0.00000
+0.00000
+0.00124
+0.00193
+0.00225
+0.00234
+0.00228
+0.00213
+0.00193
+0.00172
+0.00003
+0.00003
+0.00002
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.0253
+
++
+γ2 (n, 3)
+0.00000
+0.00000
+0.00000
+0.00089
+0.00143
+0.00168
+0.00175
+0.00171
+0.00160
+0.00146
+0.00130
+0.00002
+0.00002
+0.00002
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.0190
+
++
+γ1 (n, 4)
+0.00000
+0.00000
+0.00000
+0.00000
+0.00218
+0.00301
+0.00312
+0.00288
+0.00250
+0.00207
+0.00168
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.02297
+
++
+γ2 (n, 4)
+0.00000
+0.00000
+0.00000
+0.00000
+0.00156
+0.00224
+0.00234
+0.00217
+0.00188
+0.00157
+0.00127
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.0172
+
+queue+
+Pn
+0.02200
+0.03853
+0.04598
+0.04834
+0.04975
+0.04692
+0.04236
+0.03745
+0.03286
+0.02883
+0.02540
+0.00634
+0.00612
+0.00592
+0.00089
+0.00088
+0.00087
+0.00011
+0.00011
+0.00011
+0.00001
+0.00001
+0.00001
+0.00000
+0.9999
+
+Table 3 Joint probabilities (queue size and server content) at arbitrary epoch for SV
+n
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+31
+32
+33
+34
+35
+301
+302
+303
+373
+374
+392
+≥ 393
+Total
+
+R1 (n, 0)
+
+R2 (n, 0)
+
+ξ1 (n, 5)
+
+ξ2 (n, 5)
+
+ξ1 (n, 6)
+
+ξ2 (n, 6)
+
+ξ1 (n, 7)
+
+ξ2 (n, 7)
+
+ξ1 (n, 8)
+
+ξ2 (n, 8)
+
+ξ1 (n, 9)
+
+ξ2 (n, 9)
+
+0.00000
+0.00002
+0.00011
+0.00046
+0.00126
+
+0.00000
+0.00001
+0.00008
+0.00033
+0.00092
+
+0.00185
+
+0.00134
+
+0.00421
+0.00346
+0.00273
+0.00208
+0.00154
+0.00112
+0.00079
+0.00056
+0.00038
+0.00026
+0.00018
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.01767
+
+0.00317
+0.00262
+0.00207
+0.00158
+0.00117
+0.00085
+0.00060
+0.00042
+0.00029
+0.00020
+0.00014
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.01338
+
+0.00268
+0.00209
+0.00154
+0.00110
+0.00076
+0.00051
+0.00034
+0.00022
+0.00014
+0.00009
+0.00006
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00962
+
+0.00202
+0.00158
+0.00117
+0.00084
+0.00058
+0.00039
+0.00026
+0.00017
+0.00011
+0.00007
+0.00004
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00730
+
+0.00220
+0.00162
+0.00113
+0.00075
+0.00049
+0.00031
+0.00019
+0.00011
+0.00007
+0.00004
+0.00002
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00696
+
+0.00166
+0.00123
+0.00086
+0.00057
+0.00037
+0.00023
+0.00014
+0.00009
+0.00005
+0.00003
+0.00002
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00529
+
+0.00179
+0.00125
+0.00082
+0.00051
+0.00031
+0.00018
+0.00011
+0.00006
+0.00003
+0.00002
+0.00001
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00511
+
+0.00135
+0.00095
+0.00063
+0.00039
+0.00024
+0.00014
+0.00008
+0.00005
+0.00003
+0.00001
+0.00001
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00389
+
+0.00324
+0.00383
+0.00400
+0.00392
+0.00373
+0.00348
+0.00323
+0.00299
+0.00277
+0.00257
+0.00240
+0.00099
+0.00096
+0.00093
+0.00091
+0.00089
+0.00002
+0.00002
+0.00002
+0.00001
+0.00001
+0.00001
+0.00000
+0.12674
+
+0.00240
+0.00286
+0.00300
+0.00295
+0.00280
+0.00262
+0.00243
+0.00225
+0.00208
+0.00194
+0.00180
+0.00074
+0.00072
+0.00070
+0.00068
+0.00067
+0.00001
+0.00001
+0.00001
+0.00001
+0.00000
+0.00000
+0.00000
+0.09514
+
+short title
+
+19
+
+Table 4 Joint probabilities (queue size and vacation type) at arbitrary epoch for SV
+n
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+31
+32
+33
+34
+35
+301
+302
+303
+373
+374
+392
+393
+394
+446
+447
+514
+515
+≥ 516
+Total
+
+γ1 (n, 0)
+
+γ2 (n, 0)
+
+γ1 (n, 1)
+
+γ2 (n, 1)
+
+γ1 (n, 2)
+
+γ2 (n, 2)
+
+γ1 (n, 3)
+
+γ2 (n, 3)
+
+0.00187
+0.00185
+0.00184
+0.00184
+0.00184
+0.00183
+0.00183
+0.00183
+0.00182
+0.00182
+0.00181
+0.00164
+0.00163
+0.00162
+0.00161
+0.00160
+0.00006
+0.00006
+0.00006
+0.00002
+0.00002
+0.00001
+0.00001
+0.00001
+0.00001
+0.00001
+0.00000
+0.00000
+0.00000
+0.20851
+
+0.00132
+0.00137
+0.00138
+0.00138
+0.00138
+0.00138
+0.00137
+0.00137
+0.00137
+0.00136
+0.00136
+0.00123
+0.00122
+0.00121
+0.00121
+0.00120
+0.00004
+0.00004
+0.00004
+0.00001
+0.00001
+0.00001
+0.00001
+0.00001
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.15635
+
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00323
+0.00232
+0.00000
+0.00000
+0.00000
+0.00000
+0.00318
+0.00237
+0.00372
+0.00269
+0.00000
+0.00000
+0.00314
+0.00236
+0.00357
+0.00267
+0.00356
+0.00258
+0.00310
+0.00232
+0.00341
+0.00256
+0.00326
+0.00244
+0.00304
+0.00228
+0.00323
+0.00243
+0.00292
+0.00220
+0.00298
+0.00224
+0.00303
+0.00228
+0.00258
+0.00195
+0.00292
+0.00219
+0.00283
+0.00213
+0.00225
+0.00169
+0.00285
+0.00214
+0.00262
+0.00197
+0.00193
+0.00146
+0.00277
+0.00208
+0.00242
+0.00182
+0.00165
+0.00125
+0.00270
+0.00203
+0.00222
+0.00167
+0.00140
+0.00105
+0.00118
+0.00088
+0.00023
+0.00017
+0.00002
+0.00001
+0.00112
+0.00084
+0.00020
+0.00015
+0.00002
+0.00001
+0.00107
+0.00080
+0.00018
+0.00013
+0.00001
+0.00001
+0.00102
+0.00077
+0.00016
+0.00012
+0.00001
+0.00001
+0.00097
+0.00073
+0.00014
+0.00011
+0.00001
+0.00001
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.09092
+0.06817
+0.04722
+0.03541
+0.02624
+0.01969
+Lq =48.547, Ls =51.133, Wq =0.859, Ws = 0.905, Lser =8.141, Lvac =0.838
+Pdor =0.0032, Pidle =0.682, Pbusy =0.318
+
+γ1 (n, 4)
+
+γ2 (n, 4)
+
+queue
+Pn
+
+0.00000
+0.00000
+0.00000
+0.00000
+0.00308
+0.00262
+0.00216
+0.00173
+0.00137
+0.00106
+0.00081
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.01524
+
+0.00000
+0.00000
+0.00000
+0.00000
+0.00224
+0.00197
+0.00163
+0.00131
+0.00103
+0.00080
+0.00062
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.01144
+
+0.02966
+0.03354
+0.03687
+0.03983
+0.04250
+0.03589
+0.03188
+0.02841
+0.02547
+0.02299
+0.02091
+0.00714
+0.00693
+0.00672
+0.00653
+0.00635
+0.00014
+0.00013
+0.00013
+0.00005
+0.00005
+0.00003
+0.00003
+0.00003
+0.00001
+0.00001
+0.00001
+0.00001
+0.00000
+0.99994
+
+Table 5 Joint probabilities (queue size and server content) at service completion epoch for MV
+n
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+20
+21
+251
+457
+458
+459
+460
+Total
+
++
+ξ1 (n, 5)
+0.00188
+0.00332
+0.00393
+0.00387
+0.00343
+0.00283
+0.00223
+0.00169
+0.00125
+0.00090
+0.00064
+0.00001
+0.00001
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.02734
+
++
+ξ2 (n, 5)
+0.00133
+0.00245
+0.00293
+0.00291
+0.00259
+0.00214
+0.00169
+0.00129
+0.00095
+0.00069
+0.00049
+0.00001
+0.00001
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.02051
+
++
+ξ1 (n, 6)
+0.00233
+0.00381
+0.00416
+0.00379
+0.00310
+0.00237
+0.00172
+0.00121
+0.00083
+0.00055
+0.00036
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.02486
+
++
+ξ2 (n, 6)
+0.00166
+0.00282
+0.00312
+0.00286
+0.00235
+0.00180
+0.00131
+0.00092
+0.00063
+0.00042
+0.00028
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.01865
+
++
+ξ1 (n, 7)
+0.00264
+0.00402
+0.00408
+0.00345
+0.00262
+0.00186
+0.00126
+0.00082
+0.00052
+0.00032
+0.00020
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.02207
+
++
+ξ2 (n, 7)
+0.00189
+0.00298
+0.00307
+0.00261
+0.00199
+0.00142
+0.00096
+0.00063
+0.00040
+0.00025
+0.00015
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.01656
+
++
+ξ1 (n, 8)
+0.00283
+0.00402
+0.00381
+0.00301
+0.00214
+0.00142
+0.00089
+0.00054
+0.00032
+0.00019
+0.00011
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.01940
+
++
+ξ2 (n, 8)
+0.00202
+0.00299
+0.00287
+0.00228
+0.00163
+0.00108
+0.00068
+0.00042
+0.00025
+0.00014
+0.00008
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.01455
+
++
+ξ1 (n, 9)
+0.00293
+0.00647
+0.00916
+0.01066
+0.01118
+0.01103
+0.01052
+0.00985
+0.00914
+0.00845
+0.00782
+0.00431
+0.00413
+0.00012
+0.00001
+0.00001
+0.00001
+0.00000
+0.36214
+
++
+ξ2 (n, 9)
+0.00209
+0.00475
+0.00680
+0.00797
+0.00838
+0.00829
+0.00791
+0.00741
+0.00687
+0.00636
+0.00588
+0.00324
+0.00310
+0.00009
+0.00000
+0.00000
+0.00000
+0.00000
+0.27164
+
+20
+
+author
+
+Table 6 Joint probabilities (queue size and vacation type) at vacation termination epoch for MV
+n
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+20
+21
+251
+457
+458
+459
+460
+500
+501
+502
+≥ 503
+Total
+
++
+γ1 (n, 0)
+0.00000
+0.00001
+0.00001
+0.00001
+0.00002
+0.00002
+0.00002
+0.00003
+0.00003
+0.00003
+0.00003
+0.00006
+0.00006
+0.00001
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.01235
+
++
+γ2 (n, 0)
+0.00000
+0.00001
+0.00001
+0.00001
+0.00001
+0.00002
+0.00002
+0.00002
+0.00002
+0.00002
+0.00003
+0.00004
+0.00004
+0.00001
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00926
+
++
+γ1 (n, 1)
+0.00000
+0.00009
+0.00018
+0.00025
+0.00031
+0.00036
+0.00040
+0.00044
+0.00047
+0.00049
+0.00051
+0.00052
+0.00051
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.02160
+
++
+γ2 (n, 1)
+0.00000
+0.00007
+0.00013
+0.00018
+0.00023
+0.00027
+0.00030
+0.00033
+0.00035
+0.00037
+0.00038
+0.00039
+0.00038
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.01620
+
++
+γ1 (n, 2)
+0.00000
+0.00000
+0.00049
+0.00084
+0.00109
+0.00125
+0.00135
+0.00140
+0.00140
+0.00138
+0.00134
+0.00065
+0.00059
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.02577
+
++
+γ2 (n, 2)
+0.00000
+0.00000
+0.00035
+0.00062
+0.00081
+0.00093
+0.00101
+0.00105
+0.00105
+0.00104
+0.00101
+0.00049
+0.00044
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.01932
+
++
+γ1 (n, 3)
+0.00000
+0.00000
+0.00000
+0.00133
+0.00207
+0.00242
+0.00251
+0.00245
+0.00229
+0.00208
+0.00185
+0.00034
+0.00028
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.02720
+
++
+γ2 (n, 3)
+0.00000
+0.00000
+0.00000
+0.00095
+0.00153
+0.00181
+0.00188
+0.00184
+0.00172
+0.00157
+0.00139
+0.00026
+0.00021
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.02040
+
+queue+
+Pn
+0.02161
+0.03780
+0.04509
+0.04760
+0.05013
+0.04785
+0.04351
+0.03862
+0.03395
+0.02979
+0.02622
+0.01054
+0.00992
+0.00023
+0.00001
+0.00001
+0.00001
+0.00001
+0.00001
+0.00001
+0.00001
+0.00000
+0.99993
+
++
+γ1 (n, 4)
+0.00000
+0.00000
+0.00000
+0.00000
+0.00272
+0.00375
+0.00389
+0.00360
+0.00311
+0.00259
+0.00209
+0.00013
+0.00009
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.02864
+
++
+γ2 (n, 4)
+0.00000
+0.00000
+0.00000
+0.00000
+0.00194
+0.00279
+0.00292
+0.00271
+0.00235
+0.00196
+0.00158
+0.00010
+0.00007
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.02148
+
+ξ1 (n, 9)
+0.00338
+0.00399
+0.00416
+0.00407
+0.00386
+0.00359
+0.00332
+0.00306
+0.00283
+0.00262
+0.00244
+0.00030
+0.00030
+0.00001
+0.00001
+0.00001
+0.00000
+0.12747
+
+ξ2 (n, 9)
+0.00250
+0.00298
+0.00312
+0.00306
+0.00290
+0.00270
+0.00250
+0.00230
+0.00213
+0.00197
+0.00183
+0.00023
+0.00022
+0.00000
+0.00000
+0.00000
+0.00000
+0.09570
+
+γ1 (n, 4)
+
+γ2 (n, 4)
+
+queue
+Pn
+
+0.00000
+0.00000
+0.00000
+0.00000
+0.00388
+0.00330
+0.00272
+0.00218
+0.00172
+0.00134
+0.00102
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.01919
+
+0.00000
+0.00000
+0.00000
+0.00000
+0.00281
+0.00248
+0.00205
+0.00165
+0.00130
+0.00101
+0.00078
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.01439
+
+0.02851
+0.03254
+0.03601
+0.03908
+0.04183
+0.03728
+0.03311
+0.02946
+0.02635
+0.02371
+0.02149
+0.00206
+0.00204
+0.00004
+0.00004
+0.00003
+0.00003
+0.00001
+0.00001
+0.00001
+0.00001
+0.00001
+0.00000
+0.99994
+
+Table 7 Joint probabilities (queue size and server content) at arbitrary epoch for MV
+n
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+101
+102
+389
+390
+391
+≥ 392
+Total
+
+ξ1 (n, 5)
+0.00329
+0.00271
+0.00213
+0.00162
+0.00120
+0.00087
+0.00062
+0.00043
+0.00030
+0.00021
+0.00014
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.01380
+
+ξ2 (n, 5)
+0.00247
+0.00205
+0.00162
+0.00123
+0.00091
+0.00066
+0.00047
+0.00033
+0.00023
+0.00016
+0.00011
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.01045
+
+ξ1 (n, 6)
+0.00278
+0.00216
+0.00160
+0.00114
+0.00079
+0.00053
+0.00035
+0.00023
+0.00015
+0.00009
+0.00006
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00997
+
+ξ2 (n, 6)
+0.00209
+0.00164
+0.00122
+0.00087
+0.00060
+0.00041
+0.00027
+0.00017
+0.00011
+0.00007
+0.00004
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00756
+
+ξ1 (n, 7)
+0.00229
+0.00169
+0.00117
+0.00078
+0.00051
+0.00032
+0.00020
+0.00012
+0.00007
+0.00004
+0.00002
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00725
+
+ξ2 (n, 7)
+0.00173
+0.00128
+0.00089
+0.00060
+0.00039
+0.00024
+0.00015
+0.00009
+0.00005
+0.00003
+0.00002
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00551
+
+ξ1 (n, 8)
+0.00187
+0.00130
+0.00085
+0.00054
+0.00033
+0.00019
+0.00011
+0.00006
+0.00004
+0.00002
+0.00001
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00533
+
+ξ2 (n, 8)
+0.00141
+0.00099
+0.00065
+0.00041
+0.00025
+0.00015
+0.00009
+0.00005
+0.00003
+0.00001
+0.00001
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00406
+
+Table 8 Joint probabilities (queue size and vacation type) at arbitrary epoch for MV
+n
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+101
+102
+389
+390
+391
+392
+458
+459
+460
+514
+515
+≥ 516
+Total
+
+γ1 (n, 0)
+
+γ2 (n, 0)
+
+γ1 (n, 1)
+
+γ2 (n, 1)
+
+γ1 (n, 2)
+
+γ2 (n, 2)
+
+γ1 (n, 3)
+
+γ2 (n, 3)
+
+0.00185
+0.00183
+0.00183
+0.00183
+0.00182
+0.00182
+0.00182
+0.00181
+0.00181
+0.00180
+0.00180
+0.00085
+0.00084
+0.00002
+0.00001
+0.00001
+0.00001
+0.00001
+0.00001
+0.00001
+0.00000
+0.00000
+0.00000
+0.20682
+
+0.00131
+0.00136
+0.00137
+0.00137
+0.00137
+0.00136
+0.00136
+0.00136
+0.00136
+0.00135
+0.00135
+0.00064
+0.00063
+0.00001
+0.00001
+0.00001
+0.00001
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.15507
+
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00322
+0.00231
+0.00000
+0.00000
+0.00000
+0.00000
+0.00317
+0.00236
+0.00378
+0.00273
+0.00000
+0.00000
+0.00313
+0.00234
+0.00363
+0.00271
+0.00387
+0.00280
+0.00308
+0.00231
+0.00346
+0.00260
+0.00353
+0.00265
+0.00303
+0.00227
+0.00328
+0.00246
+0.00317
+0.00239
+0.00297
+0.00223
+0.00308
+0.00231
+0.00280
+0.00211
+0.00290
+0.00218
+0.00287
+0.00216
+0.00244
+0.00184
+0.00283
+0.00213
+0.00266
+0.00200
+0.00210
+0.00158
+0.00276
+0.00207
+0.00246
+0.00185
+0.00179
+0.00135
+0.00268
+0.00202
+0.00226
+0.00170
+0.00151
+0.00114
+0.00002
+0.00002
+0.00000
+0.00000
+0.00000
+0.00000
+0.00002
+0.00002
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.00000
+0.09046
+0.06782
+0.04796
+0.03596
+0.02847
+0.02135
+Lq =48.268, Ls =50.837, Wq =0.854, Ws = 0.899, Lser =8.224, Lvac =0.887
+Pidle =0.687, Pbusy =0.312
+
+short title
+
+21
+
+After tabular representation we present the behavior of the considered model in graphical
+form which represents the comparison of the queue size dependent vacation (QSDV) and
+queue size independent vacation (QSIV) policy. The following two cases are considered for
+the comparison scenario:
+Case 1. The QSDV rates are considered as νk = (k + 1)2 (1.1), 0 ≤ k ≤ 2.
+Case 2. The QSIV rates are considered as νk = ν0 , 0 ≤ k ≤ 2. The vacation time decreases
+with increasing queue size at vacation initiation epoch in case 1. In case 2, however, no
+matter what the queue size is at vacation initiation, the vacation time remains constant. The
+following considerations apply to both cases (Case 1 and Case 2).
+• The vacation time
+ of the server
+ follows E2 distribution, having PH-type representation
+
+−νk νk
+(αk , Tk ), Tk =
+, αk = 1.0 0.0 , 0 ≤ k ≤ 2.
+0.0 −νk
+• The service time of each batch under service follow
+3 ) distribution
+ the Erlang (E
+−µr µr 0.0
+having PH-type representation (αr , Tr ), where Tr =  0.0 −µr µr , µr = 0.3r ,
+0.0 0.0 −µr
+
+αr = 1.0 0.0 0.0, , 3 ≤ r ≤ 5.
+
+
+−4.657l 1.761l
+• The M AP is represented by the matrices Cl =
+and Dl =
+1.128l −3.941l
+
+
+1.657l 1.239l
+. ξ(Cl + Dl )=0. l=1.0, 1.1,..., 2.0. ξ=[0.4, 0.6].
+0.872l 1.941l
+It is observed from Figure [1-2] that as the effective arrival rate λ increases, the expected
+queue length Lq increases in both the cases, this is because increasing the effective arrival
+rate increases the traffic intensity, and this behavior reflects the increase in Lq . Also, it can
+be marked here, Lq is lower in Case 1 than Case 2 for a fixed λ. Hence, the consideration of
+QSDV policy is more versed, because consideration of QSDV minimizes Lq in comparison
+to the QSIV.
+7
+
+Case 2 (MV)
+Case 1 (MV)
+
+7
+
+Case 2(SV)
+Case 1(SV)
+
+6
+6
+5
+
+Lq
+
+Lq
+
+5
+
+4
+
+4
+
+3
+
+3
+
+2
+
+2
+3.0
+
+3.5
+
+4.0
+
+Figure 1 Effect of λ on Lq
+
+
+
+4.5
+
+5.0
+
+5.5
+
+3.0
+
+3.5
+
+4.0
+
+Figure 2 Effect of λ on Lq
+
+
+
+4.5
+
+5.0
+
+5.5
+
+22
+
+author
+
+7 Conclusion
+(h,H)
+
+We discussed an infinite capacity M/Gr
+/1 queue with queue size dependent SV (MV).
+Bivariate vector generating function method and the supplementary variable approach have
+been used to extract steady state joint probabilities of queue content, server content (vacation
+type), and the phase of arrival process. The present model can be extended for analyzing
+(a,b)
+different queueing systems with more different vacation policies (viz., BM AP/Gr /1
+queue with queue size dependent single and multiple working vacation), which is left for
+the future study.
+
+References
+Neuts, M. F. (1967) ’A general class of bulk queues with Poisson input’, The Annals of
+Mathematical Statistics, Vol. 38, No. 3, pp.759–770
+Levy, Y. and Yechiali, U. (1975) ’Utilization of idle time in an M/G/1 queueing system’,
+Management Science, Vol. 22, No. 2, pp.202–211
+Tamrakar, G. K. and Banerjee, A. (2020) ’On steady-state joint distribution of an infinite
+buffer batch service Poisson queue with single and multiple vacation’, OPSEARCH, Vol.
+57, No. 4, pp. 1337–1373.
+Tamrakar, G. K. and Banerjee, A. (2021) ’Study on Infinite Buffer Batch Size Dependent
+Bulk Service Queue with Queue Length Dependent Vacation’, International Journal of
+Applied and Computational Mathematics, Vol. 7, No. 6, pp. 1–25.
+Gupta, G. K. and Banerjee, A. and Gupta, U. C. (2020) ’On finite-buffer batch-sizedependent bulk service queue with queue-length dependent vacation’, Quality Technology
+& Quantitative Management, Vol. 17, No. 5, pp. 501–527.
+Nandy, N. and Pradhan, S. (2021) ’On the joint distribution of an infinite-buffer discretetime batch-size-dependent service queue with single and multiple vacations’, Quality
+Technology & Quantitative Management, pp. 1–36.
+Doshi, B. T. (1986) ’Queueing systems with vacations – a survey’, Queueing systems, Vol.
+1, No. 1, pp. 29–66.
+Ke, J. C. and Wu, C. H. and Zhang, Z. G. (2010) ’Recent developments in vacation queueing
+models: a short survey’, International Journal of Operations Research, Vol. 7, No. 4, pp.
+3–8.
+Chaudhry, M. L. and Templeton, J. G. (1983) ’First course in bulk queues’, A Wileyinterscience publication.
+Medhi, J. (2002) ’Stochastic Models in Queueing Theory’, Academic Press.
+Takagi, H. (1991) ’Queueing Analysis: A Foundation of Performance evaluation’, Vol. 1,
+Vacation and Priority, North-Holland, New York, 1991.
+Tian, N. and Zhang, Z. G. (2006) ’Vacation Queueing Models: Theory and Applications’,
+Springer Science & Business Media, Vol. 93.
+
+short title
+
+23
+
+Banerjee, A., Gupta, U. C., and Chakravarthy, S. R. (2015) ’Analysis of a finite-buffer
+bulk-service queue under Markovian arrival process with batch-size-dependent service’,
+Computers and Operations Research, Vol. 60, pp. 138–149.
+Pradhan, S. and Gupta, U. C. (2017) ’Analysis of an infinite-buffer batch-size-dependent
+service queue with Markovian arrival process’, Annals of Operations Research, pp. 1–36.
+Pradhan, S. and Gupta, U. C. (2020) ’Stationary queue and server content distribution
+of a batch-size-dependent service queue with batch Markovian arrival process:
+(a,b)
+BM AP/Gn /1’, Communications in Statistics-Theory and Methods, pp. 1–28.
+Singh, G. and Gupta, U. C. and Chaudhry, M. L. (2013) ’Computational analysis of bulk
+service queue with Markovian arrival process: M AP/R(a,b) /1 queue’, OPSEARCH, Vol.
+50, No. 4, pp. 582–603.
+Bank, B. and Samanta, S. K. (2020) ’Analytical and computational studies of the
+BM AP /G(a,Y ) /1 queue’, Communications in Statistics-Theory and Methods, pp. 1–29.
+Samanta, S. K. and Bank, B. (2020) ’Analysis of stationary queue-length distributions of the
+BM AP /R(a,b) /1 queue’, International Journal of Computer Mathematics: Computer
+Systems Theory, Vol. 5, No. 3, pp. 198–223.
+Sikdar, K. and Samanta, S. K. (2016) ’Analysis of a finite buffer variable batch service
+queue with batch Markovian arrival process and server vacation’, OPSEARCH, Vol. 53,
+No. 3, pp. 553–583.
+Ayyappan, G. and Karpagam, S. (2020) ’Analysis of a bulk service queue with unreliable
+server, multiple vacation, overloading and stand-by server’, International Journal of
+Mathematics in Operational Research, Vol. 16, No. 3, pp. 291–315.
+Chang, S. H. and Choi, D. W. (2005) ’Performance analysis of a finite-buffer discrete-time
+queue with bulk arrival, bulk service and vacations’, Computers & Operations Research,
+Vol. 32, No. 9, pp. 2213–2234.
+Sikdar, K. and Gupta, U. C. (2008) ’On the batch arrival batch service queue with finite
+buffer under server’s vacation: M X /GY /1/N queue’, Computers & Mathematics with
+Applications, Vol. 56, No.11, pp. 2861–2873.
+Haridass, M. and Arumuganathan, R. (2012) ’Analysis of a M X /G(a, b)/1 queueing
+system with vacation interruption’, RAIRO-Operations Research, Vol. 46, No.4, pp. 305–
+334.
+Jeyakumar, S. and Senthilnathan, B. (2014) ’Modelling and analysis of a M X /G(a,b) /1
+queue with multiple vacations, setup time, closedown time and server breakdown without
+interruption’, International Journal of Operational Research, Vol. 19, No.1, pp. 114–139.
+Ayyappan, G. and Deepa, T. (2018) ’Analysis of batch arrival bulk service queue with
+multiple vacation closedown essential and optional repair’, Applications & Applied
+Mathematics, Vol. 13, No.2.
+Lucantoni, D. M., Meier-Hellstern, K. S. and Neuts, M. F. (1990) ’A single-server queue
+with server vacations and a class of non-renewal arrival processes’, Advances in Applied
+Probability, Vol. 22, No.3, pp. 676–705.
+
+24
+
+author
+
+Gupta, U. C. and Sikdar, K. (1900) ’A finite capacity bulk service queue with single vacation
+and Markovian arrival process’, International Journal of Stochastic Analysis, Vol. 2004,
+No.4, pp. 337–357.
+Shin, Y. W. and Pearce, C. E. (1998) ’The BMAP/G/1 vacation queue with queue-length
+dependent vacation schedule’, The ANZIAM Journal, Vol. 40, No.2, pp. 207–221.
+Banik, A. D. (2013) ’Analysis of Queue-Length Dependent Vacations and P-Limited
+Service in BM AP/G/1/N Systems: Stationary Distributions and Optimal Control.’,
+International Journal of Stochastic Analysis.
+Thangaraj, M. and Rajendran, P. (2017) ’Analysis of batch arrival queueing system with two
+types of service and two types of vacation’, International Journal of Pure and Applied
+Mathematics, Vol. 117, No11, pp. 263–272.
+Deepa, T. and Azhagappan, A. (2022) ’Analysis of state dependent M [X] /G(a, b)/1 queue
+with multiple vacation second optional service and optional re-service’, International
+Journal of Operational Research, Vol. 44, No 2, pp. 254–278.
+
+

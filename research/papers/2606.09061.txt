@@ -1,0 +1,1710 @@
+Fairness-Aware and Latency-Controllable Scheduling
+for Chunked-Prefill LLM Serving
+
+Haoxin Liu
+
+Jiayi Wang
+
+Yueshen Xu∗
+
+Rui Li
+
+arXiv:2606.09061v1 [cs.DC] 8 Jun 2026
+
+School of Computer Science and Technology, Xidian University, Xi’an 710071, China
+{haoxinliu, jiayiwang}@stu.xidian.edu.cn, {ysxu, rli}@xidian.edu.cn
+Jiayi Wang and Haoxin Liu contribute equally to this paper, so they are co-first authors.
+*Corresponding author
+
+Abstract
+As large language models (LLMs) are increasingly deployed with highly heterogeneous workloads, chunked-prefill execution has emerged as a mainstream serving
+architecture. Balancing scheduling fairness and latency stability in such environments is critical; otherwise, severe head-of-line blocking and request starvation
+will degrade user experience. However, existing systems rely on rigid First-Come,
+First-Served (FCFS) policies and static token budgets, leading to fairness degradation and unpredictable latency jitter. To address these issues, we propose a
+fairness-aware and latency-controllable scheduling framework for chunked-prefill
+LLM engines. Specifically, we design a lightweight aging-based scheduling policy
+that dynamically calculates priorities using accumulated waiting time and remaining prefill work. Furthermore, we develop Latency-Prediction-Based Request
+Scheduling (LPRS) and Active Prefill Control (APC) to replace static budgets with
+target-time constraints and actively regulate prefill concurrency. We evaluated our
+scheduling framework on NVIDIA GPUs and Ascend accelerators using real-world
+workloads. Results show the aging policy reduces mean end-to-end latency by over
+10% compared to FCFS. Moreover, LPRS and APC significantly reduce P99 tail
+latency and suppress prefill fragmentation, confirming that the structural prefill
+control and the temporal latency constraints are fundamentally complementary. All
+codes have been released in Github12 .
+
+1
+
+Introduction
+
+In recent years, large language models (LLMs) have progressed from proof-of-concept systems
+to large-scale deployment in applications such as code generation [1], generative search [2], and
+retrieval-augmented generation (RAG) [3]. As LLMs are increasingly adopted in real-world serving
+environments, the performance and scheduling fairness of online inference systems have become
+critical factors affecting a series of critical issues, including user experience, quality-of-service (QoS),
+and deployment cost [4]. Achieving a balance among low latency, high resource utilization, and fair
+scheduling has therefore become a central problem in LLM serving. Otherwise, systems may suffer
+from various adverse effects, including unstable service quality, inefficient resource usage, and even
+request starvation.
+To address these challenges, existing studies have explored several directions: 1) continuous batching
+and iteration-level scheduling to improve online inference efficiency; 2) chunked prefilling and
+1 https://github.com/Charmstok/Chunked_Prefill_Serving
+2 https://github.com/lhx-666-cool/vllm-ascend/tree/aging
+
+Preprint.
+
+stall-free batching [5] to mitigate prefill-induced blocking on decode; 3) latency-aware scheduling [6],
+queue management, and fair scheduler based on the continuous batching mechanism [7] to better
+handle request workloads. These efforts have achieved improvements in throughput and latency, and
+have made chunked-prefill architectures a mainstream design choice. However, most existing methods
+primarily focus on performance optimization while paying limited attention to scheduling fairness,
+particularly under mixed workloads. Moreover, the lack of effective coordination between high-level
+scheduling policies and low-level chunking mechanisms often introduces additional overhead and
+makes it difficult to balance short-request responsiveness with starvation prevention for long-running
+jobs. Therefore, designing a scheduling mechanism for chunked-prefill systems that jointly considers
+multiple critical dimensions such as fairness, efficiency, and practical deployability, remains an
+insufficiently addressed problem.
+In real-world LLM serving scenarios, request streams are rarely homogeneous. Instead, they typically
+consist of mixed workloads in which short interactive queries, long-context prefilling requests, and
+long-running generation jobs co-exist within the same batch and contend for shared GPU resources.
+Crucially, this heterogeneity manifests along two distinct dimensions. The first is intra-batch heterogeneity: within a single scheduling iteration, requests of vastly different lengths and computational
+profiles must be packed and executed together, forcing the scheduler to reconcile conflicting latency
+and throughput objectives at fine granularity. The second is inter-batch heterogeneity: the composition of arriving requests fluctuates over time, so that one batch may contain a balanced mixture of
+short and long requests, while a subsequent batch may be dominated almost entirely by long-context
+prefilling jobs, or conversely by a burst of short interactive queries. These requests not only differ in
+latency requirements—short queries demand sub-second responsiveness, whereas long generation
+jobs tolerate higher end-to-end latency but require sustained throughput—but also exhibit markedly
+different resource footprints, with prefill-heavy requests being compute-bound and decode-heavy
+ones being memory-bandwidth-bound. The coexistence of such intra- and inter-batch heterogeneity
+makes scheduling decisions substantially more challenging than in uniform workload settings, where
+a one-size-fits-all policy would otherwise suffice.
+To bridge this gap, we identify two core under-explored bottlenecks of existing chunked-prefill
+serving systems: 1) The default First-Come, First-Served (FCFS) scheduling policy can lead to severe
+fairness degradation, especially in mixed workloads containing both long and short requests, leading
+to chunk-level head-of-line blocking for short requests and starvation for long requests; 2) The static
+token budget rule fails to adapt to dynamically changing heterogeneous workloads, resulting in
+unpredictable latency jitter and low GPU utilization. To address these two pain points, we carry
+out optimizations from two complementary dimensions: we design a lightweight Aging weighted
+fair scheduling policy to resolve fairness conflicts, and propose a latency-aware dynamic chunking
+mechanism with prefill activity control to improve runtime efficiency. Both optimizations are
+integrated into our scheduling framework, an extended serving system built on top of the open-source
+Sarathi-Serve [5] framework with full compatibility with multi-GPU parallel deployment, and the
+Aging policy alone is further ported to the Ascend domestic computing platform for industry-specific
+deployment needs. The main contributions of this paper are summarized as follows:
+1. We propose a novel Aging weighted fair scheduling policy. Our policy calculates request priority
+based on both waiting time and remaining prefill cost, and achieves a smooth trade-off between
+short request latency optimization and long request starvation prevention with low logarithmic time
+complexity.
+2. We design a new latency-aware adaptive scheduling algorithm. We design a lightweight
+latency prediction model that guides a target execution time constraint, replacing the traditional static
+token budget. We also develop a prefill activity control mechanism to avoid inefficient fragmented
+execution, effectively reducing latency jitter under heterogeneous workloads.
+3. We implemented the developed policy and algorithm on two computing architectures NVIDIA
+and Ascend. Our system also supports tensor parallelism and pipeline parallelism in multi-GPU
+scenarios. Extensive experiments show that our designs outperform baseline systems in both fairness
+and throughput performance.
+The rest of this paper is organized as follows. Section 2 reviews related work on LLM serving
+and scheduling. Section 3 presents the proposed scheduling mechanisms. Section 4 reports the
+experimental results, and Section 5 concludes the paper and discusses future work.
+
+2
+
+2
+
+Related Work
+
+Modern LLM serving systems have rapidly evolved from batching-centric execution engines to
+architecture-aware platforms that give the opportunity to optimize scheduling, memory management,
+or hardware utilization. This section reviews relevant work along three dimensions: 1) LLM serving
+architectures and chunked-prefill scheduling, 2) cost-model-based latency-aware scheduling, and 3)
+scheduling and admission control for heterogeneous workloads.
+2.1
+
+LLM Serving Systems and Chunked-Prefill Scheduling
+
+LLM serving systems have been widely studied to improve GPU utilization and inference throughput
+under latency constraints. Early systems mainly rely on continuous batching to increase serving
+efficiency. Yu et al. [8] developed a system Orca, which moves scheduling from the request level to
+the iteration level and introduces selective batching to mitigate head-of-line blocking. vLLM proposed
+the paged attention mechanism to improve KV-cache management, reduce memory fragmentation,
+and support high-throughput serving [9]. Recent work further exploits the distinct characteristics of
+the prefill and decode stages. The prefill stage is compute-intensive and can benefit from large token
+batches, whereas the decode stage is memory-bandwidth-bound and latency-sensitive. Based on this
+observation, chunked prefill splits long prefills into smaller schedulable chunks, allowing them to
+be interleaved with decode operations and reducing the blocking effect of long prompts [5]. Zhong
+et al. [10] proposed a prefill-decode disaggregation approach that places the two stages on separate
+resources to alleviate cross-stage interference and improve resource utilization. There are some other
+systems that attempt to further improve serving efficiency for large-scale and long-context inference,
+through exploring different technical solutions, for example, KV-cache-centric disaggregated architecture, heterogeneous memory management, or hardware-aware optimization [11–16]. Despite these
+advances, existing systems mainly focus on throughput optimization, memory efficiency, resource
+partitioning, or hardware adaptation. Request-level fairness under mixed workloads remains less
+explored, especially in chunked-prefill engines. Although chunking and decode-prioritized execution
+can reduce cross-stage interference, they may still lead to imbalanced service, excessive waiting time
+for long requests, or starvation under heterogeneous request patterns. This motivates the requirement
+for lightweight fairness-aware scheduling policies that can balance throughput, latency, and fairness
+in LLM serving systems.
+2.2
+
+Cost-model-based latency-aware scheduling
+
+Prior studies have shown that fixed chunk sizes or static token budgets are often too rigid for online
+LLM serving, because actual execution latency varies substantially with many reasons, such as
+batch composition, context length, key-value cache usage, and request concurrency. To address
+the problem of the high experimental cost associated with optimizing LLM inference deployment
+under latency SLOs, Agrawal et al. [17] presents Vidur, a simulation framework designed for LLM
+inference performance. It combines experimental profiling with predictive modeling to estimate
+execution latencies, enabling system operators to identify cost-effective deployment setups without
+relying on extensive physical trials. These methods allow schedulers to estimate the latency impact of
+different batching and chunking decisions more accurately, thereby improving throughput and latency
+stability under dynamic workloads, alongside broader system efficiency and cost-effectiveness. In
+an industrial survey, Liu et al. [18] further validate that production online LLM services generally
+face challenges such as bursty request arrivals and highly dynamic workload compositions, thereby
+amplifying the demand for accurate latency prediction and flexible, SLO-aware scheduling. Despite
+these benefits, existing cost-centric approaches predominantly optimize system efficiency or average
+SLO satisfaction. They usually treat cost models as capacity-control tools, leaving the coordination
+between fairness-oriented policies and the underlying chunked-prefill mechanism largely unexplored.
+2.3
+
+Scheduling and Admission Control for Heterogeneous Workloads
+
+To address the heterogeneity of real-world LLM workloads, workload analyses from platforms like
+LMSYS by Zheng et al. [19] highlight that online services commonly process requests with highly
+divergent prompt and generation lengths alongside complex multi-tenant demands. In response,
+existing literature has generally split into two orthogonal directions. At the high level, scheduling
+systems such as those proposed by Sheng et al. [7] explore queue-aware policies and admission
+3
+
+control to mitigate head-of-line blocking and ensure tenant fairness. At the low level, parallel
+execution frameworks proposed by researchers from Peking University and Shanghai AI Lab, namely
+LoongServe [20], design fine-grained mechanisms like elastic sequence parallelism to adapt to
+iteration-level resource demands across prefill and decode phases. While both directions have
+individually improved serving efficiency, a significant gap remains between high-level scheduling
+and low-level execution. High-level fairness and priority mechanisms [7] typically operate at a
+coarse granularity, restricted to the queue or instance level, thereby failing to capture the fine-grained
+execution dynamics of the underlying engine. Conversely, low-level parallel serving systems [20]
+lack SLO-aware or multi-tenant priority coordination. Without bridging the gap between high-level
+priority assignment and low-level chunked execution, heterogeneous workloads in chunked-prefill
+systems remain vulnerable to several critical vulnerabilities, namely excessive memory fragmentation,
+high scheduling overhead, and severe starvation risks.
+While the above studies provide foundations for online LLM inference, they predominantly focus on
+optimizing throughput, latency, SLO satisfaction, hardware adaptation, or cluster-level deployment
+efficiency. In contrast, this work addresses a vital but under-explored problem: how to design a
+lightweight fairness-aware scheduling mechanism for mixed workloads.
+
+3
+
+The Developed Methodology
+
+3.1
+
+Aging-Based Scheduling for Chunked Prefill
+
+3.1.1
+
+Motivation and Design Goals
+
+Chunked-prefill execution can improve LLM serving by breaking a long prefill into multiple schedulable chunks, allowing prefill and decode requests to be interleaved at a finer granularity. However,
+this execution model also exposes a new fairness problem. That is, since decode requests are typically
+scheduled first to preserve generation continuity, only the residual token budget in each round is available to prefill requests. Under this setting, the scheduling order of prefill chunks directly determines
+how different requests share service over time.
+A simple FCFS policy is poorly suited to this fine-grained execution model and the reasons are as
+follows. On the one hand, once a long prompt reaches the head of the queue, it may repeatedly
+consume the residual prefill budget across multiple rounds. Short prompts arriving behind it can
+therefore experience long TTFT (Time to First Token) even though their prefill cost is small. On
+the other hand, a shortest-prefill-first policy improves the responsiveness of short requests, but it
+can indefinitely delay long requests when short requests keep arriving. These two policies represent
+opposite extremes: FCFS preserves arrival order but can amplify chunk-level head-of-line blocking,
+while shortest-prefill-first reduces short-request latency but weakens starvation protection.
+Aging is designed to provide a lightweight middle ground. Its goal is to favor short prefills and
+to further improve responsiveness, while ensuring that long-waiting requests continuously gain
+scheduling priority. This policy follows three design principles: First, it must preserve the decodefirst scheduling discipline and therefore should not interfere with TPOT (Time Per Output Token)
+stability. Second, it should be non-intrusive, modifying only the ordering of prefill candidates rather
+than the chunking mechanism, KV-cache management, or execution backend. Third, it should expose
+a continuous tradeoff between latency and fairness, instead of relying on hard queue partitioning or
+static resource reservation.
+3.1.2
+
+Priority Formulation
+
+For each prefill request i, let ai denote its arrival time, ri (n) denote the remaining number of prefill
+tokens at the scheduling round n, and Pi (n) denote its scheduling priority. The aging policy assigns
+priority as
+Pi (n) = α · (t − ai ) + β · ri (n),
+(1)
+where t is the current system time, and α > 0 is the aging weight, and β < 0 is the remaining-work
+weight. The first term α(t − ai ) increases with the waiting time of a request. It gives older requests
+progressively higher priority and prevents them from being permanently dominated by newly arrived
+short requests. The second term βri (n) favors requests with less remaining prefill work, since a
+smaller ri (n) incurs a smaller negative penalty. This term preserves the latency benefit of prioritizing
+short prefills, which is important for interactive workloads.
+4
+
+The two terms together encode the desired fairness behavior. A short request can be served early
+because its remaining-work penalty is small. A long request may initially have lower priority, but its
+waiting-time term keeps increasing as it remains in the queue. Therefore, the scheduler does not rely
+on a fixed request class or a hard starvation threshold; instead, priority evolves continuously with
+both waiting time and prefill progress. After request i receives a prefill chunk of size ci , its remaining
+prefill tokens are updated as
+ri (n + 1) = ri (n) − ci .
+(2)
+This update is important for chunked-prefill serving. A long request is not treated as a monolithic
+job with a fixed cost. As its chunks are gradually processed, its remaining-work penalty decreases,
+making the request increasingly likely to finish in subsequent rounds. The aging policy therefore
+couples fairness with chunk-level progress rather than applying a static priority throughout the request
+lifetime.
+3.1.3
+
+Latency-Fairness Tradeoff and Scheduling Semantics
+
+Latency-fairness tradeoff. The behavior of the aging policy is controlled by the ratio α/|β|. 1)
+When this ratio is small, the remaining-work term dominates the priority function. The scheduler
+behaves closer to the shortest-prefill-first policy, so it can give priority to short requests, and thus can
+reduce TTFT for latency-sensitive workloads. 2) When α/|β| is large, the waiting-time becomes
+more influential. So long requests can accumulate priority more quickly and eventually overtake
+newly arrived short requests, thus reducing starvation risk under sustained mixed arrivals. Inspired
+by the above observations, an expectation can be inferred that intermediate values could provide a
+smooth tradeoff between short-request responsiveness and long-request progress.
+The free value setting of α/|β| is useful in online LLM serving considering that the length of the
+requests contained in the workload can vary significantly across applications. Interactive requests
+may prefer stronger short-request responsiveness, while multi-tenant or batch-heavy deployments
+may require stronger starvation protection. The aging policy supports all cases through parameter
+tuning without changing the underlying execution engine.
+Scheduling semantics. Aging is applied only after decode requests have been admitted. In each
+scheduling round, the scheduler first reserves capacity for ongoing decode requests to preserve
+generation continuity. It then ranks prefill candidates according to the aging priority and allocates the
+remaining prefill budget in that order. For a selected request i, the scheduled chunk size is bounded
+by its remaining prefill length and the available prefill budget in the current round. Once the chunk is
+scheduled, the request state is updated. If the request still has remaining prefill tokens, it is returned
+to the prefill queue with an updated priority; otherwise, it leaves the prefill stage.
+This scheduling semantics makes the aging policy non-intrusive. The policy does not change how
+chunks are executed, how KV cache is managed, or how batches are submitted to the backend. It
+only changes which prefill request receives the next scheduling opportunity. As a result, Aging can
+be integrated into existing chunked-prefill engines as a scheduling-layer replacement for FCFS.
+3.1.4
+
+Efficient Priority Maintenance
+
+If we rely solely on Eq. 1 to implement priority-based scheduling, A naive implementation would
+recompute Pi (n) for every waiting request in every scheduling round. This is unnecessary because
+the current time t is shared by all waiting requests within the same round. The priority can be
+rewritten as
+Pi (n) = α · t + (−α · ai + β · ri (n)) .
+(3)
+Since α · t is shared by all requests, it does not affect their order. Therefore, the scheduler only needs
+to maintain the equivalent ordering key:
+Ki (n) = −α · ai + β · ri (n).
+
+(4)
+
+The waiting prefill queue is implemented as a max-heap ordered by Ki (n). When a new request
+arrives, its key is computed from its arrival time and initial prefill length, and the request is inserted
+into the heap. When an unfinished request receives a chunk, only its remaining token count and heap
+key need to be updated before reinsertion.
+If the queue contains n requests, and k requests are selected in a scheduling round, the heap
+operations introduce O(k log n) overhead. Since k is bounded by the number of prefill requests
+5
+
+actually scheduled in that round, the developed aging policy avoids full-queue priority recomputation
+and keeps scheduling overhead low. Overall, Aging turns prefill scheduling from a one-dimensional
+arrival-order rule into a configurable fairness-aware policy, while preserving the execution semantics
+and efficiency of chunked-prefill serving.
+3.2
+
+Latency-Prediction-Based Request Scheduling
+
+In chunked-prefill LLM serving systems, the scheduler should determine how Prefill and Decode
+requests are combined in each dynamic batching round. Existing systems commonly rely on a fixed
+chunk size or a fixed token budget to bound the per-round batch size. Although such designs are
+simple, they are fundamentally static approximations. They treat token count as a universal proxy for
+execution cost, while ignoring that the actual batch latency is usually jointly affected by many factors
+such as decode concurrency, context-length distribution, historical prefill progress, and GPU memory
+state [17]. Consequently, the same token budget may correspond to substantially different execution
+time under real online workloads.
+This mismatch becomes particularly problematic under mixed Prefill-Decode workloads. On the one
+hand, when the batch is underfilled, GPU resources will be underutilized; on the other hand, when
+the batch is overfilled, the execution time of the current round may exceed the scheduling window,
+causing token-level latency jitter and degraded QoS [21]. Therefore, the key problem is not simply
+how many more tokens can be packed into the current round. Instead, the problem is how to choose a
+chunk such that the actual execution time remains close to a target latency budget.
+Based on this observation, we propose the Latency-prediction-based request scheduling (LPRS)
+mechanism. The key idea is to shift the scheduling objective from maximizing token filling to
+minimizing deviation from a target latency budget. Specifically, we first train a lightweight latency
+predictor offline to estimate the execution time of a candidate batch from its runtime state. During
+online scheduling, the scheduler performs a discrete search over candidate chunk sizes and selects
+the one whose predicted latency is closest to the target budget.
+3.2.1
+
+The Developed Offline Latency Predictor
+
+To provide reliable timing estimates for online scheduling, we first build a batch-latency predictor for
+a single scheduling round, which consists of four components.
+1. Raw feature representation. The developed predictor takes a 16-dimensional feature vector as
+input, consisting of 11 raw statistics and 5 derived features. These 11 raw features are grouped into
+three primary categories (computation load, context and memory access, and GPU memory state)
+and are detailed in Table 1.
+Table 1: Summary of 11 raw input features.
+Feature Name
+
+Definition & Role
+
+Computation Load
+prefill_tokens
+decode_tokens
+batch_request_count
+
+Total prefill tokens to be processed.
+Total decode tokens in the batch.
+Active batched requests in the current round.
+
+Context & Memory Access
+sum_decode_context_len
+max_decode_context_len
+prefill_processed_tokens
+max_prefill_processed_tokens
+
+Cumulative context length of decode requests.
+Maximum context length among decode requests.
+Total tokens processed in prefill phase.
+Max prefill tokens processed.
+
+GPU Memory State
+gpu_mem_used_mb
+gpu_mem_free_mb
+cuda_allocated_mb
+cuda_reserved_mb
+
+Physical GPU memory utilized (MB).
+Physical GPU memory currently free (MB).
+Memory allocated by CUDA memory pool (MB).
+Total memory reserved by CUDA pool (MB).
+
+2. Derived feature construction. In addition to these raw statistics, we construct five derived features
+to better capture the non-linear coupling between the Prefill-Decode phase structure and the actual
+execution cost. Their definitions and roles are detailed in Table 2.
+6
+
+Table 2: Derived features used by the latency predictor.
+Feature Name
+
+Definition & Role
+
+bias
+
+1
+Captures fixed overhead even when dynamic features are close to zero, such as
+kernel launch overhead, scheduling framework overhead, and GPU/CPU/NPU
+synchronization cost.
+
+scheduled_tokens
+
+decode_tokens + prefill_tokens
+Represents the overall workload intensity of the current batch.
+
+avg_decode_ctx
+
+sum_decode_context_len
+max(decode_tokens, 1)
+Reflects the average context depth of the current decode requests.
+
+decode_ctx_interaction
+
+decode_tokens × avg_decode_ctx
+Captures the interaction between decode-token generation volume and average
+context length.
+
+prefill_interaction
+
+prefill_tokens × prefill_processed_tokens
+Jointly characterizes the scale of current prefill tokens and the depth of their
+historical context.
+
+3. Data collection and preprocessing. We collect offline training data by running the token-budget
+scheduler on prompts under three measures including diverse arrival rates, prompt-length mixtures,
+and concurrency levels. For each scheduling round, the system records the 11 raw features together
+with the ground-truth batch latency measured by a high-resolution timer. The raw samples are cleaned,
+and bucketed by total scheduled tokens. They are then downsampled for overrepresented full-chunk
+cases, and split into training, validation, and test sets.
+4. Model architecture and training. The latency predictor is designed as a lightweight three-layer
+multilayer perceptron (MLP) with hidden dimensions, rectified linear unit (ReLU) activations, and a
+dropout rate. The model is trained using a weighted asymmetric Huber loss:
+N
+
+L=
+
+1 X
+wi li (yi , ŷi ),
+N i=1
+
+(5)
+
+where wi denotes the bucket-aware sample weight, and li (yi , ŷi ) represents the asymmetric Huber
+loss for the i-th sample given its ground-truth latency yi and predicted latency ŷi . This loss could
+improve robustness to outliers through the Huber base while imposing a stronger penalty on latency
+underestimation [22]. It is expected to reduce the risk of budget overflow during online scheduling.
+3.2.2
+
+Optimization, Candidate Search, and Scoring
+
+Optimization. Consider a candidate prefill request i in scheduling round t, let ri denote its remaining
+prompt tokens, Bmax denote the hard token budget per round, and Ut denote the total tokens already
+committed to the current batch. The feasible upper bound of the chunk size is derived as:
+hi = min(ri , Bmax − Ut ).
+
+(6)
+
+In the original static scheduler, the chunking decision for request i may directly adopts the feasible
+upper bound hi in the current round as the final chunk allocation cbase
+i :
+cbase
+= hi .
+i
+
+(7)
+
+This strategy is equivalent to greedily maximizing token filling. However, it ignores the fact that identical chunk sizes may induce substantially different execution time under varying context states. To
+address this issue, the developed LPRS preserves the hard token constraint while introducing a target
+latency budget T ∗ , thereby reformulating the scheduling process as a time-deviation minimization
+problem.
+Candidate Search and Scoring. To reduce online search overhead, we employ a discrete search
+instead of exhaustive enumeration. Let ∆ denote the search granularity. Assuming hi ≥ 1 (otherwise
+the request is skipped with c∗i = 0), the candidate set is constructed as:
+Ci = {1, hi } ∪ {k · ∆ | 1 ≤ k · ∆ ≤ hi }.
+7
+
+(8)
+
+For each candidate c ∈ Ci , the scheduler constructs the corresponding 16-dimensional feature vector
+xt,i (c) and queries the predictor fθ (·) to estimate the batch execution time:
+T̂t,i (c) = fθ (xt,i (c)).
+
+(9)
+
+We measure the fitness of each candidate with respect to the target latency budget using the following
+asymmetric scoring function:
+
+ 
+λu T ∗ − T̂t,i (c) , T̂t,i (c) ≤ T ∗ ,
+
+
+Scoret,i (c) =
+(10)
+λo T̂t,i (c) − T ∗ , T̂t,i (c) > T ∗ .
+Here, λu and λo represent the penalties for underfilling and overflow, respectively. We set λo > λu
+to reflect that exceeding the latency budget is strictly more harmful to system stability than leaving a
+small margin of computation capacity unused. The final chunk decision is thus:
+c∗i = arg min Scoret,i (c).
+c∈Ci
+
+(11)
+
+The online procedure of LPRS consists of four steps. First, the system initializes the round state
+and collects GPU memory statistics. Second, it prioritizes running decode requests to preserve
+decode continuity. Third, it performs a discrete candidate search for active prefills and newly arrived
+requests in the waiting queue, scoring each candidate according to its predicted latency. Finally, the
+system finalizes the batch structure and submits it to the backend for execution. The key innovation
+of LPRS is that it no longer optimizes solely for token filling. Instead, it explicitly aims to keep
+the batch execution time close to the target latency budget. To achieve this, LPRS introduces a
+time-budget-aware chunk selection mechanism, as detailed in Algorithm 1.
+3.3
+
+The Designed Active Prefill Control Mechanism
+
+Although LPRS controls the time budget of each scheduling round, it does not directly regulate the
+structure of unfinished prefills. Under decode-dominated high-contention workloads, the system may
+keep too many unfinished prefills active simultaneously. As a result, the limited token budget may
+be fragmented into many tiny chunks with little practical progress. Conversely, if the system
+becomes overly decode-biased, new requests may suffer from prolonged starvation. To address this
+issue, we introduce an Active Prefill Control (APC) mechanism on top of target-latency scheduling
+to regulate unfinished-prefill activity and progress granularity.
+3.3.1
+
+Dynamic Activity Cap
+
+Active prefill concurrency control must regulate the maximum number of active, incomplete prefill
+requests in a batch. Under heavy mixed workloads, uncontrolled concurrency leads to two primary
+inefficiencies: 1) budget dilution, where the remaining token budget (Bmax − Ut ) is divided among
+too many requests, resulting in highly fragmented, sub-optimal chunk sizes; and 2) micro-progress,
+where requests are allocated negligible chunk sizes (e.g., a single token), trivially maintaining their
+active status while inflating the total number of scheduling rounds. In both cases, the minimal forward
+progress is heavily offset by fixed scheduling overheads, such as feature extraction, latency prediction,
+and kernel launch latency.
+Consequently, concurrency control must go beyond binary admission decisions to dynamically
+determine the exact number of active prefill requests. Because decoding loads and available memory
+slots fluctuate across scheduling rounds, a static limit is insufficient. We therefore introduce a dynamic
+concurrency upper bound that adapts to the real-time batch state, throttling prefill concurrency during
+heavy decoding phases and increasing active requests during idle periods to maximize hardware
+utilization.
+Let Dt denote the decode set and Pt denote the unfinished-prefill set in round t. The maximum
+number of active prefills is derived as:
+
+
+
+Bmax − Ut
+Ct = min Cmax , Smax − |Dt |,
+.
+(12)
+Lmin
+8
+
+Algorithm 1 The Proposed Algorithm for Selecting Prefill Chunk by Time Budget
+Require: Candidate prefill request i with ri remaining prompt tokens, total committed tokens Ut , hard token
+budget Bmax , search granularity ∆, target latency budget T ∗
+Ensure: Selected chunk decision c∗i
+1: Compute upper bound:
+hi ← min(ri , Bmax − Ut )
+2: if hi ≤ 0 then
+3:
+return 0
+4: end if
+5: Construct candidate set:
+Ci ← {1, hi } ∪ {k∆ | 1 ≤ k∆ ≤ hi }
+6: best_score ← +∞
+7: c∗i ← 0
+8: for each c ∈ sorted(Ci ) do
+9:
+Construct feature vector xt,i (c) assuming chunk c is selected
+10:
+Estimate batch latency: T̂t,i (c) ← fθ (xt,i (c))
+11:
+if T̂t,i (c) ≤ T ∗ then 
+
+Scoret,i (c) ← λu T ∗ − T̂t,i (c)
+13:
+else
+
+
+14:
+Scoret,i (c) ← λo T̂t,i (c) − T ∗
+15:
+end if
+16:
+if Scoret,i (c) < best_score then
+17:
+best_score ← Scoret,i (c)
+18:
+c∗i ← c
+19:
+else if Scoret,i (c) == best_score and c > c∗i then
+20:
+c∗i ← c
+21:
+end if
+22: end for
+23: // Prevent starvation for empty batch
+24: if c∗i == 0 and Ut == 0 and hi ≥ 1 then
+25:
+return 1
+26: end if
+27: return c∗i
+
+12:
+
+Here, Cmax is the configured maximum number of active prefills, and Smax is the maximum sequence
+capacity. Bmax is the hard token budget, Ut is the number of already committed tokens, and Lmin is
+the minimum effective chunk size for each active prefill. This formulation ensures that the activeprefill concurrency is jointly constrained by sequence slots, the remaining token budget, and the
+minimum progress quality.
+3.3.2
+
+Minimum Effective Progress and Warm Start
+
+Having established the dynamic concurrency upper bound, we must also constrain the minimum
+chunk size for individual prefill requests. This boundary prevents scenarios where request concurrency
+remains compliant, but the actual forward progress of each request is too minor to be effective. For
+any unfinished prefill request i, the minimum effective progress is derived as:
+mi = min(ri , Lmin ),
+
+(13)
+
+where ri is the remaining prompt length and Lmin is identical to the same symbol in Eq. 12. If the
+chunk c∗i proposed by LPRS satisfies both the activity-cap constraint and the minimum-progress
+constraint, APC will directly accept it. Otherwise, if the current batch contains no active prefill, APC
+will trigger a warm-start step to restore nonzero prefill activity at minimal cost. The decision rule is
+
+
+c∗ ,
+if |Pt | < Ct and c∗i ≥ mi ,
+
+ i
+ci = min(hi , mi ), if c∗i < mi and |Pt | = 0,
+(14)
+
+
+0,
+otherwise.
+Intuitively, APC favors keeping a small number of meaningful prefills active, rather than allowing a
+large number of low-quality fragmented chunks to occupy the active set for a long time.
+9
+
+Activate Prefill Control (APC)
+Constrained Input Layer
+
+Decoding Occupancy
+Active decode sequences (
+
+Control Logic Layer
+Dynamic Activity Cap
+Determines the maximum active prefill requests
+allowed per round.
+
+)
+
+Sequence Slot Budget
+Max Concurrent Sequences (
+
+No APC Mechanism
+Unbounded prefill backlog.
+High risk of decode-only starvation.
+Highly fragmented, tiny prefill chunks.
+
+)
+
+Token Budget
+Max capacity (
+) & Committed
+tokens ( )
+Remaining Prompt Length
+Minimum required chunk size (
+
+Scheduling Result Layer
+
+)
+
+Minimum Effective Progress
+Filters out sub-threshold
+to guarantee forward
+progress.
+
+Warm Start
+Forces minimal prefill activation to avoid decode-only
+starvation.
+
+With APC Mechanism
+Bounded prefill concurrency.
+Complete & meaningful chunks.
+Sustained prefill forward progress.
+
+APC adds upper-level structural control over the Target-Latency Scheduler.
+While Target-Latency Scheduling dictates "how large a chunk to allocate", APC dictates "which prefill requests remain active".
+
+Figure 1: The workflow of the designed Active Prefill Control mechanism.
+Figure 1 summarizes the control logic of the designed APC. It first determines the admissible number
+of active unfinished prefills according to the current decode occupancy and remaining token budget
+(yellow boxes). It then checks whether the chunk proposed by LPRS satisfies the minimum effective
+progress requirement (green boxes). When no active prefill exists in the current batch, APC will
+invoke the warm-start rule to restore nonzero prefill activity with minimal scheduling cost (green
+boxes). Through this control structure, the system preserves a small number of viable prefill forward
+progress opportunities even when decoding dominates, thereby mitigating fragmented advances and
+maintaining a non-zero prefill activity (red boxes).
+
+4
+
+Experiment and Evaluation
+
+4.1
+
+Experimental Setup
+
+All experiments are implemented on top of LLM serving systems with chunked-prefill execution.
+We evaluate three sets of scheduling mechanisms: The aging policy is evaluated as an independent
+fairness-oriented prefill scheduling policy. LPRS and APC are evaluated separately for latency-budget
+control and active-prefill regulation. Unless otherwise stated, experiments use Qwen3-8B3 as the test
+model.
+For the aging policy, the single-GPU experiments were implemented based on Sarathi-Serve and run
+on one NVIDIA RTX 4090 GPU. The maximum context length is set to 512, and each request has
+a maximum generation length of 512 tokens. The workload is replayed from ShareGPT4 with 100
+or 200 requests and a fixed 0.1s request inter-arrival interval. ShareGPT is a dataset of real-world
+multi-turn conversations collected from interactions with large language models, and is widely used
+for evaluating LLM serving systems under realistic workloads. This workload exhibits a highly
+skewed prompt-length distribution: for the 200-request setting, the median prompt length is 19.0
+tokens while the P90 prompt length reaches 179.4 tokens, making it suitable for evaluating scheduling
+fairness under mixed short- and long-prompt requests.
+For LPRS and APC, we employed Qwen3-8B, and set both the tensor parallelism and pipeline
+parallelism to 1. That is, the two parallelisms were not used. The hardware platform is a single
+NVIDIA RTX PRO 5000 GPU with 72GB VRAM, running Ubuntu 24.04.4 LTS. The latencyprediction profiling dataset contains 36,868 samples, which are split into training, validation, and test
+sets at an 8:1:1 ratio. We tested LPRS on two online workloads: a high-concurrency scenario with
+0.1s request inter-arrival interval, and a regular scenario with 1.0s interval, each containing 1,000
+3 https://huggingface.co/Qwen/Qwen3-8B
+4 https://huggingface.co/datasets/anon8231489123/ShareGPT_Vicuna_unfiltered
+
+10
+
+requests with maximum sequence length 4,096 tokens. For APC ablation, we used a heterogeneous
+workload with a 49:1 short-prompt (30-50 tokens) to long-prompt (200-220 tokens) ratio. The arrival
+of requests did not follow a fixed rate, but could change dynamically. The statistics for the data and
+workloads for LPRS and APC are presented in Table 3. All codes are released in Github in two
+repositories56 .
+Table 3: Dataset and workload statistics.
+Parameter / Item
+
+Value
+
+Parameter / Item
+
+Offline profiling samples
+Train/Val/Test split
+Test samples
+Online requests per workload
+LPRS high-concurrency interval
+
+36,868
+8:1:1
+3,713
+1,000
+0.1 s
+
+LPRS regular interval
+APC short prompt length
+APC long prompt length
+APC short:long ratio
+
+4.2
+
+Value
+1.0 s
+30–50 tokens
+200–220 tokens
+49:1
+
+Evaluation Metrics
+
+Latency prediction evaluation. We evaluate the latency predictor using Mean Absolute Error
+(MAE), Root Mean Squared Error (RMSE), and Mean Absolute Percentage Error (MAPE):
+N
+
+1 X
+|ŷi − yi |,
+N i=1
+v
+u
+N
+u1 X
+RMSE = t
+(ŷi − yi )2 ,
+N i=1
+MAE =
+
+(15)
+
+(16)
+
+N
+
+100% X ŷi − yi
+MAPE =
+.
+N i=1
+yi
+
+(17)
+
+Here, yi and ŷi denote the ground-truth latency and the predicted latency, respectively. We also
+report percentile absolute errors to assess tail robustness, because tail prediction quality is particularly
+important for latency-sensitive online scheduling.
+End-to-end serving performance evaluation. We report request-level and prefill-level latency. For
+request q, the full end-to-end (E2E) latency and the prefill E2E latency are defined as
+finish
+Lreq
+− tarrive
+,
+q = tq
+q
+
+(18)
+
+prefill_done
+Lpf
+− tarrive
+.
+(19)
+q = tq
+q
+We summarize these metrics with percentile statistics, because high-percentile latency is more
+informative than mean latency in interactive LLM serving.
+
+4.3
+
+Evaluation for the Aging Policy
+
+The developed aging policy is evaluated as an independent fairness-oriented prefill scheduling policy.
+Its goal is to reduce queueing delay under mixed short- and long-prompt workloads while preserving
+the execution semantics of chunked-prefill serving. We compare the aging policy with the default
+FCFS policy, which orders prefill requests only by arrival time.
+4.3.1
+
+Fairness under Mixed Workloads
+
+We first evaluate the aging policy under the 200-request mixed workload. The workload is dominated
+by short prompts but contains a small number of substantially longer requests. This distribution
+stresses the scheduler because long requests can repeatedly consume residual prefill budget across
+multiple scheduling rounds, which will cause short requests behind them to wait even when their
+prefill cost is small.
+5 https://github.com/Charmstok/Chunked_Prefill_Serving
+6 https://github.com/lhx-666-cool/vllm-ascend/tree/aging
+
+11
+
+Table 4: Aging vs. FCFS under the 200-request mixed workload.
+Chunk Policy Mean E2E P95 E2E Mean TTFT P95 TTFT
+256 FCFS
+118.72s 195.73s
+107.82s
+184.86s
+256 Aging
+106.56s 183.58s
+95.67s
+172.73s
+512 FCFS
+115.52s 196.63s
+104.12s
+185.24s
+512 Aging
+107.73s 185.72s
+96.72s
+174.78s
+1024 FCFS
+109.38s 190.10s
+98.14s
+178.34s
+1024 Aging
+110.59s 189.64s
+99.39s
+178.39s
+
+Table 4 reports the single-GPU results under different chunk sizes. With a 256-token chunk, our
+aging policy reduces mean request end-to-end latency from 118.72s to 106.56s, achieving 10.24%
+improvement over FCFS. Mean TTFT decreases from 107.82s to 95.67s, improving by 11.27%. Tail
+latency also improves: E2E P95 decreases from 195.73s to 183.58s, and TTFT P95 decreases from
+184.86s to 172.73s. With a 512-token chunk, our aging policy still improves mean E2E latency by
+6.75% and improves mean TTFT by 7.11%. Figs. 2 and 3 visualize the same trend and we can draw
+the following conclusions.
+FCFS
+120
+
+AGING
+120
+
+118.7
+
+115.5
+107.7
+
+106.6
+
+107.8
+
+109.4 110.6
+
+104.1
+96.7
+
+95.7
+
+98.1
+
+99.4
+
+90
+
+Latency (s)
+
+Latency (s)
+
+90
+
+60
+
+30
+
+30
+
+0
+
+60
+
+256
+
+512
+
+0
+
+1024
+
+256
+
+512
+
+Chunk size
+
+Chunk size
+
+(a) End-to-end latency
+
+(b) Time to first token
+
+1024
+
+Figure 2: Mean E2E latency and TTFT under FCFS and Aging.
+FCFS
+195.7
+
+196.6
+183.6
+
+185.7
+
+190.1 189.6
+
+174.8
+
+178.3 178.4
+
+150
+
+150
+
+100
+
+100
+
+50
+
+50
+
+0
+
+185.2
+
+184.9
+172.7
+
+Latency (s)
+
+Latency (s)
+
+200
+
+AGING
+200
+
+256
+
+512
+
+Chunk size
+
+0
+
+1024
+
+(a) P95 end-to-end latency
+
+256
+
+512
+
+Chunk size
+
+1024
+
+(b) P95 time to first token
+
+Figure 3: P95 E2E latency and TTFT under FCFS and Aging.
+1. Aging consistently shifts both mean latency and tail latency downward when the chunk size
+is 256 or 512 tokens. This indicates that the improvement is not limited to average-case
+requests, that is, the long-waiting tail also benefits from the fairness-aware ordering.
+2. The benefit becomes smaller when the chunk size increases to 1,024 tokens. In this case,
+Aging and FCFS show nearly identical P95 latency, while Aging slightly increases mean
+12
+
+E2E latency. This behavior is expected: Aging relies on the scheduler that has enough
+opportunities to reorder prefill requests. Larger chunks will reduce scheduling granularity
+and limit the ability of the priority rule to intervene once a long chunk has been admitted.
+3. To understand where the improvement comes from, we decompose latency under the 256token chunk setting. Aging does not reduce model execution time: the average model
+execution time is 10.85s under Aging and 10.86s under FCFS. Instead, the improvement
+comes almost entirely from queuing reduction. The average scheduling waiting time
+decreases from 107.77s to 95.63s. This confirms that Aging improves latency by changing
+prefill service order rather than accelerating model execution.
+Fig. 4 further shows the E2E latency distribution. The Cumulative Distribution Function (CDF)
+of the aging policy is shifted to the left of FCFS for most requests, indicating that the scheduling
+policy improves latency for the majority of the workload rather than only optimizing a small subset
+of requests.
+FCFS, chunk 256
+AGING, chunk 256
+
+FCFS, chunk 512
+AGING, chunk 512
+
+100%
+
+CDF
+
+75%
+
+50%
+
+25%
+
+0%
+
+P50 / P95 (s)
+FCFS, chunk 256: 117.5 / 195.7
+AGING, chunk 256: 105.4 / 183.6
+FCFS, chunk 512: 114.3 / 196.6
+AGING, chunk 512: 106.3 / 185.7
+
+25
+
+50
+
+75
+
+100
+
+125
+
+150
+
+175
+
+200
+
+E2E latency (s)
+
+Figure 4: CDF of request E2E latency under FCFS and Aging.
+4.3.2
+
+Parameter Sensitivity
+
+We study the sensitivity of the aging policy to two key parameters: chunk size and the waiting-time
+weight. Chunk size controls the granularity at which the scheduler can revise prefill order. Fig. 5
+reports the experimental results. Under the 200-request workload, the mean E2E latency of Aging
+increases from 106.56s to 107.73s and 110.59s as the chunk size grows from 256 to 512 and 1024
+tokens. Mean TTFT follows the same trend, increasing from 95.67s to 96.72s and 99.39s. Smaller
+chunks expose more scheduling opportunities, allowing Aging to react more quickly when short
+requests wait behind long prompts.
+The waiting-time weight controls how aggressively old requests accumulate priority. Using the
+chunk size of 512, we compare two waiting-weight settings. When the weight base is 100, mean
+E2E latency is 106.99s and TTFT P95 is 173.20s. Increasing the weight base to 500 raises mean
+E2E latency to 107.73s and TTFT P95 to 174.78s. Fig. 6 shows that a larger waiting-time weight
+does not improve latency in this workload because it weakens the influence of the remaining-work
+term, making the policy closer to pure time-based ordering. This result highlights that Aging should
+balance short-request preference with starvation prevention; overly aggressive aging can reduce the
+responsiveness benefit for short prompts.
+4.3.3
+
+Multi-GPU Extension
+
+We further evaluate whether Aging remains compatible with multi-GPU execution. The experiment
+uses two NVIDIA RTX 5090 GPUs and the same 200-request ShareGPT workload. Aging reuses
+the centralized scheduling design of Sarathi-Serve: all priority computation and request ordering are
+performed at the engine side, and the resulting schedule is broadcast to worker GPUs through the
+13
+
+E2E
+
+TTFT
+
+Scheduling delay
+
+112
+
+110.6
+107.7
+
+Mean latency (s)
+
+108 106.6
+
+104
+
+99.4
+
+100
+
+99.3
+
+96.7
+
+96
+
+95.7
+96.7
+95.6
+
+256
+
+512
+
+1024
+
+Chunk size
+
+Figure 5: Sensitivity of the aging policy to the chunk size.
+w=100
+
+w=500
+
+106.99
+
+107.73
+
+E2E
+
+96.08
+
+96.72
+
+96.03
+
+96.66
+
+TTFT
+
+Scheduling delay
+
+95.0
+
+97.5
+
+100.0
+
+102.5
+
+105.0
+
+107.5
+
+Mean latency (s)
+
+Figure 6: Sensitivity of Aging to the waiting-time weight.
+
+existing communication path. This design avoids distributed priority queues and preserves the global
+schedule consistency required by tensor and pipeline parallelism.
+Table 5 shows the two-GPU results. With the chunk size of 256 and the sequence capacity of
+10, Aging performs worse than FCFS because the limited concurrency prevents its waiting-time
+compensation from translating into useful scheduling progress. Increasing the sequence capacity to
+32 substantially reduces latency for both policies. Under the best tested configuration, the chunk size
+of 512 and the sequence capacity of 32, Aging reduces mean E2E latency from 61.77s to 60.55s and
+mean TTFT from 46.16s to 45.34s. The improvement is modest, but the result confirms that Aging
+can run correctly under multi-GPU execution without modifying the underlying parallel runtime.
+Table 5: Performance of the aging policy under two-GPU execution.
+Configuration
+Chunk Size
+
+Max Seqs
+
+256
+
+10
+
+256
+512
+
+Policy
+
+E2E Latency (s)
+
+TTFT (s)
+
+Mean
+
+P95
+
+Mean
+
+P95
+
+FCFS
+Aging
+
+99.05
+103.84
+
+165.72
+173.58
+
+89.47
+93.79
+
+156.27
+163.83
+
+32
+
+FCFS
+Aging
+
+63.89
+64.20
+
+93.45
+95.96
+
+48.61
+48.29
+
+83.49
+84.07
+
+32
+
+FCFS
+Aging
+
+61.77
+60.55
+
+93.13
+92.03
+
+46.16
+45.34
+
+81.52
+79.80
+
+14
+
+4.3.4
+
+Portability in the Huawei Ascend Ecosystem
+
+Finally, we study whether our aging policy can be deployed on a Huawei accelerator platform. We
+port the policy to vLLM-Ascend7 on a single Ascend 910B NPU8 and run an OpenPangu-family
+model9 [23] with 200 ShareGPT requests. The port keeps the core Aging logic unchanged. Platformspecific changes are limited to the scheduling integration layer, including configuration injection,
+policy registration, and chunk-size alignment required by the Ascend backend. The code has been
+released in Github.
+Table 6 reports the measured performance. Aging completes the 200-request workload in 14.99s,
+achieving 13.35 requests/s throughput. The E2E latency distribution is stable, with P95 latency of
+10.52s and P99 latency of 12.70s. Since this experiment is intended as a portability validation rather
+than a cross-hardware performance comparison, we do not compare absolute latency against the
+NVIDIA results. The result shows that Aging can be deployed on a non-NVIDIA serving stack
+through lightweight scheduling-layer integration.
+Table 6: Performance of the aging policy on Ascend 910B with vLLM-Ascend.
+Global Metrics
+
+End-to-End Latency Profile (s)
+
+Total Time (s)
+
+Throughput (req/s)
+
+Mean
+
+P50
+
+P80
+
+P90
+
+P95
+
+P99
+
+Max
+
+14.99
+
+13.35
+
+6.546
+
+6.523
+
+8.599
+
+9.560
+
+10.520
+
+12.700
+
+12.900
+
+4.4
+
+Evaluation for the Designed LPRS
+
+This section evaluates the target-latency scheduling mechanism from two dimensions: predictor
+accuracy and scheduling performance. 1) Predictor accuracy primarily assesses whether the latency
+prediction model can leverage the decoding/prefill statistical features of the current batch, context
+lengths, and GPU runtime states, to provide reliable estimates of candidate batch execution latencies.
+2) Regarding scheduling performance, we focus on whether the scheduler, which is aided by latency
+predictions, can allocate appropriate chunks to pending prefill requests under hard token constraints.
+This is designed to align the actual execution time of each iteration more closely with the target
+budget, rather than simply saturating the remaining token capacity based on Eq. 7 as is employed in
+the baseline scheduler.
+4.4.1
+
+Accuracy Evaluation for Latency Predictor
+
+We first detail the specific model configuration and optimization parameters of the lightweight MLP
+predictor. The model is trained using the AdamW optimizer [24] under the hyperparameter settings
+summarized in Table 7.
+Table 7: Hyperparameter configurations of the MLP latency predictor.
+Hyperparameter
+
+Default Value
+
+Description
+
+epochs
+lr
+weight_decay
+hidden_sizes
+dropout
+batch_size
+
+300
+2 × 10−3
+1 × 10−3
+(128, 64, 32)
+0.1
+256
+
+Total number of training epochs.
+Learning rate of the AdamW optimizer.
+Weight decay coefficient for AdamW regularization.
+Dimensionality of the hidden layers.
+Dropout probability.
+Mini-batch size.
+
+Following the training process, we evaluate the predictor’s generalization capability on the held-out
+test set. Table 8 reports the prediction accuracy of the lightweight MLP predictor on the test set. The
+model achieves an MAE of 1.13 ms, an RMSE of 1.53 ms, and an MAPE of 1.26%. Notably, 99.00%
+of the predictions exhibit an absolute error of no more than 5 ms, with all samples bounded within 10
+ms. These results demonstrate that the predictor delivers the high precision required for stable online
+scheduling.
+7 https://github.com/vllm-project/vllm-ascend
+8 https://e.huawei.com/cn/products/computing/ascend
+9 https://gitcode.com/ascend-tribe
+
+15
+
+Table 8: Accuracy of the latency predictor on the test set.
+Overall Error
+
+Absolute Error Percentiles (ms)
+
+Bounded Error Ratio
+
+MAE
+
+RMSE
+
+MAPE
+
+P50
+
+P90
+
+P95
+
+P99
+
+≤ 5 ms
+
+≤ 10 ms
+
+1.13 ms
+
+1.53 ms
+
+1.26%
+
+0.84
+
+2.49
+
+3.18
+
+4.93
+
+99.00%
+
+100.00%
+
+4.4.2
+
+End-to-End Performance Evaluation
+
+To evaluate the efficacy of target-latency control, we compare LPRS (Section 3.2) against a fixed
+token-budget baseline. This comparison aims to determine whether our approach improves latency
+stability when static token budgets fail to accurately reflect actual execution costs under heavy mixed
+workloads. We conduct evaluations under two distinct traffic patterns: regular load, characterized by
+uniform request arrivals at a 1.0 s interval, and high concurrency, where requests arrive uniformly
+at a compressed 0.1 s interval. Table 9 reports the prefill and full-request E2E latencies under these
+conditions.
+1. Under high concurrency, LPRS successfully keeps most mixed Decode-Prefill batches close
+to the 105 ms target budget, yielding consistently superior tail latency compared to the
+baseline. Conversely, under regular load, the performance gap narrows, as the static token
+policy already operates near the system’s natural efficiency point.
+2. Specifically, under high concurrency (0.1 s interval), LPRS reduces the P99 prefill latency
+from 924.22 ms to 889.45 ms, and the P99 request latency from 986.93 ms to 952.56 ms.
+Under regular load (1.0 s interval), however, both methods deliver similar latency profiles.
+Notably, the prefill tail latency (P99) under regular load exhibits a sharp jump to over 22 ms
+compared to the sub-millisecond P90 baseline. This tail is primarily attributed to the nonpreemptive nature of iteration-level scheduling: a rare prefill request arriving mid-iteration
+must wait for the active decode round to finish, thereby incurring a scheduling quantization
+delay.
+Table 9: E2E latency comparison between LPRS (105 ms target) and Token Budget (1,024) scheduling.
+Quantile
+
+Prefill Latency (ms)
+LPRS
+
+4.5
+
+Full Request Latency (ms)
+
+Token Budget
+
+LPRS
+
+Token Budget
+
+High Concurrency (0.1 s arrival interval)
+P50
+397.88
+406.09
+P80
+647.75
+662.35
+P90
+772.10
+814.88
+P99
+889.45
+924.22
+
+545.99
+797.26
+908.34
+952.56
+
+555.51
+830.74
+942.81
+986.93
+
+Regular Load (1.0 s arrival interval)
+P50
+0.0934
+0.0890
+P80
+0.1208
+0.1174
+P90
+0.1446
+0.1353
+P99
+22.890
+22.010
+
+138.52
+150.60
+152.49
+153.35
+
+129.29
+147.47
+147.83
+148.99
+
+Evaluation for the Designed APC
+
+To evaluate the contribution of APC, we compare LPRS without the APC mechanism (APC off) and
+the normal LPRS (APC on) under the same scheduling framework. Table 10 presents the results.
+When APC is enabled, the average number of scheduled prefill sequences decreases dramatically
+from 5.32 to 0.46, whereas the average prefill chunk size surges from 0.78 to 6.29. This behavior
+clearly indicates that APC reduces fragmentation by suppressing ineffective concurrency, rather than
+by blindly increasing prefill parallelism.
+At the latency level, APC reduces the mean request E2E latency by 22.26% and the P90 request
+E2E latency by 24.62%. Similarly, mean and P90 prefill E2E latencies drop by 23.04% and 25.01%,
+respectively. As expected, enabling APC introduces non-zero intervention events (4,960 blockings by
+16
+
+the activity cap and 1,541 by the minimum-effective-chunk rule). Far from degrading performance,
+these calculated interventions are aligned with APC’s design objective: it prevents low-value prefill
+fragments from occupying the active set, thereby significantly improving overall scheduling efficiency.
+These results verify that structural prefill control is complementary to temporal target-latency control.
+Table 10: Ablation results of the APC mechanism.
+Metric
+
+APC Off
+
+APC On
+
+Change
+
+143.65
+136.04
+254.89
+247.58
+
+111.68
+104.69
+192.15
+185.66
+
+-22.26%
+-23.04%
+-24.62%
+-25.01%
+
+5.32
+0.78
+
+0.46
+6.29
+
+-91.37%
++706.96%
+
+0
+0
+
+4,960
+1,541
+
+–
+–
+
+End-to-End Latency
+Mean Request E2E (ms)
+Mean Prefill E2E (ms)
+P90 Request E2E (ms)
+P90 Prefill E2E (ms)
+Scheduling Dynamics
+Avg. Scheduled Prefill Seqs.
+Avg. Prefill Chunk Size
+Intervention Events (Counts)
+Blocked by Activity Cap
+Blocked by Min. Effective Chunk
+
+4.6
+
+Discussion
+
+The experiments evaluate three scheduling mechanisms under the broad setting of chunked-prefill
+LLM serving, and we can draw the following conclusions:
+1) Aging focuses on fairness-oriented prefill ordering. Its benefit appears when mixed workloads
+contain many short prompts and a small number of long prompts: by combining remaining prefill
+work with accumulated waiting time, Aging reduces queuing delay and improves both mean and
+tail latency when the scheduling granularity is sufficiently fine. The sensitivity results also reveal its
+boundary. When chunks become too large, the scheduler has fewer opportunities to reorder prefill
+requests, and the benefit may diminish.
+2) LPRS addresses a different problem. latency-budget control under dynamic mixed workloads. Its
+benefit is most visible under high contention, where a fixed token budget no longer reliably reflects
+actual execution time. By selecting chunks according to predicted latency, LPRS improves batch
+execution-time controllability and reduces tail latency.
+3) APC further studies the structure of active prefills. By limiting ineffective prefill concurrency and
+increasing useful chunk progress, APC reduces fragmentation and improves request latency.
+Overall, these results suggest that chunked-prefill serving requires scheduling policies that are aware
+of multiple sources of inefficiency. Arrival-order scheduling alone is insufficient for fairness under
+mixed prompt lengths; static token budgets are insufficient for latency control under dynamic batch
+composition; and unconstrained active-prefill concurrency can create fragmentation. The experiments
+therefore demonstrate that improving LLM serving requires reasoning not only about batching
+efficiency, but also about fairness, latency controllability, and prefill structure.
+
+5
+
+Conclusion and Future Work
+
+This paper investigates fairness-aware and latency-controllable scheduling for chunked-prefill LLM
+serving. We proposed three lightweight scheduling mechanisms: an aging-based scheduler for
+fairness-aware request prioritization, LPRS for latency-prediction-guided chunk selection, and APC
+for regulating active unfinished prefills. These mechanisms address the limitations of arrival-order
+scheduling, static token-budget allocation, and unconstrained active-prefill concurrency, respectively,
+especially under mixed online workloads. These mechanisms improve the chunked-prefill scheduling
+process from the perspectives of request ordering, execution-time control, and prefill progress
+structure, while requiring only limited modifications to existing serving systems. Overall, this work
+shows that efficient chunked-prefill LLM serving should not rely solely on static batching policies,
+but should jointly consider request heterogeneity, runtime latency variation, and scheduling progress
+quality, to improve fairness, latency stability, and hardware utilization. We also performed sufficient
+17
+
+experiments under varying computing architectures (Nvidia and Ascend), and the results verify the
+effectiveness and efficiency of the developed mechanisms under all test enviroments and cases.
+Future work can be extended in two directions. First, a unified adaptive scheduling controller can
+be developed to jointly coordinate Aging, LPRS, and APC, and to dynamically adjust scheduling
+parameters according to changing online workloads. Second, the proposed mechanisms should
+be further evaluated in larger-scale and more complex production environments, including larger
+models, longer-context workloads, multi-node deployments, or multi-tenant settings, in order to
+further examine their scalability and practical applicability.
+
+References
+[1] Q. Zheng, X. Xia, X. Zou, Y. Dong, S. Wang, Y. Xue, L. Shen, Z. Wang, A. Wang, Y. Li
+et al., “Codegeex: A pre-trained model for code generation with multilingual benchmarking on
+humaneval-x,” in Proceedings of the 29th ACM SIGKDD Conference on Knowledge Discovery
+and Data Mining, 2023, pp. 5673–5684.
+[2] N. Liu, T. Zhang, and P. Liang, “Evaluating verifiability in generative search engines,” in
+Findings of the Association for Computational Linguistics: EMNLP 2023, Singapore, 2023, pp.
+7001–7025.
+[3] P. Lewis, E. Perez, A. Piktus, F. Petroni, V. Karpukhin, N. Goyal, H. Küttler, M. Lewis, W.-t.
+Yih, T. Rocktäschel, S. Riedel, and D. Kiela, “Retrieval-augmented generation for knowledgeintensive nlp tasks,” in Annual Conference on Advances in Neural Information Processing
+Systems, vol. 33, 2020, pp. 9459–9474.
+[4] W. Shi, H. Tan, C. Kuang, X. Li, X. Ren, C. Zhang, H. Chen, Y. Wang, L. Hou, and L. Shang,
+“Deepdiver: Adaptive search intensity scaling via open-web reinforcement learning,” arXiv
+preprint arXiv:2505.24332, 2025.
+[5] A. Agrawal, N. Kedia, A. Panwar, J. Mohan, N. Kwatra, B. Gulavani, A. Tumanov, and
+R. Ramjee, “Taming throughput-latency tradeoff in llm inference with sarathi-serve,” in 18th
+USENIX Symposium on Operating Systems Design and Implementation (OSDI 24), 2024, pp.
+117–134.
+[6] B. Sun, Z. Huang, H. Zhao, W. Xiao, X. Zhang, Y. Li, and W. Lin, “Llumnix: Dynamic
+scheduling for large language model serving,” in 18th USENIX Symposium on Operating
+Systems Design and Implementation (OSDI), 2024, pp. 173–191.
+[7] Y. Sheng, S. Cao, D. Li, B. Zhu, Z. Li, D. Zhuo, J. E. Gonzalez, and I. Stoica, “Fairness in
+serving large language models,” in 18th USENIX Symposium on Operating Systems Design and
+Implementation (OSDI), 2024, pp. 965–988.
+[8] G.-I. Yu, J. S. Jeong, G.-W. Kim, S.-J. Kim, and B.-G. Chun, “Orca: A distributed serving system
+for Transformer-Based generative models,” in Proceedings of the 15th USENIX Symposium on
+Operating Systems Design and Implementation (OSDI), 2022, pp. 521–538.
+[9] W. Kwon, Z. Li, S. Zhuang, Y. Sheng, L. Zheng, C. H. Yu, J. Gonzalez, H. Zhang, and
+I. Stoica, “Efficient memory management for large language model serving with pagedattention,”
+in Proceedings of the 29th Symposium on Operating Systems Principles (SOSP), 2023, pp.
+611–626.
+[10] Y. Zhong, S. Liu, J. Chen, J. Hu, Y. Zhu, X. Liu, X. Jin, and H. Zhang, “DistServe: Disaggregating prefill and decoding for goodput-optimized large language model serving,” in Proceedings
+of the 18th USENIX Symposium on Operating Systems Design and Implementation (OSDI),
+2024, pp. 193–210.
+[11] R. Qin, Z. Li, W. He, J. Cui, H. Tang, F. Ren, T. Ma, S. Cai, Y. Zhang, M. Zhang, Y. Wu,
+W. Zheng, and X. Xu, “Mooncake: A kvcache-centric disaggregated architecture for llm serving,”
+ACM Transactions on Storage, pp. 1–38, 2025.
+[12] H. Sun, L.-W. Chang, W. Bao, S. Zheng, N. Zheng, X. Liu, H. Dong, Y. Chi, and B. Chen, “Shadowkv: Kv cache in shadows for high-throughput long-context llm inference,” in Proceedings of
+the 42nd International Conference on Machine Learning (ICML), 2025, pp. 1–19.
+18
+
+[13] vLLM Ascend Project. (2025) vllm-ascend: Huawei ascend npu backend for vllm. [Online].
+Available: https://github.com/vllm-project/vllm-ascend
+[14] Ascend, “MindIE-LLM: Ascend large language model inference engine,” https://github.com/
+Ascend/MindIE-LLM, 2026, accessed: 2026-05-09.
+[15] P. Zuo, H. Lin, J. Deng, N. Zou, X. Yang, Y. Diao, W. Gao, K. Xu, Z. Chen, S. Lu et al.,
+“Serving large language models on huawei cloudmatrix384,” arXiv preprint arXiv:2506.12708,
+2025.
+[16] D. Guo, D. Yang, H. Zhang, J. Song, P. Wang, Q. Zhu, R. Xu, R. Zhang, S. Ma, X. Bi et al.,
+“DeepSeek-R1 incentivizes reasoning in LLMs through reinforcement learning,” Nature, vol.
+645, pp. 633–638, 2025.
+[17] A. Agrawal, N. Kedia, J. Mohan, A. Panwar, N. Kwatra, B. S. Gulavani, R. Ramjee, and
+A. Tumanov, “Vidur: A large-scale simulation framework for llm inference,” Proceedings of
+Machine Learning and Systems, vol. 6, pp. 351–366, 2024.
+[18] J. Liu, P. Tang, W. Wang, Y. Ren, X. Hou, P. A. Heng, M. Guo, and C. Li, “A survey on inference
+optimization techniques for mixture of experts models,” ACM Computing Surveys, vol. 58,
+no. 10, pp. 1–37, 2026.
+[19] W. Zheng, “Application of distributed technology in large model training and inference,” Big
+Data, vol. 10, no. 5, pp. 1–10, 2024.
+[20] B. Wu, S. Liu, Y. Zhong, P. Sun, X. Liu, and X. Jin, “Loongserve: Efficiently serving longcontext large language models with elastic sequence parallelism,” in Proceedings of the ACM
+SIGOPS 30th Symposium on Operating Systems Principles, 2024, pp. 640–654.
+[21] P. Patel, E. Choukse, C. Zhang, A. Shah, Í. Goiri, S. Maleki, and R. Bianchini, “Splitwise:
+Efficient generative llm inference using phase splitting,” in 2024 ACM/IEEE 51st Annual
+International Symposium on Computer Architecture (ISCA). IEEE, 2024, pp. 118–132.
+[22] W. Dabney, M. Rowland, M. Bellemare, and R. Munos, “Distributional reinforcement learning
+with quantile regression,” in Proceedings of the AAAI Conference on Artificial Intelligence,
+vol. 32, no. 1, 2018, pp. 2892–2901.
+[23] H. Chen, Y. Wang, K. Han, D. Li, L. Li, Z. Bi, J. Li, H. Wang, F. Mi, M. Zhu et al.,
+“Pangu embedded: An efficient dual-system llm reasoner with metacognition,” arXiv preprint
+arXiv:2505.22375, 2025.
+[24] I. Loshchilov and F. Hutter, “Decoupled weight decay regularization,” in 7th International
+Conference on Learning Representations (ICLR), 2019, pp. 1–18.
+
+19
+
+

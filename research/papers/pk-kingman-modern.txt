@@ -1,0 +1,1243 @@
+Queue & AI: When Faster Tasks Slow Down the Workflow
+Silvia Bartolucci1, and Pierpaolo Vivo2,*
+1 Department of Computer Science, University College London, United Kingdom
+2 Department of Mathematics, King’s College London, United Kingdom
+* pierpaolo.vivo@kcl.ac.uk
+
+arXiv:2605.27202v1 [cs.CY] 26 May 2026
+
+ABSTRACT
+Quantifying the workplace productivity effects of Generative Artificial Intelligence is now central to economics, management,
+and public policy. The deployment of AI tools in customer service, writing, software development, and consulting operations
+has been reported to generate large per-task productivity gains, typically measured as tasks completed per worker-hour or
+reductions in mean handle time. We argue that such mean-based metrics can misrepresent AI’s effects in workflows where
+tasks accumulate and compete for scarce human attention. AI assistance can generate a deceptive productivity signature:
+average completion times fall because AI tools typically supply a fast first draft, yet workflow-level performance deteriorates
+when a subset of AI errors escapes review and returns as costly downstream rework. We call this divergence between mean
+task speed and system-level delay the variance wedge. Depending on the operational parameters, the most time-efficient
+way to complete a workflow may undergo a transition between two task-processing regimes, a fully AI-assisted and a fully
+manual one. We formalize the mechanism as a queueing model and derive two main implications analytically. First, under
+congestion, reviewers rationally raise the risk threshold for checking AI outputs, reducing scrutiny precisely when it would
+matter the most. Second, AI assistance can stabilize an overloaded workflow only when (i) the fraction of tasks handled by AI
+exceeds a critical threshold, and (ii) the human attention required for review and expected rework is lower than the attention
+for manual completion, a requirement substantially more stringent than faster draft generation. These results suggest that
+AI deployment should be evaluated not only by average task speed, but by its overall effects on congestion, rework, and the
+robustness of human oversight under load.
+
+1 Introduction
+Consider a software team at a large company after the adoption of an Artificial Intelligence (AI) coding assistant. The
+first quarterly report looks encouraging. Developers generate more code, publish new features, and complete more tickets.
+At the upstream stage of the workflow, AI appears to do exactly what it promises: it turns natural-language prompts into
+working-looking code at low human cost and considerably higher speed. But software development is not finished when the
+code is generated. Code must be reviewed, tested, integrated, deployed, maintained, and sometimes repaired after failure. A
+second report, six months later, may therefore tell a different story. Bug-fix requests grow larger and review queues lengthen
+as more defects are discovered downstream. Incidents rise, and senior engineers spend more time reading, correcting, and
+maintaining code that looked perfectly functional at first glance. In this process, the productivity bottleneck has moved from
+generation to verification, a shift that business productivity models and forecasts of economic growth must account for.
+Recent evidence on AI-assisted coding supports this new operational model with empirical data. Ref.1 documents the diffusion
+of AI-generated code on GitHub, showing that generative AI already shapes production and code review at scale. Ref.2 further
+argues that productivity gains are achieved when workers with enough expertise are available to judge, adapt, and maintain AI
+outputs, with AI effectively raising the productivity bar. Ref.3 shows that in organizations self-reported individual productivity
+gains are systematically overstated, and that the technology accelerates individual upstream work, while simultaneously loading
+the downstream stages where the organizational output is actually produced.
+The picture these findings delineate is consistent: AI accelerates generation, but generation is not the binding productivity
+constraint. The constraint is human attention necessary to review, integrate, and respond to incidents: AI loads the human
+capabilities with both more new outputs to inspect and a heavier tail of outputs that fail closer scrutiny downstream (e.g.,
+when AI hallucinates and produces very plausible but incorrect outputs4, 5 ). The relevant productivity question is, therefore,
+not whether AI makes generation faster, but whether the full workflow is. This shift2 is common to similar task completion
+workflows in organizations belonging to very different business sectors, from customer service6 and professional writing7 to
+consulting8 .
+
+1
+
+Quantifying the productivity impact of generative AI has become a central problem for economics, management, and public
+policy to drive investment decisions, shape regulations, make labor-market forecasts, or improve organizational design. In
+a nationally representative U.S. survey, 28% of workers reported using generative AI at work, and recent users reported
+that it assisted a non-trivial share of weekly work hours9 . Field experiments and large-scale observational studies document
+substantial average gains in customer service, professional writing, software development, and consulting6–8, 10 . A recent
+review11 summarizes the theoretical and empirical evidence on the impact of AI productivity on skills and jobs, reporting
+productivity gains on the order of 20–60% in randomized trials and 15–30% in field experiments, with significant heterogeneity
+by skill level and task complexity.
+These studies typically measure mean outcomes: tasks completed per worker-hour, mean handle time, completion speed, or
+average quality at a fixed time. These measurements have shaped managerial deployment decisions, and increasingly serve
+as inputs into macroeconomic projections of AI-driven growth. In task-based accounting frameworks such as Acemoglu’s
+productivity model12 , aggregate productivity effects on GDP growth are obtained by combining the share of tasks exposed to
+AI with average task-level cost savings. This approach does not tackle the corresponding microeconomic question central to
+organizations deploying AI: how do task-level time savings translate into workflow-level performance when work arrives over
+time, competes for scarce human attention, and sometimes returns as rework?
+A) Manual route: higher mean time, lower variability
+Human team
+
+C) The variance trap: Increased tail risk can
+lengthen queues
+
+Task
+completion
+
+Tasks
+Low variability
+
+Manual mean
+
+B) Al-assisted: lower mean time, higher tail risk
+
+Manual
+
+Al-assisted
+
+Lower mean ≠ shorter queue
+when variability rises
+Tasks
+
+§
+AI task
+solver
+
+Human
+review
+team
+
+Rework
+tail
+
+Residual
+
+error risk
+
+Task
+completion
+
+Short queue
+
+Longer queue
+(despite lower mean)
+
+Figure 1. Schematic workflow model. Panel A shows the manual route: tasks require more human time on average but have relatively low
+variability. Panel B shows the AI-assisted route: AI generates a draft cheaply, but human review is imperfect, so some residual errors escape
+and return as rework. Panel C illustrates the resulting distributional shift. AI lowers the mean service time, but creates a heavier right tail. As
+queueing delay depends on the second moment of service time, the rework tail may dominate the mean saving, producing longer queues
+despite faster average task completion.
+
+This paper proposes a queueing model in which tasks arrive randomly to a human team and are handled either manually or
+with AI assistance. Under manual handling, the team completes the task directly. Under AI assistance, the AI generates an
+answer, a code snippet, or a recommendation cheaply. A human reviewer spends time checking it. Some outputs that pass
+review are operational false positives: they appear functional at handoff, but later fail in deployment, customer interaction,
+audit, legal scrutiny, or integration with the rest of the workflow. When such failures return as rework, AI-assisted service
+time – defined as the total amount of human attention it consumes, including review and any later correction work – acquires a
+distinctive shape, characterized by a lower mean but a heavier tail. In Fig.1 we report a schematic representation of the different
+workflows under the manual or AI-assisted route. Using the Pollaczek–Khinchine and Kingman frameworks developed in
+queueing theory13–15 we derive a closed-form expression for a relevant productivity metric affected by the overall service time
+distribution, namely the average time Wq a task has to wait in the queue before being attended to (see Eq. (3)). From this
+formula, we derive an analytical condition for what we call the variance wedge effect (see Eq. (4)): AI reduces mean human
+time per task, while increasing mean waiting time across the workflow. Since many economically important uses of generative
+2/20
+
+AI (customer-support cases, legal reviews, medical triage decisions, insurance claims, document adjudication, and content
+moderation) involve tasks that line up for scarce human attention, we argue that classical queueing theory provides a relevant
+analytical framework to address these questions and shows that these two metrics–average time consumed by tasks, and mean
+waiting time across the workflow–need not necessarily move together.
+The model also yields two implications about human review and system stability. First, when reviewer attention becomes
+scarce, the rational response is not necessarily to check AI outputs more carefully. Since review time competes with all other
+tasks waiting for human attention, congestion actually raises the cost of scrutinizing any individual draft. The optimal checking
+rule, therefore, becomes more selective: the reviewer raises the risk threshold above which an AI output is examined, passes
+more low- and intermediate-risk drafts through unchecked, and reduces review effort even for drafts whose perceived risk
+remains high enough to warrant closer inspection. Second, AI can stabilize an overloaded workflow only if it genuinely reduces
+the total human attention demand imposed on the system. This requires both sufficient adoption (the fraction of AI-routed tasks
+must exceed a critical threshold, see Eq. (10)), and a favorable accounting of the AI route itself: review time plus the expected
+rework generated by escaped errors must be lower than the human time required for manual handling. Thus faster generation
+alone is not the relevant criterion: an AI system may produce drafts quickly while still failing to relieve the queue if those drafts
+require substantial checking or create enough downstream correction work.
+The rework mechanism we study is related to the classical theory of feedback queues. In a queue with Bernoulli feedback, a
+customer who completes service leaves the system with probability 1 − p, but with probability p returns to the back of the
+same queue for another service attempt. This class of models goes back at least to Takács’ single-server queue model with
+feedback16 , and was later developed in several works17–19 . Feedback is also a standard feature of queueing networks: in open
+Jackson networks, a job leaving one station may be routed to another station, or back to a previously visited station, thereby
+generating endogenous traffic in addition to the external arrival stream20, 21 . In our model, rework precisely acts as a feedback
+stream: it is traffic generated by past service completions, and can amplify congestion even when the exogenous task arrival
+rate is unchanged. Very recently, queueing-theoretic methods have also been applied to study congestion inside the serving
+infrastructure of deployed Large Language Models (LLM). For example, Ref.22 model LLM inference as an M/G/1 queue
+in which variable output lengths drive service-time variability, while Ref.23 optimize task-specific reasoning-token budgets
+by trading off accuracy gains against the queueing delays induced by longer inference times. Ref.24 surveys how predictions
+of service time, request size, and reasoning complexity can improve scheduling in LLM inference systems, where latency is
+shaped by variable job sizes, batching, preemption, and memory constraints.
+Throughout the paper, we use “AI” in an implementation-agnostic sense. The model does not depend on a particular architecture,
+vendor system, benchmark score, prompting protocol, or software-engineering choice. What matters is that the system has three
+features: it reduces the human time needed to produce a first version of the output; it leaves some residual probability of error
+after human review; and errors that pass review can create later correction work. This includes, but is not limited to, systems
+that generate fluent but unreliable text, badly written or sloppy code, or questionable but very confident recommendations (what
+is sometimes colloquially called AI slop). In this context, AI modifies typical quality signals (e.g., clarity of writing style)
+and raises the bar to identify high quality work25 . The benefit of this abstraction is that the analysis is not tied to a specific
+model family or implementation. The limitation is that benchmark results do not necessarily map one-to-one onto the model
+parameters. A benchmark may measure task accuracy, factuality, or coding performance in isolation, whereas the quantities in
+the model are workflow-level objects: review time, residual error probability after review, and the rework generated by errors
+that escape. Generative AI is therefore not the only possible source of this service-time pattern, but it is currently the most
+prominent and empirically important one.
+Studies of AI productivity in workflow settings should therefore report the full distribution of service times, including downstream rework, not only the mean. The implication for policy and measurement is that aggregate productivity statistics
+combining task-level exposure with mean cost savings (the standard input to macroeconomic accounting of AI) can systematically overstate organizational gains when rework reallocates rather than removes work. The model thus supplies a
+microeconomic foundation for macro frameworks of AI productivity, identifying the second-moment and rework terms that
+mean-based aggregation omits. The deeper point is that AI adoption can shift a workflow between regimes, in a sense familiar
+from traffic flow: a road may carry cars smoothly until density crosses a critical threshold, after which interactions among
+vehicles produce a sharp collapse in average speed. The slowdown is not caused by any one car becoming intrinsically slower,
+but by the collective effect of operating too close to capacity. AI-assisted workflows admit a similar transition. The mean gain
+on the typical task can coexist with, and ultimately produce, a congested regime in which overall waiting times rise sharply.
+Mean productivity statistics, computed within the smooth regime, miss this important effect entirely.
+
+3/20
+
+2 Results
+2.1 The model
+We model an organization as a single-server queueing system in which tasks compete for scarce human attention. A task is a
+unit of work that must ultimately be cleared by the human review system: for example, a customer-support case, a legal file, a
+claim, a code change, or a moderation decision. Tasks arrive at rate λ > 0 and are routed either to full manual handling or
+to AI-assisted handling with probability 1 − x and x, respectively, where x ∈ [0, 1] is the AI-routing fraction. In the manual
+route, the task is handled entirely by humans. In the AI-assisted route, the AI supplies an initial draft, recommendation, or code
+snippet at negligible human cost, but the task still requires human review and may later return as rework if an error escapes.
+The routing decision is taken ex ante, before any task-specific signal is observed. The server processes work at a rate C, measured
+in hours of human attention per unit of calendar time. Treating C as a single aggregate team capability is a simplification: the
+model does not distinguish between sub-teams, seniority levels, or functional roles within the organization, even though in
+practice the binding constraint is typically narrower, often related to the availability of senior reviewers, expert adjudicators, or
+a small group of specialists who handle escalations. We interpret C as the capacity of that scarce reviewing layer rather than as
+headcount or total labor hours, since it is that layer’s attention that AI-assisted workflows load most heavily.
+A manual task consumes a random amount TH of human-attention time with mean τH and variance σH2 . Its second raw moment
+is therefore qH := E[TH2 ] = τH2 + σH2 = τH2 (1 + c2H ), where we write the squared coefficient of variation (CV)–a standardized
+measure of dispersion–as c2H = σH2 /τH2 . No further structure is imposed on the manual task processing.
+An AI-routed task proceeds in two stages. The AI generates a draft at negligible human cost, after which the reviewer spends
+r ≥ 0 hours checking it. Review reduces, but does not eliminate, the probability that the draft contains an undetected error.
+Let p(r) denote the residual miss probability after the review effort r. In the following, we use the following form for the
+probability:
+p(r) = p∞ + (p0 − p∞ )e−κr .
+
+(1)
+
+This form captures three assumptions: review reduces errors, each additional unit of review has a smaller marginal effect, and
+some errors may be irreducible by review alone. The parameter κ > 0 represents the reviewer’s verification skill: a higher κ
+means each hour of review catches a larger fraction of errors.
+If an error escapes review, the task may return to the same human team through correction, escalation, complaint handling,
+audit, or downstream repair. The total human-attention cost of an AI-routed task is therefore
+TA = r + MR ,
+
+(2)
+
+where the random variable M = 1 if the error escapes review and generates additional work, and M = 0 otherwise; the random
+variable R with E[R] = µR and E[R2 ] = µR,2 is the resulting additional human-attention requirement.
+The unconditional service time T for a randomly selected task is therefore TH with probability 1 − x and TA with probability x.
+Its mean, denoted m(x; r), is the average amount of human-attention time required by each incoming task. We also define as
+q(x; r) the second moment (formulas for our setting are provided in Section 4.1 below). Therefore, the mixed-system squared
+CV, which measures service time dispersion around the mean and is a proxy for how unpredictable the waiting time in the
+queue is, has the form c2s (x; r) = q(x; r)/m(x; r)2 − 1.
+Since tasks arrive at rate λ , the system receives on average λ m(x; r) units of human-attention demand per unit of calendar
+time. The reviewing team can supply C units of human-attention capacity per unit of calendar time. Hence, the utilization rate
+is ρ(x; r) = λ m(x; r)/C. For the queue to be stable, the average demand must be strictly smaller than the team capacity, so
+ρ(x; r) < 1. If ρ(x; r) ≥ 1, work arrives at least as fast as the team can process it, and waiting times grow without bounds.
+For each task, we distinguish two time intervals. The first is the time the task spends waiting before the team starts working on
+it. The second is the service time S = T /C, the time during which the team is actually occupied by performing that task. We
+denote the average waiting time before service begins by Wq , which thus excludes the task’s own service time; the average total
+time spent by the task in the system would be Wq + E[S] ≡ Wq + m(x; r)/C.
+Our model thus defines a so-called M/G/1 queue. Therefore, under the stability condition ρ < 1, the Pollaczek–Khinchine
+formula13, 14 applies (see Section 4.2.1), which gives for Wq in our setting the expression
+Wq (x; r) =
+
+λ q(x; r)
+ρ(x; r)
+1 + c2s (x; r) m(x; r)
+=
+·
+·
+.
+2C (C − λ m(x; r))
+1 − ρ(x; r)
+2
+C
+
+(3)
+
+4/20
+
+Eq. (3) is our central result, from which all other implications follow. It shows that the waiting time is affected by three easily
+interpretable factors: a congestion factor ρ/(1 − ρ), a variability factor (1 + c2s )/2, and the mean calendar service time m/C.
+Increasing the AI routing share x therefore changes waiting time not only by changing the average human time per task, but
+also by changing service-time variability, and by moving the system closer to, or farther from, the heavy-traffic region where
+the congestion multiplier becomes large.
+For most of the paper, we assume Poisson task arrivals; the theory, however, can be easily adapted to bursty and irregular
+arrivals via the Kingman approximation15 described in 4.2.2, which simply amounts to a re-definition of the variability factor
+(1 + c2s )/2 in Eq. (3). We will also define WA := Wq (1; r) and WH := Wq (0; r).
+2.2 The variance wedge
+To evaluate the main tradeoff, we compare two extreme handling systems at the same arrival rate λ : a pure manual system
+(x = 0) and a pure AI-routed system (x = 1), holding the AI review effort r fixed at some operational level. For readability, we
+write τA := m(1; r), qA := q(1; r) and c2A := c2A (r) = qA /τA 2 − 1 to denote the average amount of human-attention time required
+by each incoming task, its second moment, and the squared CV for a purely AI workflow, respectively. We assume that both
+pure systems are stable: λ τH < C and λ τA < C.
+Specializing (3) to the x = 0, 1 cases, AI yields shorter mean waiting time than manual handling (WA < WH ) if and only if
+1 + c2A
+<
+1 + c2H
+
+
+
+τH
+τA
+
+2
+·
+
+1 − λ τA /C
+1 − λ τH /C
+
+(4)
+
+(see Section 4.3 for a full derivation). This is the first main consequence that can be drawn from Eq. (3).
+The left-hand side compares the spread of AI service times with the spread of manual service times. A value larger than one
+means that AI-routed tasks are less predictable: some may finish quickly after a short review, while others may return with
+costly rework. The right-hand side is the amount of extra unpredictability that the queue can absorb before AI stops being
+beneficial. We call it the AI variance budget. When AI saves a lot of average time, this budget is large: the queue can tolerate
+occasional long rework cases. When AI saves only a little average time, the budget is small: even a thin tail of slow cases can
+erase the gains and lengthen the queue.
+Two effects make this variance budget larger. The first is the most obvious direct time saving, captured by (τH /τA )2 . This term
+is greater than one whenever AI uses less human attention on average than manual work, τA < τH . The more AI reduces the
+average task time, the larger this term becomes. The second subtler effect is congestion captured by (1 − λ τA /C)/(1 − λ τH /C).
+This term measures how much farther AI moves the system away from overload. If the manual system is lightly loaded, the
+denominator 1 − λ τH /C is not small, so the gain is modest. If the manual system is close to saturation, then 1 − λ τH /C is close
+to zero. In that case, even a modest reduction in average service time can create a large operational gain, because it pulls the
+system back from the edge of instability.
+Thus, when the manual system is nearly overloaded, AI can create a larger rework tail and still improve waiting times. When
+the manual system has plenty of slack, the mean-time saving is less valuable, so even moderate extra variability can produce
+the variance wedge: AI can reduce the average amount of human time spent per task, τA < τH , and still increase waiting time
+because the work becomes less predictable. The queue is not slowed down by the typical AI-assisted task; it is slowed down by
+the occasional task that escapes review, returns later, and consumes a large amount of extra human attention.
+Figure 2 shows simulated manual and AI-routed service-time distributions for a representative calibration. The manual
+distribution is roughly symmetric around τH = 1 hour with c2H = 0.10. The AI distribution has a spike-and-tail shape: a sharp
+peak at the review time r = 0.5 hours, corresponding to cases with no escaped error, plus a long thin tail from rework. Its mean
+is lower, τA = 0.85 hours, but its squared CV is much larger, c2A = 1.25. Thus the AI CV is roughly 3.5 times the manual one,
+and its squared CV is more than twelve times larger: rare long rework cases can have a disproportionate effect on waiting times.
+Keeping c2H fixed and parametrizing by the mean-savings ratio s := τA /τH and the manual-system utilization ρH = λ τH /C, the
+maximum admissible AI variability for AI to improve waiting time is, from (4),
+c2A,max =
+
+1 1 − ρH s
+·
+· (1 + c2H ) − 1
+s2 1 − ρH
+
+(5)
+
+(see Section 4.3 for a derivation). Figure 3 plots c2A,max in Eq. (5) as a function of the mean-savings ratio s = τA /τH , for four
+illustrative levels of manual-system utilization, ρH ∈ {0.20, 0.40, 0.60, 0.80}, fixing c2H = 0.5. Each curve shows the largest AI
+variability, c2A,max , that is still compatible with lower mean waiting time.
+5/20
+
+Figure 2. Simulated service-time distributions for manual and AI-routed handling. Manual service time is drawn from a positive,
+approximately symmetric distribution with mean τH = 1 hour and squared CV c2H ≃ 0.10. AI-routed service time is TA = r + MR, with fixed
+review time r = 0.5, escaped-error indicator M ∼ Bernoulli(0.15), and Gamma-distributed rework R. The AI route has lower mean service
+time, τA ≃ 0.85, but much larger dispersion, c2A ≃ 1.25. The sharp peak at r = 0.5 corresponds to AI outputs that pass review without later
+correction; the long right tail corresponds to escaped errors that return as rework.
+
+When s is small, hence AI generates large mean savings, the variance budget rises sharply: the queue can tolerate substantial AI
+variability and still benefit from AI adoption. When s is close to one, hence AI saves little average time, c2A,max collapses toward
+the manual baseline c2H . In that region, AI variability can exceed manual variability only slightly before the variance wedge
+appears. A higher load shifts the entire schedule upward. Intuitively, when the manual system is already closer to saturation,
+a reduction in mean service time is operationally more valuable, so the queue can absorb a larger increase in AI-induced
+variability.
+AI should, therefore, not be evaluated only by asking whether it reduces the average time spent on a task. In a queue-bound
+workflow, the relevant question is rather whether it improves the service-time distribution in the way the queue needs. Before
+deployment, an organization should therefore measure three objects: the mean human-attention time under AI, τA ; the
+variability of that time, as summarized by the empirical squared CV c2A ; and the current load of the manual system, ρH = λ τH /C.
+These quantities are enough to check whether the inequality in (4) holds.
+This diagnostic is simple, but nevertheless quite powerful as it does not require a full structural model of AI errors. It essentially
+requires logging how long AI-routed cases actually occupy the human team, accounting for downstream tasks of review when
+errors escape.
+2.2.1 Partial adoption
+
+The comparison above contrasts the two extreme cases, no AI routing (x = 0) and full AI routing (x = 1). Because the model
+allows partial task routing, it is natural to ask whether an intermediate adoption level x∗ could minimize the overall waiting
+time, still under the assumption of stable queues. In the baseline homogeneous model, the answer is negative: for a fixed review
+policy r, the waiting-time objective is monotone in x. The waiting-time optimum is, therefore, “bang-bang”:
+
+1,
+C(qA − qH ) + λ (qH τA − qA τH ) < 0 ,
+
+
+
+x⋆ = 0 ,
+(6)
+C(qA − qH ) + λ (qH τA − qA τH ) > 0 ,
+
+
+
+any x ∈ [0, 1] , C(qA − qH ) + λ (qH τA − qA τH ) = 0 ,
+
+6/20
+
+Figure 3. Maximum admissible AI variability as a function of the mean-savings ratio s = τA /τH , computed from equation (5), for four levels
+of manual-system utilization, ρH ∈ {0.20, 0.40, 0.60, 0.80}, fixing the manual squared coefficient of variation at c2H = 0.5. Each curve gives
+the largest AI squared coefficient of variation that is still compatible with lower mean waiting time. Points below a curve correspond to
+parameter combinations for which AI improves queueing performance; points above it correspond to the variance wedge, in which AI saves
+time on average but increases waiting time. The admissible variance rises sharply as s falls, because large mean savings create room for the
+queue to absorb substantial rework variability. By contrast, as s → 1, all curves collapse toward the manual baseline c2H = 0.5: when AI
+delivers little mean saving, its variability can exceed manual variability only marginally before waiting times worsen. Higher manual
+utilization shifts the curves upward, showing that when the manual system is closer to saturation, a given reduction in mean service time is
+more valuable and can offset a larger increase in variability.
+
+(see Section 4.4 for a proof).
+This result explains why the pure manual versus pure AI comparison performed in Section 2.2 is not merely a modelling
+convenience. In the homogeneous baseline model, if increasing AI routing improves (worsens) waiting time, it improves
+(worsens) it at every adoption level. Keeping the other parameters fixed, Eq. (6) identifies a possible transition e.g. in the arrival
+rate λ , with a critical value
+λ ⋆ :=
+
+C(qH − qA )
+,
+qH τA − qA τH
+
+(7)
+
+between a regime where full AI-handling is favored, and one where full manual handling is favored.
+Figure 4 shows the mean waiting time under manual (WH ) and AI-routed (WA ) handling as the arrival rate of tasks λ varies. We
+compute WH and WA specializing the M/G/1 formula in equation (3) to the x = 0 and x = 1 cases, respectively, varying the
+arrival rate λ , while holding the other parameters fixed. At low and moderate arrival rates, the AI-routed system has longer
+waits than the manual system. The reason is that the queue is not yet close to capacity, so the mean time saving from AI is
+not valuable enough to offset the larger second moment created by occasional rework. The two curves cross at λ ⋆ ≃ 0.76 as
+predicted by Eq. (7), which marks a regime transition. Below this threshold, AI reduces average human time per task, but
+increases average waiting time. Above it, the manual system is close enough to saturation that the lower mean service time
+of the AI route dominates its higher variability. Thus, AI becomes beneficial only when the manual queue is already under
+substantial pressure.
+A critical intermediate routing fraction xc will be determined in Sec. 2.4 that answers a substantially different question, though:
+how much load should one divert from manual to AI handling in order to turn an unstable manual queue into a stable one?
+Intermediate routing fractions may also become important once tasks differ in their AI suitability, review capacity is constrained
+by task type, or if AI adoption affects future review skills. These extensions will not be considered here.
+We now turn to the discussion of two direct implications of our main results.
+
+7/20
+
+Figure 4. Mean waiting time under manual (WH ) and AI-routed (WA ) handling as the arrival rate λ varies. The curves are computed from the
+M/G/1 waiting-time formula in Eq. (3). Capacity is normalised to C = 1. The manual route has mean τH = 1 and squared CV c2H = 0.10, so
+its second moment is qH = τH2 (1 + c2H ). The AI-routed route has lower mean service time, τA = 0.85, but much higher variability, c2A = 1.25,
+giving qA = τA2 (1 + c2A ). At low and moderate arrival rates, the AI curve lies above the manual curve: although AI saves time on the average
+task, the larger second moment created by occasional rework increases waiting time. The curves cross at λ ⋆ ≃ 0.76 as predicted by Eq. (7).
+Above this point, the manual system is close enough to saturation that the reduction in mean service time dominates the variance penalty, and
+AI-routed handling yields shorter waits. The figure illustrates the variance wedge: lower average task time need not imply shorter queues.
+
+2.3 Implication #1: review threshold under congestion
+Let us now focus on the fully AI-routed workflow (x = 1). So far, we have treated the review effort r as fixed. In practice,
+reviewers do not spend the same amount of time on every AI output: they use warning signs in the task and in the draft itself to
+strategically decide which outputs may deserve closer scrutiny. We therefore replace the fixed review time with a selective
+checking rule that depends on an observable risk signal.
+After a cursory look at the AI draft, an experienced reviewer can often gauge its level of risk. Some clues come from the task
+itself: a routine request is usually safer than a novel or high-stakes one. Other clues come from the draft: vague citations,
+unusual confidence, missing calculations, or inconsistencies with the source material may all suggest that the output deserves
+closer scrutiny.
+We collect these clues in a signal s. The signal is not assumed to be perfectly correlated with the actual danger: it only changes
+the reviewer’s assessment of risk. Let π(s) ∈ [0, 1] denote the reviewer’s posterior probability that the AI draft contains an error
+after observing the signal s. Across tasks, signals are distributed according to a density µ(s) defined over a support S̄. If an
+error escapes review, it creates an expected loss K > 0, which may include correction time, escalation, customer harm, legal
+exposure, or audit costs. We call θ > 0 the congestion cost of using reviewer time. It captures the fact that time spent checking
+one AI output occupies the same human bottleneck needed to process the rest of the queue: every additional minute of review
+delays the tasks waiting behind it. Thus θ is low when reviewers have spare capacity, but rises when the queue is congested.
+We initially treat θ as a parameter fixed at the outset, and then return to its endogenous determination later on.
+For a draft with posterior error risk π(s), review has two opposing effects. It consumes human resources that are often scarce,
+but it lowers the probability that an error survives. We assume that each unit of review reduces the remaining error risk at rate
+κ, so that early review catches the easiest errors, while later review still helps but by progressively smaller amounts.
+The resulting policy is selective verification: the reviewer checks the draft only if the perceived error risk is high enough. Our
+model predicts a review threshold (see Section 4.5 for details)
+π ⋆ (θ ) =
+
+θ
+.
+κK
+
+(8)
+
+8/20
+
+Drafts whose posterior risk π(s) is below π ⋆ are passed through without scrutiny; drafts above the threshold receive review
+effort that grows logarithmically with their perceived risk, according to the formula
+
+
+1
+κKπ(s)
+⋆
+r (s; θ ) = max 0, log
+.
+(9)
+κ
+θ
+Eq. (8) shows that the review threshold rises with the congestion cost of reviewer time, θ , and falls with both the cost of
+an escaped error, K, and the effectiveness of review, κ. Thus reviewers become more selective when attention is scarce, but
+scrutinize more drafts when errors are more costly or review is more effective. Formula (9) shows that review effort increases
+with the perceived risk π(s) and with the cost of an escaped error K, because both make checking more valuable, but decreases
+as the congestion cost of reviewer time θ rises; the parameter κ both scales the effectiveness of review and appears in the
+logarithm, so higher review effectiveness generally means that less time is needed to achieve a given reduction in risk. This
+connects the model to the inspection literature, where a central question is how to allocate limited checking effort across many
+items when some are more likely to be defective than others26, 27 .
+The formulas above describe how a reviewer behaves for a given congestion cost θ of reviewer time. The remaining step is to
+determine where this cost comes from. In the queueing system, reviewer time is costly not only because it consumes effort,
+but because it negatively affects the ability of the same team to process the other tasks waiting in line. We therefore link θ
+to congestion: an additional unit of review increases the average amount of human attention required per task, which in turn
+increases waiting time for the rest of the queue. The more heavily loaded the team is, the larger this delay effect becomes. In
+Section 4.5 we formalize this idea by setting θ ≡ θ ⋆ as the solution of a fixed-point equation θ ⋆ = Φ(θ ⋆ ) (see Eq. (45)), where
+Φ(θ ) is the marginal queueing cost generated by an additional unit of mean human-attention time per task: the derivative of
+waiting time with respect to the mean service requirement, multiplied by the arrival rate λ and by the waiting-cost parameter
+cw , which measures how costly it is for a task to spend one additional unit of time waiting in the queue.
+This closes the feedback loop between review and congestion. The review rule determines how much time is spent checking AI
+outputs; that review time contributes to the load on the human bottleneck; and the resulting congestion determines how costly
+further review time becomes. When congestion raises θ ⋆ , the threshold π ⋆ (θ ⋆ ) in Eq. (8) moves upward. More drafts therefore
+fall below the threshold and receive no review. Even for drafts that remain above the threshold, the rule Eq. (9) evaluated for
+θ = θ ⋆ gives lower review effort at any fixed perceived risk π(s). Thus congestion does not merely delay work mechanically:
+it changes the verification policy itself, making reviewers more selective about which AI outputs they check.
+This provides a queueing-based interpretation of under-verification. It is consistent with Ref.28 ’s observation that automationinduced complacency intensifies under load, and with Ref.29 ’s argument that automation reorganizes rather than removes
+human workload. Here, however, the effect is not introduced as a cognitive bias: it arises because careful checking consumes
+scarce attention in a congested system.
+The mechanism becomes especially consequential in workflows where risk and congestion tend to increase together. This
+co-movement is not assumed by the threshold formula itself, but it is common in practice: peak-hour customer service,
+end-of-quarter reporting, urgent legal review, and clusters of complex cases are often both busier and harder than ordinary
+periods. In such settings, the distribution of signals µ(s) shifts toward riskier drafts at the same time as the arrival rate λ raises
+the congestion cost θ ⋆ . The model then predicts a troubling response: the review threshold rises precisely when more outputs
+would deserve closer scrutiny. Reviewers facing a congested queue and scarce time become more selective on which outputs to
+check at the very moment when careful checking would be needed the most.
+Figure 5 illustrates the verification equilibrium implied by Eq. (45) for two signal environments. In both cases, the posterior
+risk map π(s) is held fixed and increasing in the signal s, while the distribution of signals changes: the baseline density
+µ1 (s) = Beta(2, 2) places most mass on intermediate signals, whereas µ2 (s) = Beta(5, 2) shifts mass toward larger signals and
+therefore makes high-risk drafts more frequent. Panel A shows that the two workflows share the same mapping from signal
+to perceived error risk but differ in how often risky signals occur. Panel B displays the corresponding fixed-point problem
+for the cost θ of reviewer attention. In the calibration shown, moving from µ1 to µ2 raises the equilibrium verification cost
+from θ ⋆ ≃ 0.426 to θ ⋆ ≃ 1.316, and the associated review threshold from π ⋆ ≃ 0.106 to π ⋆ ≃ 0.329. Panel C translates these
+fixed points into review policies: when high-risk drafts become more common, congestion raises the cost of attention, so the
+reviewer becomes more selective, passing through more intermediate-risk drafts without scrutiny and exerting less review effort
+at a given perceived risk. The figure therefore shows the central selective-verification mechanism: congestion endogenously
+raises the cost of review time, shifting the review threshold upward precisely in environments where risky drafts are more
+frequent. Figure 6 plots the optimal review effort as a function of the perceived error risk π ∈ [0, 1]. This risk is induced by the
+signal s: after observing s, the reviewer assigns probability π := π(s) to the event that the AI draft contains an error. Higher θ
+9/20
+
+Figure 5. Congestion-driven selective verification under two signal distributions. The posterior error-risk map is held fixed at
+π(s) = 0.02 + 0.88/[1 + exp(−10(s − 0.55))], while the signal density is either µ1 (s) = Beta(2, 2) or µ2 (s) = Beta(5, 2); the latter shifts
+mass toward larger s, making high-risk drafts more frequent. Common parameters are C = 1.00, λ = 0.75, cw = 0.50, κ = 2.00, K = 2.00,
+E[R] = 1.50, and E[R2 ] = 4.00. Panel A shows the two signal densities and the common risk map. Panel B solves θ ⋆ = Φ(θ ⋆ ) (see Eq. (45)),
+λ qA (θ )
+where Φ(θ ) = cw λ ∂Wq /∂ τA and Wq = 2C(C−λ
+(see Eqs. (3), (41) and (42)). In case of more than one intersection, we pick the
+τ (θ ))
+A
+
+smallest root. Panel C plots the induced review rule r⋆ (s; θ ) = κ −1 max{0, log(κKπ(s)/θ )}, with residual escaped-error probability
+π(s) exp[−κr⋆ (s; θ )]. For µ1 , θ ⋆ = 0.426, π ⋆ = 0.106, τA = 0.671, qA = 0.995, ρ = 0.503, and Wq = 0.751. For µ2 , θ ⋆ = 1.316,
+π ⋆ = 0.329, τA = 0.831, qA = 1.770, ρ = 0.623, and Wq = 1.762. When high-risk drafts become more frequent, the fixed point shifts to a
+higher price of attention and a higher review threshold.
+
+Figure 6. Optimal review effort as a function of the perceived error risk π. The curves plot the optimal review rule derived in the Material
+and Methods for four values of the cost of reviewer time, θ , fixing K = 10 and κ = 2. The dotted vertical lines mark the corresponding
+review thresholds. For risks below the threshold, the optimal review effort is zero. Once the perceived error risk exceeds the threshold, review
+begins and increases logarithmically with π. Higher values of θ make reviewer time more expensive, shift the threshold to the right, and
+reduce review effort at every given level of perceived risk.
+
+corresponds to a more congested system, in which any minute spent reviewing a draft delays every other task in the queue.
+The threshold moves rightward, so a larger range of drafts, now including some with non-trivial error risk, is passed through
+unchecked. For drafts that remain above the (now higher) threshold, review effort is also reduced at every level of perceived
+risk: each curve sits below the curves corresponding to lower θ values.
+
+10/20
+
+2.4 Implication #2: queue-stabilizing effect of AI
+The variance wedge effect concerns the comparison of a fully manual vs. a fully AI-assisted workflow, when both systems are
+assumed to be in their stable regime (ρH < 1, ρA < 1). A different question is whether AI can help stabilize an overloaded
+workflow. Suppose that the fully manual system is overloaded (i.e., λ τH > C) so that the average incoming human-attention
+demand exceeds the capacity of the workflow. In this case, the manual queue does not have a finite steady-state waiting time. A
+central result of our model is that AI can stabilize the workflow only if routing enough tasks through the AI workflow reduces
+average human-attention demand below capacity. Recalling that m(x; r) is the average amount of human-attention time required
+by each incoming task, the stability condition of the mixed manual-AI queue λ m(x; r) < C gives from Eq. (16) below
+x > xc (r) :=
+
+λ τH −C
+.
+λ (τH − τA )
+
+(10)
+
+Thus xc (r) is the minimum fraction of tasks that must be routed via AI to make the queue stable. It is positive when the manual
+system is overloaded, but it also requires that AI uses less human attention on average than manual handling, τA < τH . If even
+the fully AI-routed system is overloaded, λ τA ≥ C, then no adoption share can stabilize the queue.
+Spelling out τA using Eq. (13), the basic condition for “helpful” AI assistance is
+τA = r + p(r)µR < τH .
+
+(11)
+
+This condition is substantially more stringent than simply observing that AI can generate a draft quickly. The relevant quantity
+is rather the total human attention consumed by the AI route, which includes the time spent reviewing the draft plus the expected
+rework created by errors that escape review. An AI system may produce a first draft in seconds and still fail Eq. (11) if the
+resulting review and rework burden exceeds the time needed to do the task manually.
+This stabilization result should be distinguished from the variance wedge condition (4). Stability is a mean-load condition: on
+average, does the workflow send less human-attention demand to the workflow than it can process? Waiting-time performance is
+a stricter condition. Among stable systems, the mean waiting time also depends on the second moment of service requirements.
+Hence AI can reduce mean load enough to stabilize an otherwise overloaded workflow, while still producing longer waits than
+a manual or lower-variance alternative would produce in a stable comparison. In short, the queue may be rescued on the first
+moment and damaged on the second.
+The “bang–bang” adoption result in Sec. 2.2.1 and the stabilization threshold derived here refer to different scenarios, and
+the apparent clash between the two is readily resolved. The bang–bang result is a statement about waiting-time optimization
+within the stable region. For fixed review effort r, the waiting-time expression Wq (x; r) is monotone in the AI-adoption fraction
+x wherever the queue is stable. Hence, an intermediate value of x cannot minimize the waiting time, except in the knife-edge
+case where the derivative vanishes: the waiting-time optimum lies at a boundary of the stable feasible set. The critical fraction
+xc (r), by contrast, is not an optimum but a stability threshold. It becomes relevant when the fully manual system is overloaded,
+λ τH > C, so that x = 0 is not a stable feasible point at all. In that case, the stable region begins only once AI adoption is large
+enough to reduce the average human-attention demand below capacity, namely for x > xc (r). Thus, xc (r) marks the lower
+boundary of the stable region, not the adoption level that minimizes the waiting time. Once x lies above this boundary, the
+same monotonicity logic behind the bang–bang result applies on the restricted stable interval x ∈ (xc (r), 1]. If the waiting time
+decreases with x, the best stable choice is full AI routing, x = 1. If the waiting time increases with x, then additional AI routing
+worsens waiting time once stability has been restored; the infimum would be approached as x ↓ xc (r), although waiting time
+itself diverges at the stability boundary, so in practice one would choose an adoption share slightly above xc (r) that provides a
+safety margin. The two results are therefore complementary: xc (r) says how much AI adoption is needed to prevent the queue
+from exploding, while the bang–bang condition says in which direction waiting time moves once the system is stable.
+The operational implication is that the system’s boundary matters. The condition in Eq. (11) is only as reliable as the
+measurement of the rework behind it. If escaped errors are pushed outside the measured workflow—onto customers, downstream
+teams, auditors, or future reporting periods—then the AI route will appear artificially cheap, because part of the true humanattention burden is not captured by τA (r). The stabilization condition may then appear to hold even though the organization
+has simply moved work elsewhere. If escaped errors return to the same team, by contrast, the rework burden µR enters τA (r)
+directly, and AI is stabilizing only when the sum of review and expected rework genuinely consumes less human attention than
+manual handling. To know whether AI has increased capacity rather than displaced effort, organizations must, therefore, also
+measure the extra work created when AI outputs fail.
+
+11/20
+
+3 Discussion and Conclusion
+The recent empirical literature on generative AI deployment in the workplace often documents substantial per-task productivity
+gains, alongside heterogeneity across workers, tasks, and domains. The argument of this paper is that even where average gains
+are real, they may not translate into improvements in queuing-theoretic measures of system responsiveness, and may sometimes
+produce the opposite effect. While AI shortens the typical task completion by drafting it cheaply, it introduces a tail of long
+tasks via the rework mechanism triggered by escaped errors. Since waiting time in a queue scales with the second moment of
+service time, this reshaping can simultaneously raise productivity (tasks per hour) and degrade responsiveness (waiting time per
+task in queue).
+We have made this argument quantitative through an M/G/1 queue model of AI-assisted work with rework and selective
+verification. Three results follow from the same underlying mechanism: AI changes the full service-time distribution faced by
+scarce human attention, not only its mean. First, the variance wedge condition shows that AI can reduce the average human time
+per task, while increasing the queueing delay, because rare rework cases raise the second moment of service time. Second, the
+selective-verification rule shows that congestion changes review behavior itself: when reviewer time becomes more costly, the
+risk threshold for checking AI outputs rises and review effort falls even for drafts that are still inspected. Third, the stabilization
+condition shows that AI can rescue an overloaded workflow only if adoption is high enough and the AI route genuinely reduces
+total human-attention demand, including review and expected rework. Together, these results show why mean handle time is an
+incomplete and often misleading measure of AI productivity in queue-bound workflows: the system-level outcome depends on
+load, variability, and the extra work created when errors return.
+Operationally, the model reduces the deployment test for AI assistance in an organization to measuring the realized distribution
+of human-attention time per task, including any rework, and the arrival rate of tasks. If the condition in Eq.(4) fails, AI will
+effectively lengthen queues even if the average task time improves.
+The broader lesson is that task-level productivity and workflow responsiveness are different metrics. They diverge most sharply
+when AI delivers modest mean savings, but creates rare costly failures in systems already close to capacity. In such settings, a
+faster typical task completion can coexist with a slower overall workflow. Moreover, our work argues that classical queueing
+theory is the right language to frame questions about stability and efficiency of AI-assisted workflows.
+The model deliberately works at a level of abstraction that omits several features of real organizations. Some omissions are
+clearly costly, others less so. We outline future research directions worth exploring.
+We represented the human side of the workflow as a single team characterized by fixed humanattention resources with capacity C. Real organizations are more structured. Routine cases may be handled by junior staff, while
+difficult cases, escalations, or approvals may require senior reviewers. AI adoption can therefore shift pressure across layers of
+the organization: it may reduce the amount of junior production work while increasing the demand for senior verification as
+AI can substitute for routine drafting more easily than for expert judgment. A two-tier extension of our model, with separate
+“junior” and “senior” review stages, would capture this richer dynamics. AI could relieve one layer while overloading another.
+We expect the qualitative mechanisms developed here (the variance wedge, threshold under-verification, and the role of rework)
+to carry over, but the redistribution of load across skill tiers would become an additional object of analysis. We view this as one
+of the most important future extensions.
+Layered human review.
+
+Most of our explicit calculations use the M/G/1 Pollaczek–Khinchine formula, which assumes Poisson
+arrivals. Real workflows are bursty, with c2a > 1. From the Kingman approximation in Eq. (21), burstiness worsens the
+waiting-time consequences of both mean load and service-time variability, though it does not change the first-order stability
+condition ρ < 1. The variance wedge is expected to be more severe under burstiness, and the equilibrium cost θ ⋆ to be higher.
+The development of the full theory and implications in the case of irregular arrivals is also an interesting topic for future work.
+Bursty arrivals.
+
+So far we have treated the error process as fixed: review effort lowers the probability that an error escapes,
+but the errors themselves are not strategically placed. This is a reasonable first approximation for many internal workflows, but
+not for settings in which an external party seeks to actively probe the verification system and its vulnerabilities. In security
+review, content moderation, fraud detection, or litigation, failures are not drawn passively from a stable distribution; they are
+selected to exploit predictable gaps in scrutiny and to gain an advantage. In such environments, a deterministic threshold rule
+can turn into a liability: once adversaries learn which cases receive little review, they can concentrate attacks just below the
+threshold. A natural extension is therefore to replace the deterministic checking rule with a randomized or mixed-inspection
+policy, so that verification remains partly unpredictable while still allocating more attention to higher-risk cases. This would
+connect the present model to adversarial inspection games30, 31 and to modern security games in which limited defensive
+resources are randomized to prevent strategic exploitation32 . This re-framing would be essential for applications where the
+Adversarial errors.
+
+12/20
+
+rework tail is generated not only by accidental AI errors, but by strategic attempts to evade or circumvent review.
+The baseline model assumes that review effort changes the probability that an error escapes, but
+not the severity of the error conditional on escape. Formally, the rework burden R is taken to be independent of the review time
+r. This keeps the moment formulas transparent: review lowers the term p(r), while the conditional rework moments µR and
+µR,2 are fixed.
+Severity of escaped errors.
+
+This is a crude simplification. In some workflows, more careful review may catch the most severe errors first, so that errors
+escaping after longer review are less costly on average. In that case the relevant conditional moments, E[R | M = 1, r] and
+E[R2 | M = 1, r], would fall with r. Allowing for this behavior would weaken the rework tail and make AI less likely to fall
+into the variance wedge. It would not remove the mechanism entirely, though: the queueing condition would still depend on
+the realized second moment of AI-routed service time after review. Empirically, the question is therefore not whether review
+reduces error probability alone, but whether it also thins the tail of escaped-error rework.
+We have treated AI quality as fixed: the baseline error rate p0 , the irreducible error rate p∞ , and the
+rework distribution do not change with deployment. This is a useful static benchmark, but in practice these quantities may
+evolve. Model improvements, better prompting, domain-specific fine-tuning, retrieval systems, and feedback from reviewers
+can all lower the probability that an AI output contains an error or reduce the severity of the errors that remain4 . A natural
+extension is therefore to make AI quality a state variable. For example, p0 , p∞ , or the moments of R could decline over time as
+the system is corrected, monitored, and adapted to the workflow. This would turn the variance wedge into a dynamic object: an
+AI deployment that initially fails the queueing test might become beneficial after sufficient learning, while one that appears
+safe at launch could become risky if rising task volume exposes rare failure modes. The key empirical question would then be
+whether improvements in AI quality occur quickly enough to reduce the rework tail before congestion and accumulated errors
+dominate the workflow.
+Endogenous AI quality.
+
+In the baseline model, the adoption share x is deliberately simple: tasks are homogeneous, the review
+rule is fixed, and changing x only mixes the manual and AI-assisted service-time distributions. Under these assumptions the
+waiting-time objective is monotone on the stable region, so the optimal routing rule is “bang–bang” instead of leading to an
+intermediate value x⋆ ∈ (0, 1). This should not be read as saying that intermediate adoption levels are unimportant in practice.
+Rather, it identifies which assumptions make them disappear. Intermediate routing fractions become meaningful once tasks
+differ in their suitability for AI assistance. Routine, low-risk, or highly standardized tasks may have low review and rework
+costs under AI, while novel or high-stakes tasks may remain better handled manually. In that case, an interesting tweak in the
+model would be a routing policy that assigns tasks to AI or manual handling based on observable features of the case.
+Routing fraction.
+
+A richer routing model would also allow review capacity to be type-specific. For example, AI may reduce the load created by
+routine production tasks while increasing demand for senior review, escalation, or audit. In this setting, the optimal fraction
+of tasks to route via AI will depend not only on whether AI reduces average human time, but on where in the organization
+the saved and added work occur. Finally, routing may have dynamic effects: using AI on more tasks may generate feedback
+data and improve future AI quality, but it may also change the amount of practice reviewers receive on manual cases. These
+extensions would turn x from a static mixing parameter into an operational policy variable. The simple bang–bang result is
+therefore best interpreted as a benchmark: with homogeneous tasks and a single pool of human attention, there is no intrinsic
+value to partial adoption; partial adoption becomes important once heterogeneity, capacity constraints by task type, or learning
+over time are introduced.
+As we have already remarked, the queueing mechanism in this paper is not unique to
+generative AI. Any technology or process that lowers the typical service time while increasing the probability or severity of
+rework can generate a similar variance wedge: outsourced service providers, automated decision rules, low-code templates,
+junior-worker delegation, robotic process automation, spellcheck/autocomplete, rule-based triage systems, and even poorly
+designed checklists can all exhibit some or all of these features. We view this as a strength rather than a weakness of the
+framework: our result is not a claim about the ‘ontology’ of generative AI, but about the operational signature of a class of
+technologies.
+Is the mechanism AI-specific?
+
+What makes generative AI a particularly natural application is the combination of four features. First, AI often reduces the
+time required to produce a first draft. Second, the draft may subtly conceal plausible-looking errors that are costly to detect.
+Third, human review is still required, and review competes with other tasks for scarce expert attention. Fourth, escaped errors
+often return to the same team as correction, escalation, customer complaint, legal exposure, or audit work. These features map
+directly onto the parameters of the model: review effort r, residual escape probability p(r), and rework burden R.
+Thus the model should be read as a queueing theory of AI-assisted work, not as a claim that only AI can create such queues.
+
+13/20
+
+The AI-specific contribution is to show how a now-common form of AI deployment (cheap drafting followed by scarce human
+verification) can bear the hallmark service-time paradox that classical queueing theory warns against.
+We have so far treated the arrival rate λ as fixed, but in many real settings the queue also changes the
+demand it receives. If customers wait too long, they may abandon the service, switch provider, call again later, or open a second
+channel; if internal users see a tool as slow or unreliable, they may route work around it. These responses can either drain
+the queue or feed it further, depending on the setting. A useful extension would therefore let arrivals depend on the waiting
+time generated by the system itself. This would make the model closer to familiar congestion phenomena: long waits change
+behavior, and changed behavior alters the load faced by the queue. The main question would no longer be only whether AI
+reduces service time or increases rework, but whether the combined system settles into a high-throughput, low-delay regime or
+into a self-reinforcing congested regime in which delays, rerouting, and repeated contacts sustain the load. This is especially
+relevant for AI deployments that change user behavior, for example by making it easier to submit requests, encouraging more
+marginal cases to enter the workflow, or causing failed outputs to generate repeat interactions.
+Demand response.
+
+The quantities in the model are meant to be operationally measurable, but not all are equally easy to
+measure. The manual baseline requires the distribution of human-attention time under existing practice, summarized by τH and
+c2H . The AI route requires the corresponding distribution after AI deployment, including review time, corrections, escalations,
+complaints, audits, and any later work caused by outputs that initially passed review. From these logs one can estimate τA , c2A ,
+the residual error curve p(r), the mean rework burden µR , and the review-efficiency parameter κ. The most important empirical
+point is that these objects cannot be inferred from prompt-level speed or benchmark accuracy alone: they require following
+tasks after handoff and recording whether apparently completed outputs return as work. The hardest quantity to estimate is c2A ,
+because it is driven by rare tail events and therefore requires enough observations, and a long enough measurement window,
+to capture downstream rework. A useful empirical agenda would therefore combine time stamps, reviewer effort, error flags,
+and rework links at the task level, so that AI deployments can be evaluated on the full service-time distribution rather than on
+average handle time alone.
+Empirical calibration.
+
+We have focused on the mean waiting time Wq , but the classical M/G/1 theory is not
+limited to means. The Pollaczek–Khinchine result can be stated at the level of the Laplace–Stieltjes transform of the stationary
+waiting-time distribution; the familiar mean formula is obtained by differentiating that transform33–35 . Equivalently, the
+waiting-time distribution can be characterized through Pollaczek–Khinchine-type integral equations36 , and numerical methods
+exist for computing waiting-time distributions and cumulants from Pollaczek formulas37 . Thus our use of Wq is a first step
+towards linking classical queueing theory to the properties of AI-assisted workflows, not the end of the story: moving from
+mean service time to mean waiting time already brings the rework tail into the analysis, while a fuller treatment could study
+variance, higher cumulants, or how tail probabilities are affected by rare occurrences and more unusual tasks.
+Full distribution of waiting time.
+
+In the present model, the arrival rate λ and the signal distribution µ(s) are treated
+as separate entities: λ determines how many tasks enter the queue, while µ(s) determines how risky those tasks appear once
+they arrive. In many workflows, however, these two objects are likely to move together. Busy times often bring a different mix
+of tasks: peak-hour support may involve more angry or complex customers, end-of-quarter reporting may bring more unusual
+cases, and urgent legal or security review may combine higher volume with higher stakes. A natural extension would therefore
+replace the fixed signal distribution µ(s) with a load-dependent distribution µ(s | λ ), or equivalently allow the posterior-risk
+environment to shift as the arrival rate changes. This would make explicit the link between congestion and the level of human
+attention required per task. When a rise in λ also shifts mass toward higher-risk signals, the system is hit twice: more tasks
+arrive, and each task is more likely to require careful review. At the same time, congestion raises the cost of reviewer attention,
+pushing the review threshold upward. Such a model would better capture the operationally important case in which the periods
+when scrutiny is most needed coincide with it being most expensive.
+Connecting signal risk and arrival load.
+
+4 Materials and Methods
+4.1 Model specification and service-time moments
+The total human-attention cost of an AI-routed task is defined in Eq. (2),
+TA = r + MR .
+
+(12)
+
+Taking moments gives
+τA := τA (r) = E[TA ] = r + p(r)µR ,
+
+(13)
+
+qA := qA (r) = E[TA2 ] = r2 + 2rp(r)µR + p(r)µR,2 .
+
+(14)
+14/20
+
+The AI-route squared CV is therefore
+c2A =
+
+qA
+−1 .
+τA2
+
+(15)
+
+The unconditional service time T for a randomly selected task is TH with probability 1 − x and TA with probability x. Its first
+two moments are
+m(x; r) = E[T ] = (1 − x)τH + xτA ,
+q(x; r) = E[T
+
+2
+
+] = (1 − x)τH2 (1 + c2H ) + xτA2 (1 + c2A ) = (1 − x)τH2 (1 + c2H ) + xqA .
+
+(16)
+(17)
+
+4.2 Waiting time: a brief review
+We restate here two classical results that we used above. Substituting the mixed-system moments in Eq. (16) and Eq. (17) into
+Eq. (19) gives the M/G/1 mean waiting time Wq for our model in Eq. (3).
+4.2.1 The Pollaczek–Khinchine formula
+
+Consider an M/G/1 queue: a single server processes tasks one at a time, tasks arrive according to a Poisson process with rate
+λ , and each task has a random service time S. Here S means the amount of calendar time for which the server is occupied by
+one task. This is related to the human-attention requirement T from Section 2.1 as follows: the unconditional service time T is
+measured in units of human-attention time. The team supplies C units of human-attention capacity per unit of calendar time.
+Therefore the corresponding calendar service time is S = T /C. Consequently, E[S] = E[T ]/C and E[S2 ] = E[T 2 ]/C2 , where
+the average is taken over independent and identically distributed tasks, with arbitrary distribution.
+The utilisation rate is the average fraction of time for which the server is busy
+ρ = λ E[S] = λ
+
+E[T ] λ m(x; r)
+=
+.
+C
+C
+
+(18)
+
+The queue is stable only if ρ < 1: average work arriving per unit time must be smaller than the server’s processing capacity.
+Under the stability condition ρ < 1, the Pollaczek–Khinchine formula13, 14 gives
+M/G/1
+
+Wq
+
+=
+
+λ E[S2 ]
+ρ
+1 + c2s
+=
+·
+· E[S] ,
+2(1 − ρ) 1 − ρ
+2
+
+(19)
+
+where c2s = Var(S)/E[S]2 is the squared CV of service time.
+The derivation, due originally to Khinchine, uses the PASTA property (Poisson Arrivals See Time Averages) and Little’s
+law38, 39 ; standard textbook treatments include33, 34 , and35 . The economic content of Eq. (19) is that mean waiting time depends
+on the variance of service time, not only its mean. Two service-time distributions with identical means, but different variances,
+will produce different waiting times under the same arrival process. As ρ → 1− , the waiting time diverges; the prefactor
+(1 + c2s )/2 multiplies the divergence, so high-variance systems break down faster as load increases.
+4.2.2 The Kingman approximation for G/G/1
+
+The M/G/1 formula assumes Poisson arrivals. This means that arrivals are random but have no extra clustering beyond the
+randomness implied by a Poisson process. Equivalently, the time between two consecutive arrivals has squared CV equal to
+one. We denote this quantity by c2a :
+c2a =
+
+Var(interarrival time)
+=1.
+E[interarrival time]2
+
+(20)
+
+This assumption lets us use the Pollaczek–Khinchine formula in Section 4.2.
+This is a convenient assumption, but many real workflows are more clustered: tasks may arrive in bursts around deadlines, shift
+changes, product releases, or end-of-period reporting. To describe such cases, queueing theory uses the more general G/G/1
+model, where the first G means that the interarrival-time distribution is general rather than Poisson; the second G means that the
+service-time distribution is general; and the 1 means that there is one effective server or bottleneck.
+Let c2a denote the squared CV of interarrival times, and let c2s denote the squared CV of service times. Refs.15, 40, 41 showed that,
+under suitable heavy-traffic conditions, the mean waiting time in a G/G/1 queue is approximately
+15/20
+
+WqG/G/1 ≈
+
+ρ
+c2 + c2s
+· a
+· E[S] ,
+1−ρ
+2
+
+(21)
+
+which is exact asymptotically as ρ → 1− . Equation (21) is widely used as a robust operational approximation at moderate
+utilization, where it is known to be reasonably accurate34, 42 ; for operational approximations based on squared coefficients of
+variation, see42 ; for a manufacturing-oriented treatment, see43 . We shall refer to it as the Kingman approximation. For Poisson
+arrivals, c2a = 1 and Eq. (21) reduces to Eq.(19).
+The Kingman approximation makes burstiness explicit: a bursty arrival process (c2a ≫ 1) inflates waiting times just as effectively
+as a high-variance service process. For applications of our model to specific workflows, c2a should be measured directly from
+interarrival data.
+4.3 Derivation of the variance wedge boundary (Eqs. (4) and (5))
+We recall that, for a pure manual system (x = 0), the human-attention requirement is TH , with
+Var(TH ) = σH2 ,
+
+E[TH ] = τH ,
+
+c2H =
+
+σH2
+.
+τH2
+
+(22)
+
+Its second raw moment is, therefore,
+qH := E[TH2 ] = τH2 + σH2 = τH2 (1 + c2H ) .
+
+(23)
+
+Substituting m = τH and q = qH into the M/G/1 waiting-time formula gives
+WH =
+
+λ qH
+λ τH2 (1 + c2H )
+=
+.
+2C(C − λ τH ) 2C(C − λ τH )
+
+(24)
+
+For a pure AI-routed system (x = 1), we define
+qA := E[TA2 ],
+
+τA := E[TA ],
+
+c2A =
+
+qA
+− 1 ⇒ qA = τA2 (1 + c2A ) .
+τA2
+
+(25)
+
+Substituting m = τA and q = qA into the same formula gives
+WA =
+
+λ τA2 (1 + c2A )
+λ qA
+=
+.
+2C(C − λ τA ) 2C(C − λ τA )
+
+(26)
+
+Assuming both systems are stable, WA < WH if and only if
+τA2 (1 + c2A ) τH2 (1 + c2H )
+<
+.
+C − λ τA
+C − λ τH
+
+(27)
+
+Dividing by τH2 (1 + c2H ) and multiplying numerator and denominator by 1/C gives
+1 + c2A
+<
+1 + c2H
+
+
+
+τH
+τA
+
+2
+
+1 − λ τA /C
+.
+1 − λ τH /C
+
+(28)
+
+Letting s = τA /τH and ρH = λ τH /C, this becomes
+1 + c2A <
+
+1 1 − ρH s
+(1 + c2H ) ,
+s2 1 − ρH
+
+(29)
+
+so the boundary value is
+c2A,max (s, ρH ) =
+
+1 1 − ρH s
+(1 + c2H ) − 1 .
+s2 1 − ρH
+
+(30)
+
+16/20
+
+4.4 Proof of “bang-bang” solution in the case of partial adoption (Eq. (6))
+Again, we write τA := m(1; r), qA := q(1; r), c2A := qA /τA 2 − 1 and qH := τH2 (1 + c2H ). We also write for simplicity m(x) :=
+m(x; r), q(x) := q(x; r), and Wq (x) = Wq (x; r). Then
+m(x) = τH + x(τA − τH ) ,
+
+(31)
+
+q(x) = qH + x(qA − qH ) .
+
+(32)
+
+and
+
+Substituting into the M/G/1 formula (19) gives
+Wq (x) =
+
+λ q(x)
+.
+2C(C − λ m(x))
+
+(33)
+
+Differentiating with respect to x,
+dWq
+λ (qA − qH )(C − λ m(x)) + λ q(x)(τA − τH )
+=
+.
+dx
+2C
+(C − λ m(x))2
+
+(34)
+
+Since both m(x) and q(x) are linear in x, the numerator simplifies to C(qA − qH ) + λ (qH τA − qA τH ), which is independent of x.
+Hence Wq (x) is monotone on the stable region.
+Equivalently, the derivative is negative exactly when
+qA
+qH
+<
+.
+C − λ τA C − λ τH
+
+(35)
+
+This is precisely the same inequality obtained by comparing the two pure systems, WA < WH , and is equivalent to the variancewedge condition (4) after writing qA = τA2 (1 + c2A ) and qH = τH2 (1 + c2H ). Thus, in the homogeneous baseline model, there
+is no separate intermediate adoption threshold for waiting-time minimization: the same boundary that decides whether full
+AI routing beats full manual handling also decides whether increasing x locally raises or lowers waiting time at every stable
+intermediate value of x.
+4.5 Review threshold under congestion (Section 2.3)
+We consider a draft with posterior error risk π(s), where review reduces the remaining error probability according to Eq. (1),
+where for definiteness, we set here p∞ = 0: this means that with enough review, all reducible errors can in principle be caught.
+Each unit of review effort, therefore, multiplies the reducible risk by e−κr . Thus, in the signal-dependent problem, the residual
+probability that an error escapes after review is π(s)e−κr rather than the unconditional p(r) in Eq. (1). The reviewer therefore
+chooses r ≥ 0 to minimize
+θ r + Kπ(s)e−κr ,
+
+(36)
+
+where θ > 0 is the congestion cost of using scarce reviewer time and K > 0 is the loss if an error escapes. The first term is the
+cost of spending time on review rather than moving on to other tasks in the queue; the second term is the expected cost of an
+escaped error after review.
+If an irreducible error component is retained, the escape probability becomes
+π(s)[p∞ + (1 − p∞ )e−κr ] .
+
+(37)
+
+The term Kπ(s)p∞ is independent of r, so the optimal review rule is unchanged except that κK is replaced by κK(1 − p∞ ).
+The first-order condition for the optimal θ that minimizes (36)
+θ = κKπ(s)e−κr
+yields, after applying the non-negativity constraint r ≥ 0,
+
+
+1
+κKπ(s)
+r⋆ (s; θ ) = max 0, log
+.
+κ
+θ
+
+(38)
+
+(39)
+
+17/20
+
+Review is positive only when π(s) exceeds the threshold
+π ⋆ (θ ) =
+
+θ
+.
+κK
+
+(40)
+
+If π(s) ≤ π ⋆ (θ ), review is not worth the time: the draft looks safe enough relative to the cost of delaying other work. If
+π(s) > π ⋆ (θ ), the reviewer spends time checking it, and the amount of review increases logarithmically with the perceived risk
+π(s).
+The earlier r-dependent moments τA and qA in Eq. (13) and Eq. (14) were computed for a fixed review time r. We now allow
+review time to depend on the draft’s perceived risk. A task with signal s receives review time r⋆ (s; θ ), so its mean and second
+moment are still given by the same formulas as in Equations (13) and (14), with r replaced by r⋆ (s; θ ). To obtain the average
+AI-route moments for the whole workflow, we average these quantities over the distribution of signals µ(s).
+The resulting AI-route moments are
+h
+i
+⋆
+τA (θ ) = Es [r⋆ (s; θ )] + µR Es π(s)e−κr (s;θ ) ,
+
+(41)
+
+and
+h
+i
+⋆
+⋆
+qA (θ ) = Es r⋆ (s; θ )2 + 2r⋆ (s; θ )µR π(s)e−κr (s;θ ) + µR,2 π(s)e−κr (s;θ ) ,
+
+(42)
+
+where
+Z
+
+Es [ f (s)] :=
+
+f (s)µ(s) ds .
+
+(43)
+
+S̄
+
+If a reviewer spends more time checking an AI draft, the average human time required per task rises. This pushes the system
+closer to capacity and increases waiting time for other tasks. We define θ as the extra waiting cost created by a small increase
+in average human-attention demand. We close the model by imposing that the ‘right’ congestion cost θ must be equal to the
+marginal waiting cost created by one additional unit of mean human-attention demand:
+θ := cw λ
+
+∂Wq
+.
+∂ τA τA =τA (θ ), qA =qA (θ )
+
+(44)
+
+Here Wq is the mean waiting time in Eq. (3). The only change is that the service-time moments now depend on θ , because the
+review rule r⋆ (·; θ ) determines the AI-route mean τA (θ ) and second moment qA (θ ) via Eqs. (41) and (42). In words, ∂Wq /∂ τA
+(keeping qA fixed) tells us how much average waiting time rises when the average human time per AI-routed task increases
+slightly. Multiplying by λ converts this into the total waiting-time increase across arriving tasks, and multiplying by cw (where
+cw > 0 measures how costly it is for a task to wait in the queue) converts waiting time into cost. Thus, θ in Eq. (44) is the
+queue-generated cost of using a little more reviewer time.
+Therefore, equation (44) defines a fixed-point problem for θ , where a verification equilibrium is any value θ ⋆ such that
+θ ⋆ = Φ(θ ⋆ ) ,
+
+(45)
+
+with Φ(θ ) the right-hand side of (44). Under fairly general assumptions, a fixed-point solution exists by Brouwer’s theorem,
+although it may not be unique, as we saw in the example in Fig. 5. When several fixed points exist, we report the smallest
+stable solution. Since θ is the congestion cost of reviewer time, this root corresponds to the least-congested self-consistent
+verification regime and to the branch naturally reached from a lightly loaded system. Higher roots describe more congested,
+high-threshold regimes; selecting among them would require an explicit dynamic adjustment rule, which is beyond the scope of
+the static model.
+From (44), an exogenous increase in λ or cw raises the right-hand side at fixed θ , and provided the fixed-point map is well
+behaved, in particular monotone in load and bounded away from saturation, the equilibrium θ ⋆ rises with both. A higher θ ⋆
+also raises π ⋆ , which by (39) reduces review effort on every draft: it is set to zero for more drafts, and lowered for drafts above
+the threshold. Note however that monotonicity is plausible given that congestion makes attention more valuable, but it is not
+automatic because τA (θ ) and qA (θ ) both move endogenously.
+Acknowledgments: P.V. acknowledges support from UKRI FLF Scheme (No. MR/X023028/1).
+18/20
+
+References
+1. Daniotti, S., Wachs, J., Feng, X. & Neffke, F. Who is using AI to code? global diffusion and impact of generative AI.
+Science eadz9311, DOI: 10.1126/science.adz9311 (2026).
+2. Wu, L. & Vasilescu, B. AI raises the productivity bar. Science 391, 763–764, DOI: 10.1126/science.aef5239 (2026).
+3. Burn-Murdoch, J. & O’Connor, S. Are we thinking about AI and productivity all wrong? Financial Times, The AI Shift
+(2026).
+4. Ji, Z. et al. Survey of hallucination in natural language generation. ACM Comput. Surv. 55, 1–38, DOI: 10.1145/3571730
+(2023).
+5. Huang, L. et al. A survey on hallucination in large language models: Principles, taxonomy, challenges, and open questions.
+ACM Transactions on Inf. Syst. 43, 1–55, DOI: 10.1145/3703155 (2025).
+6. Brynjolfsson, E., Li, D. & Raymond, L. R. Generative AI at work. Q. J. Econ. 140, 889–942, DOI: 10.1093/qje/qjae044
+(2025).
+7. Noy, S. & Zhang, W. Experimental evidence on the productivity effects of generative artificial intelligence. Science 381,
+187–192, DOI: 10.1126/science.adh2586 (2023).
+8. Dell’Acqua, F. et al. Navigating the jagged technological frontier: Field experimental evidence of the effects of artificial
+intelligence on knowledge worker productivity and quality. Organ. Sci. 37, 403–423, DOI: 10.1287/orsc.2025.21838
+(2026).
+9. Bick, A., Blandin, A. & Deming, D. The impact of generative AI on work productivity. Federal Reserve Bank of St. Louis,
+On the Economy (2025).
+10. Peng, S., Kalliamvakou, E., Cihon, P. & Demirer, M. The impact of AI on developer productivity: Evidence from GitHub
+Copilot. arXiv preprint arXiv:2302.06590 (2023).
+11. del Rio-Chanona, R. M., Ernst, E., Merola, R., Samaan, D. & Teutloff, O. AI and jobs. a review of theory, estimates, and
+evidence. arXiv preprint arXiv:2509.15265 (2025).
+12. Acemoglu, D. The simple macroeconomics of AI. Econ. Policy 40, 13–58, DOI: doi.org/10.1093/epolic/eiae042 (2025).
+13. Pollaczek, F. Über eine Aufgabe der Wahrscheinlichkeitstheorie. I. Math. Zeitschrift 32, 64–100, DOI: doi.org/10.1007/
+BF01194620 (1930).
+14. Khinchine, A. Y. Mathematical theory of stationary queues. Matematicheskii Sbornik 39, 73–84 (1932). In Russian.
+15. Kingman, J. F. C. The single server queue in heavy traffic. Math. Proc. Camb. Philos. Soc. 57, 902–904, DOI:
+https://doi.org/10.1017/S0305004100036094 (1961).
+16. Takács, L. A single-server queue with feedback. The Bell Syst. Tech. J. 42, 505–519, DOI: 10.1002/j.1538-7305.1963.
+tb00512.x (1963).
+17. Disney, R. L., McNickle, D. C. & Simon, B. The M/G/1 queue with instantaneous Bernoulli feedback. Nav. Res. Logist. Q.
+27, 635–644, DOI: 10.1002/nav.3800270411 (1980).
+18. Disney, R. L. A note on sojourn times in M/G/1 queues with instantaneous, Bernoulli feedback. Nav. Res. Logist. Q. 28,
+679–684, DOI: 10.1002/nav.3800280415 (1981).
+19. Choi, B. D., Kim, B. & Choi, S. H. On the M/G/1 Bernoulli feedback queue with multi-class customers. Comput. & Oper.
+Res. 27, 269–286, DOI: 10.1016/S0305-0548(99)00036-2 (2000).
+20. Jackson, J. R. Networks of waiting lines. Oper. Res. 5, 518–521, DOI: 10.1287/opre.5.4.518 (1957).
+21. Kleinrock, L. Queueing Systems, Volume 2: Computer Applications (Wiley, New York, 1976).
+22. Yang, Y., Jiao, L. & Xu, Y. A queueing theoretic perspective on low-latency LLM inference with variable token length.
+In Proceedings of the 22nd International Symposium on Modeling and Optimization in Mobile, Ad Hoc, and Wireless
+Networks, WiOpt, 273–280 (2024).
+23. Ozbas, E. & Bastopcu, M. Queueing-aware optimization of reasoning tokens for accuracy-latency trade-offs in LLM
+servers. arXiv preprint arXiv:2601.10274 (2026). 2601.10274.
+
+19/20
+
+24. Mitzenmacher, M. & Shahout, R. Queueing, predictions, and large language models: Challenges and open problems.
+Stoch. Syst. 15, 195–219, DOI: 10.1287/stsy.2025.0106 (2025).
+25. Kusumegi, K. et al. Scientific production in the era of large language models. Science 390, 1240–1243, DOI: 10.1126/
+science.adw3000 (2025).
+26. Lindsay, G. F. & Bishop, A. B. Allocation of screening inspection effort—a dynamic-programming approach. Manag. Sci.
+10, 342–352, DOI: 10.1287/mnsc.10.2.342 (1964).
+27. Tapiero, C. S. The Management of Quality and its Control (Chapman & Hall, 1996).
+28. Parasuraman, R. & Manzey, D. H. Complacency and bias in human use of automation: An attentional integration. Hum.
+Factors 52, 381–410, DOI: 10.1177/0018720810376055 (2010).
+29. Bainbridge, L. Ironies of automation. Automatica 19, 775–779, DOI: 10.1016/0005-1098(83)90046-8 (1983).
+30. Dresher, M. A sampling inspection problem in arms control agreements: A game-theoretic analysis. Tech. Rep. RM-2972ARPA, RAND Corporation, Santa Monica, CA (1962).
+31. Avenhaus, R., von Stengel, B. & Zamir, S. Inspection games. In Aumann, R. J. & Hart, S. (eds.) Handbook of Game
+Theory with Economic Applications, vol. 3, 1947–1987, DOI: 10.1016/S1574-0005(02)03014-X (Elsevier, 2002).
+32. Kiekintveld, C. et al. Computing optimal randomized resource allocations for massive security games. In Proceedings of the
+8th International Joint Conference on Autonomous Agents and Multiagent Systems, AAMAS ’09, 689–696 (International
+Foundation for Autonomous Agents and Multiagent Systems, 2009).
+33. Cohen, J. W. The Single Server Queue (North-Holland, 1969).
+34. Kleinrock, L. Queueing Systems, Volume 1: Theory (Wiley, New York, 1975).
+35. Asmussen, S. Applied Probability and Queues (Springer, New York, 2003), 2 edn.
+36. Neuts, M. F. Generalizations of the Pollaczek–Khinchin integral equation in the theory of queues. Adv. Appl. Probab. 18,
+952–990, DOI: 10.2307/1427258 (1986).
+37. Abate, J., Choudhury, G. L. & Whitt, W. An Introduction to Numerical Transform Inversion and Its Application to
+Probability Models, 257–323 (Springer US, Boston, MA, 2000).
+38. Wolff, R. W. Poisson arrivals see time averages. Oper. Res. 30, 223–231, DOI: 10.1287/opre.30.2.223 (1982).
+39. Little, J. D. C. A proof for the queuing formula: L = λW . Oper. Res. 9, 383–387, DOI: 10.1287/opre.9.3.383 (1961).
+40. Kingman, J. F. C. On queues in heavy traffic. J. Royal Stat. Soc. B 24, 383–392, DOI: 10.1111/j.2517-6161.1962.tb00465.x
+(1962).
+41. Kingman, J. F. C. Inequalities in the theory of queues. J. Royal Stat. Soc. B 32, 102–110, DOI: 10.1111/j.2517-6161.1970.
+tb00819.x (1970).
+42. Whitt, W. The queueing network analyzer. Bell Syst. Tech. J. 62, 2779–2815, DOI: 10.1002/j.1538-7305.1983.tb03204.x
+(1983).
+43. Hopp, W. J. & Spearman, M. L. Factory Physics: Foundations of Manufacturing Management (McGraw-Hill/Irwin,
+Boston, 2001), 2nd edn.
+
+20/20
+
+

@@ -1,0 +1,3623 @@
+Throughput-Optimal Scheduling Algorithms for LLM
+Inference and AI Agents
+
+arXiv:2504.07347v3 [stat.ML] 18 May 2026
+
+J.G. Dai1 , Tianze Deng2 , Yueying Li1 , and Tianyi Peng3
+1
+
+School of Operations Research and Information Engineering, Cornell University,
+{jd694,yl3469}@cornell.edu
+2
+Operations Management, Booth School of Business, University of Chicago,
+tianze1@uchicago.edu
+3
+Decision, Risk and Operations, Columbia Business School, Columbia University,
+tianyi.peng@columbia.edu
+
+Abstract
+As demand for Large Language Models (LLMs) and AI agents grows rapidly, optimizing systems for efficient LLM inference becomes critical. While significant efforts have
+targeted system-level engineering, little has been explored from a mathematical modeling
+and queueing perspective. In this paper, we develop the queueing fundamentals for LLM
+inference. In particular, we study the throughput aspect of LLM inference systems. We
+prove that a large class of ‘work-conserving’ scheduling algorithms achieve maximum
+throughput for both individual requests and AI-agent workloads with directed acyclic
+graph (DAG) and fork-join routing topologies, establishing ‘work-conserving’ as a key
+design principle for practitioners. Technically, we develop a fluid-limit framework for
+multi-class batched processing networks under K-FCFS scheduling, which may be of
+independent interest. Evaluations of real-world systems confirm that Orca and SarathiServe are throughput-optimal, reassuring practitioners, while FasterTransformer and
+vanilla vLLM are not maximally stable and should be used with caution. Our analysis
+also reveals how constraints such as batch size limits and cyclic routing topologies
+complicate the throughput picture, pointing to rich open questions at the intersection of
+queueing theory and LLM system design.
+
+Keywords: LLM inference, queueing theory, scheduling algorithms, throughput optimality,
+AI agents
+
+1
+
+Introduction
+
+Large Language Models (LLMs) have become the backbone of many AI-driven applications,
+requiring efficient LLM inference systems to meet latency and throughput requirements.
+LLM inference systems process each user request in two phases: prefill (prompt processing)
+phase followed by decode (token generation) phase, each with distinct computational and
+1
+
+memory bandwidth characteristics. Since LLM servers generate tokens autoregressively1 ,
+processing a single request requires running the LLM for multiple iterations, with each
+iteration generating one output token. To optimize GPU utilization, it is important to batch
+processing multiple requests simultaneously. This paper studies performance guarantees for
+various scheduling algorithms in forming batches.
+To maximize throughput while meeting latency requirements, several LLM inference
+systems with different scheduling algorithms have been developed; Table 1 summarizes the
+four most widely studied ones. FasterTransformer (NVIDIA 2021) performs batching at the
+request level and prioritizes the decode phase; however, when there are not enough decode
+requests to fill a batch, GPU utilization suffers. Orca (Yu et al. 2022) improves upon this
+by enabling token-level batching with mixed batching—combining prefill and decode tokens
+in the same batch—and prioritizing prefill tokens so that new requests enter the decoding
+stage sooner. Vanilla vLLM2 (Kwon et al. 2023) also prioritizes prefill but does not support
+mixed batching: each batch contains either only prefill or only decode tokens. More recently,
+Sarathi-Serve (Agrawal et al. 2023) introduces chunked prefill with decode prioritization,
+limiting both the number of tokens per batch and the length of prefill chunks, which prevents
+requests with long prefills from blocking decoding. In practice, Sarathi-Serve is gaining
+popularity and presents competitive empirical performance compared to other incumbents. 3
+Table 1: Summary of scheduling algorithms for LLM inference. See Section 4 for formal
+definitions.
+Algorithm
+
+Priority
+
+Batching
+
+Work-conserving
+
+FasterTransformer (NVIDIA 2021)
+Vanilla vLLM (Kwon et al. 2023)
+Orca (Yu et al. 2022)
+Sarathi-Serve (Agrawal et al. 2023)
+
+Decode-first
+Prefill-first
+Prefill-first
+Decode-first
+
+No mixed batching
+No mixed batching
+Mixed batching
+Chunked prefill + mixed
+
+No
+No
+Yes
+Yes
+
+Despite significant advances from the systems community, the field lacks a cohesive theoretical framework for evaluating and comparing these scheduling algorithms. Practitioners
+are often left to decide which system to adopt based on workload-specific benchmarking (Databricks 2023) or profiling tools (Shen et al. 2022, NVIDIA Corporation 2023). Such
+evaluation is costly, as it must be repeated across models, hardware configurations, and
+workload distributions. Queueing theory offers a principled alternative: the operations
+research community has developed robust theoretical foundations for scheduling and resource
+allocation across diverse domains, including cloud computing (Mitzenmacher 2001, Grosof
+et al. 2023, Tirmazi et al. 2020, Patke et al. 2024, Ghodsi et al. 2011, Zhang et al. 2023),
+operating systems and networking (Yu et al. 2021, Stoica et al. 1998, Iyer et al. 2023, Li et al.
+2024), telecommunications (Whitt 1993, Maglaris et al. 1988, Canetti and Irani 1995), and
+manufacturing and healthcare operations (Hu et al. 2022, Chen et al. 2025a, Zychlinski et al.
+2023).
+1
+
+A token in an autoregressive transformer is the basic input or output unit—typically a word, subword, or
+character—that the model sequentially predicts based on previously generated tokens.
+2
+We use “vanilla vLLM” to refer to the original vLLM design (Kwon et al. 2023) without chunked prefill.
+The latest vLLM with chunked prefill enabled is work-conserving (vLLM Project 2025a).
+3
+See Section 4 for more details on these algorithms.
+
+2
+
+Motivated by this gap, we analyze LLM inference systems through queueing theory to
+address the fundamental question
+What is the fundamental limit of the maximal throughput rate for an LLM
+inference system, and what classes of scheduling algorithms can achieve this limit?
+We develop a novel queueing model of the LLM server, identify a broad class of workconserving scheduling algorithms that are proved to be throughput optimal in our queueing
+model, which is based on realistic system profiling and performance modeling. Our analysis
+confirms that scheduling algorithms like those in Sarathi-Serve and Orca are throughput
+optimal, thereby offering practical assurance to system designers. In contrast, non-mixed
+batching algorithms—such as those in FasterTransformer and vanilla vLLM—are inherently
+suboptimal in throughput and can become unstable under moderate load. These findings
+contribute to a deeper theoretical foundation for LLM system design: to optimize latency
+performance, one should optimize among throughput-optimal scheduling algorithms.
+Our work supports a vision stated recently in Mitzenmacher and Shahout (2025),
+“LLM systems present a wealth of new queueing and scheduling challenges that
+expand on problems from traditional queueing systems. While modeling LLM
+systems remains largely unexplored in the queueing community, we believe queueing
+theory insights may lead to better scheduling systems."
+Specifically, our work extends batch queueing theory by addressing LLM-specific challenges: dual-phase processing with distinct resource profiles, dynamic batch formation, and
+request interdependencies. We further analyze AI-agent workloads, in which a network
+of LLM servers collaboratively processes agent-level tasks. We show that work-conserving
+scheduling remains throughput-optimal for single servers with multiple request classes, DAG
+routing networks, and fork-join topologies. However, inspired by the Rybko–Stolyar network (Rybko and Stolyar 1992), we construct an example showing that work-conserving
+scheduling can fail under cyclic routing—an outcome that may be unintuitive to practitioners.
+We also analyze the maximal batch size constraint, which limits the number of concurrent
+requests in a batch. This constraint fundamentally alters the stability region from a scalar
+threshold to a two-dimensional convex hull, and we demonstrate that even work-conserving
+algorithms can fail under certain configurations.
+Technically, we develop a fluid-limit framework for multi-class batched processing networks
+under K-FCFS scheduling. This framework is the key analytical tool that enables our
+throughput-optimality results across single-server, DAG, and fork-join settings—results that,
+to the best of our knowledge, are new to the queueing literature for batch-service networks.
+The framework may be of independent interest to the queueing community.
+Our contributions include:
+• A formal queueing-theoretic framework for LLM inference scheduling that captures
+the unique characteristics of the prefill and decode phases, explicitly modeling the
+batch processing time. This modeling effort lowers the barrier for the queueing theory
+community to contribute to improving LLM inference systems.
+• A rigorous theoretical analysis establishing that work-conserving scheduling algorithms
+achieve maximum throughput in single-instance LLM inference, highlighting this as a
+core design principle for practitioners.
+3
+
+• An examination of widely used scheduling algorithms revealing that Orca and SarathiServe are throughput-optimal, while FasterTransformer and vanilla vLLM can become
+unstable under moderate load (Section 4). These findings support the adoption of
+Sarathi-Serve–type algorithms and offer practical guidance for system selection.
+• An extension to AI-agent workloads modeled as multi-class batch-service processing
+networks (Section 5). We prove throughput optimality of work-conserving scheduling
+under DAG and fork-join routing topologies, while showing that cyclic routing can lead
+to instability even under work-conserving policies.
+• An analysis of the batch size constraint (Section 6), which reveals a richer twodimensional stability region. We show that work-conserving algorithms can fail at
+certain operating points, highlighting the need for adaptive scheduling strategies.
+
+8000
+
+Requests in System
+
+Requests in System
+
+Our work emphasizes the practical implications of scheduling algorithm design through both
+theoretical analysis and empirical validation on real-world workloads. Figure 1 illustrates how
+different scheduling algorithms handle request dynamics differently, with non-work-conserving
+algorithms leading to queue blowup in real systems. We hope this research contributes
+toward building a foundation for principled scheduling algorithm design in LLM inference
+systems and encourages cross-disciplinary collaboration between the queueing theory and
+systems communities.
+faster_transformer
+sarathi (token budget 512)
+vllm
+
+6000
+4000
+2000
+0
+
+0
+
+200
+
+400
+
+Time (s)
+
+600
+
+800
+
+60
+50
+40
+30
+20
+10
+0
+
+faster_transformer
+sarathi (token budget 512)
+orca
+vllm
+
+0
+
+50
+
+100
+
+Time (s)
+
+150
+
+200
+
+Figure 1: [Left] Experimental results demonstrating the instability of FasterTransformer
+and vLLM. The setup is using a CodeLlama-34B with A100, requests generator is Poisson
+with an average of 129 prefill and 112 decode tokens, arriving with 14 queries per second.
+[Right] Under a finite, fixed workload with the same arrival rate driven by production code
+traces (Patel et al. 2023), the throughput-optimal Sarathi-Serve algorithm is also better in
+latency (in terms of the total requests in the system across time (orange)).
+
+1.1
+
+Background
+
+LLM generative inference. When processing an input request, LLM inference consists of
+two phases: prefill and decoding. The prefill phase processes the entire request to compute the
+KV cache (Key-Value cache, which stores the attention keys and values for each transformer
+layer to avoid redundant computation) and generates the initial response token in a single
+step. The decoding phase then utilizes the prior contexts or KV cache to generate subsequent
+4
+
+Offline Inference %
+
+Production LLM Service A
+
+Production LLM Service B
+
+60
+
+40
+
+40
+
+30
+
+20
+
+20
+Sun Mon Tue Wed Thu Fri Sat Sun
+Day of Week
+
+01 05 09 13 17 21
+Time of Day
+
+Figure 2: Percentage of offline inference demand for two LLM services (A and B) running in
+a production cloud data center over a week (left) and during a day (right), demonstrating
+the importance of optimizing the throughput of LLM scheduling (Li et al. 2025).
+tokens one at a time. These phases have distinct resource utilization patterns: prefill is
+compute-bound, while decoding is memory I/O-bound. Conventional LLM inference systems
+place both phases on the same GPU group despite their different computational characteristics
+to maximize resource utilization. While we acknowledge that some recent works propose
+to disaggregate prefill and decode stages on separate GPUs (Patel et al. 2023, Zhong et al.
+2024), the modeling of the p/d-disaggregation is considered analogous to our work.
+Inference goal. Two critical metrics evaluate LLM inference performance: throughput
+and inference latency. Throughput measures the token generation rate within a given
+timeframe. Inference latency represents the time required to complete a request from start to
+finish; common latency metrics include TTFT (time to first token, measuring prefill latency)
+and TBT (time between tokens, measuring decoding latency).
+For online inference—requests that need immediate responses (e.g., chatbot queries)—the
+common practice is to maximize throughput subject to latency service level objective (SLO)
+constraints, where SLO attainment measures the percentage (e.g., 99%) of requests fulfilled
+within a predefined latency target. For offline inference—requests that can accommodate
+longer response times (e.g., large-scale document processing, overnight analytics)—the main
+focus is throughput.
+In production cloud systems from a major cloud service provider, offline inference accounts
+for a non-trivial portion of the overall workload (Figure 2), making throughput optimization a
+first-order concern. This paper focuses on throughput and leaves the study of SLO attainment
+to future work.
+Batch scheduling in LLM inference. Modern LLM inference systems leverage
+continuous batching (Yu et al. 2022), which combines prefill and decode tokens in the same
+batch to improve GPU utilization. However, mixing the two phases creates interference:
+even a single long prefill can substantially degrade decode performance. Different scheduling
+algorithms manage this tension differently (Table 1): FasterTransformer (NVIDIA 2021) and
+vanilla vLLM (Kwon et al. 2023) avoid mixing entirely, Orca (Yu et al. 2022) allows mixed
+batching with prefill priority, and Sarathi-Serve (Agrawal et al. 2023) uses chunked prefill
+with decode priority. Understanding which of these strategies achieves optimal throughput is
+fundamentally a queueing-theoretic question.
+5
+
+Classical batch queueing theory has studied stochastic service capacity (Chang and Choi
+2005, Janssen and van Leeuwaarden 2005) and multi-class batch service (Baetens et al. 2018,
+Reddy et al. 1993), but LLM inference introduces new challenges: dual-phase processing
+with distinct resource profiles, dynamic batch formation, and request interdependencies.
+This direction is attracting growing interest: Mitzenmacher and Shahout (2025) investigates
+scheduling with ML-guided prediction of token lengths. Ao et al. (2025) study fluid-guided
+online scheduling under KV cache memory constraints, proposing threshold-based batching
+policies with near-optimal throughput guarantees; their work assumes knowledge of future
+decoding token lengths. Other concurrent works study offline scheduling with heterogeneous request lengths (Wang et al. 2025), robust scheduling under output-length prediction
+uncertainty (Chen et al. 2025b), and SLO-aware scheduling with a fully analytical batch
+processing time model (Bari et al. 2025). Our work differs in focus: we characterize the
+stability region, identify work-conserving scheduling algorithms as a fundamental design
+principle for throughput optimality, and extend the analysis to networked LLM systems
+serving AI-agent workloads.
+
+2
+
+LLM Inference Setup
+
+In this section, we provide a brief overview of the LLM inference process and introduce
+the key terminology used throughout the paper. For a more comprehensive treatment, we
+refer readers to Hashimoto et al. (2025). At a high level, LLM inference can be modeled as
+a queueing system in which incoming jobs (requests) exhibit the following distinguishing
+characteristics:
+1. Each request is processed in two sequential phases—prefill followed by decode—and
+computation occurs at the token level.
+2. At each iteration, multiple requests may be batched and processed jointly at the token
+level, subject to feasibility constraints imposed by system resources and practical
+considerations.
+
+2.1
+
+Two-Phase LLM Inference
+
+We consider an LLM server that hosts an LLM on one or more GPUs (e.g., via tensor
+parallelism). Throughout this paper, we use LLM server in the classical queueing-theoretic
+sense: the hardware and software unit that processes requests (the “server” in the queue). The
+broader LLM inference system encompasses the scheduling algorithms, KV-cache management, and other software components that govern how the LLM server is utilized; our focus
+is on the scheduling algorithms within such a system. Incoming requests arrive continuously,
+each associated with an input prompt (e.g., “Is Paris a city?”). The LLM processes each
+request at the token level, where each token corresponds to a word, subword, or character in
+the text.
+As shown in Figure 3, the inference process executes the request in strict token order
+through a series of iterations, each corresponding to one forward pass of the LLM model.
+The overall procedure consists of two phases:
+
+6
+
+LLM
+Iteration 1
+
+LLM
+Iteration 2
+
+LLM
+Iteration 3
+
+LLM
+Iteration 4
+
+LLM
+Iteration 5
+
+Is Paris a city?
+
+Is Paris
+
+a city?
+
+Yes
+
+it
+
+is
+
+Tokenization
+
+[3031, 12650]
+
+[261, 5030, 30]
+
+11377
+
+480
+
+382
+
+Input
+Prompt
+
+[3031, 12650, 261, 5030, 30]
+
+Decode Phase
+
+Pre ll Phase
+
+Figure 3: Illustration of the LLM inference process, showing tokenization, prefill phase, and
+decode phase. The tokenization is performed using the GPT-4o tokenizer (OpenAI).
+• Prefill phase: The model processes the input tokens—also referred to as prefill tokens—
+to initialize its internal key-value (KV) cache. Since all prefill tokens are known in
+advance, they can be processed jointly within a single forward pass, or split across
+multiple forward passes as chunks, for computational efficiency.
+• Decode phase: After the prefill phase, the model begins autoregressive decoding. At
+each iteration, it generates one new token while reusing the KV cache from all previous
+tokens and producing new KV entries for the newly generated token. This process
+continues until the model emits an end-of-sequence token or a predetermined stopping
+condition is met (e.g., a maximum token budget).
+fi
+
+In essence, a request can be represented as a sequence of tokens
+(x1 , x2 , . . . , xp , xp+1 , . . . , xp+d ),
+
+where the first p tokens correspond to the prefill tokens and the remaining d tokens correspond
+to the decode tokens. The model must process these tokens in order. At each iteration, the
+model can process a consecutive chunk of tokens, subject to the constraint that the chunk
+size is 1 for the decode tokens— that is, only one new token can be processed (or generated)
+at a time.
+Formally, if an iteration processes a chunk of tokens (xl , xl+1 , . . . , xr ) for some 1 ≤ l ≤
+r ≤ p + d from a given request, we impose the following feasibility constraints:
+(a) (x1 , x2 , . . . , xl−1 ) have already been processed in previous iterations.
+(b) If any token in (xl , xl+1 , . . . , xr ) belongs to the decode phase, then the chunk must
+contain exactly one token, i.e., l = r.
+
+2.2
+
+Iteration-Level Batch Serving
+
+While the previous discussion focuses on how a single request is processed by an LLM, in
+practice, an LLM inference system must handle many concurrent requests efficiently. To
+achieve this, during each iteration, the scheduler collects a batch of tokens— each drawn
+7
+
+Iteration 1
+token budget=6, token load=6
+Batch
+Processing
+
+Iteration 2
+
+Iteration 3
+
+token load=4
+
+token load=2
+
+exit
+Request 1
+Request 2
+Request 3
+Pre ll
+
+Decode
+
+Processed
+
+Processing
+
+fi
+
+Figure 4: Illustration of the iteration-level batch serving. In this example, prior to Iteration 1,
+Request 1 has entered the decoding stage, while Requests 2 and 3 have just arrived at the
+LLM server.
+from potentially different requests—and processes them together in a single forward pass to
+maximize GPU utilization.
+Formally, let B denote the set of requests selected for processing in the current batch.
+Note that not all unfinished requests need to be included; the scheduler chooses B at each
+iteration. A batch can then be represented as {(xili , xili +1 , . . . , xiri ) : i ∈ B}, where, for each
+request i ∈ B, li denotes its first unfinished token index and the interval (li , ri ) must satisfy
+the feasibility constraints defined in Section 2.1.
+We define the total number of tokens included in a batch as the token load b:
+X
+b :=
+(ri − li + 1).
+(1)
+i∈B
+
+As we will see momentarily in Section 2.3, the token load b serves as a key quantity in
+characterizing the processing time of each iteration.
+Token Budget Constraint. In practice, the token load b cannot grow without bound
+due to hardware constraints. Following Sarathi-Serve (Agrawal et al. 2023), we impose a
+token budget bmax that caps the number of tokens processed per iteration:
+b ≤ bmax ,
+
+(2)
+
+thereby bounding iteration latency and ensuring that the decode phase is not blocked by an
+excessively large token load. Typical configurations select bmax ∈ {2s , s ∈ N}; for example,
+bmax = 256, 512, 1024, 2048 have been evaluated in Sarathi-Serve. Figure 4 illustrates an
+example of iteration-level batch serving.
+Batch Size Constraint. We define the batch size k := |B| as the number of requests in
+the current batch. In practice, LLM inference systems typically impose an upper bound
+k ≤ kmax
+
+8
+
+(3)
+
+to control GPU memory usage and to prevent excessive overhead from too many concurrent
+requests. We refer to kmax as the maximum batch size. We omit this constraint in our main
+analysis to highlight the core insights, but revisit its impact in Section 6 and leave a detailed
+treatment for future work.
+Both constraints are exposed in practical LLM inference systems: in vLLM-V1 (vLLM
+Project 2025b), bmax and kmax can be configured via –max-num-batched-tokens and –max-num-seqs,
+respectively; in SGLang (SGLang 2025), the corresponding flags are –chunked-prefill-size
+and –max-running-requests.
+We summarize key LLM inference terminologies in Table 2.
+Term
+
+Definition
+
+LLM Server
+
+A server that hosts an LLM
+and processes inference requests.
+
+Request
+
+A prompt submitted to the LLM
+server for processing.
+
+Token
+
+A minimal textual unit (word,
+subword, or character) processed
+by the LLM.
+
+Prefill Phase
+
+The phase where prefill tokens
+are processed to initialize the KV cache.
+
+Decode Phase
+
+The phase where decode tokens
+are generated autoregressively.
+
+Iteration
+
+One forward pass of the model.
+
+Batch (B)
+
+The set of requests selected for processing
+together in one iteration.
+
+Token Load (b)
+
+Total number of tokens included in a batch.
+
+Token Budget (bmax )
+
+Maximum number of tokens allowed in a batch.
+
+Batch Size (k)
+
+Number of requests processing in a batch.
+
+Maximum Batch Size (kmax )
+
+Maximum number of requests allowed in a batch.
+
+Table 2: Summary of key terminologies used to describe the LLM inference process.
+
+2.3
+
+Batch processing time
+
+Batch processing time—the time required to execute a selected batch—is a key quantity that
+governs both latency and throughput in LLM inference. In principle, it can depend on many
+factors, including the hardware device, the system-level implementation, and the concrete
+constituents of the batch. However, as Figure 5 demonstrates, in realistic traces the batch
+processing time varies little across different batch constituents when the token load b is held
+fixed. This observation motivates a simple yet accurate analytical model.
+9
+
+Batch Processing Time (ms)
+
+Variation in Batch Processing Time
+200
+
+1B
+8B
+34B
+
+100
+50
+20
+10
+
+128
+
+256
+512
+1024
+Token Budget
+
+2048
+
+Figure 5: Batch processing time remains relatively constant for a given token load (when
+the LLM is at full token load), and the coefficient of variation becomes even smaller for
+larger models. The time is measured using the SGLang inference engine under high load
+with various token loads for Llama series models, with request prefill/decode compositions
+driven by the ShareGPT dataset (ShareGPT 2024).
+While machine-learning models can predict batch processing time (Agrawal et al. 2024),
+they are typically hard to analyze and offer limited insight into scheduling-algorithm design.
+Leveraging the empirical observation above, we approximate batch processing time by a
+piecewise constant function that depends only on the token load b4 :
+
+Batch Processing Time (ms)
+
+Batch Processing Time (ms)
+
+tb = c + a · ⌈
+
+Piecewise Const Fit (CodeLlama-34B)
+TP-1 Data on A100
+
+300
+
+x
+f1(x) = 35.47⌈128
+⌉ + 11.28
+
+250
+
+TP-2 Data on A100
+x
+f2(x) = 18.03⌈128
+⌉ + 7.24
+
+200
+
+TP-4 Data on A100
+x
+f4(x) = 8.69⌈128
+⌉ + 6.96
+
+150
+100
+50
+0
+
+0
+
+200
+
+400
+
+600
+
+800
+
+1000
+
+Token Load
+
+(a) CodeLlama-34B (TP-1, TP-2, TP-4)
+
+b
+⌉.
+b0
+
+(4)
+
+Piecewise Const Fit (Llama-70B)
+TP-2 Data on A100
+x
+f2(x) = 39.62⌈128
+⌉ + 0.43
+
+300
+
+TP-4 Data on A100
+x
+f4(x) = 19.00⌈128
+⌉ + 0.00
+
+200
+
+100
+
+0
+
+0
+
+200
+
+400
+
+600
+
+800
+
+1000
+
+Token Load
+
+(b) Llama-70B (TP-2, TP-4)
+
+Figure 6: Piecewise constant fit of batch processing time for CodeLlama-34B and Llama-70B
+models under various token loads and tensor-parallel (TP) sizes using the form tb = c+a·⌈b/b0 ⌉
+with c ≥ 0. R2 is above 0.97 for all cases.
+Figure 6 shows that this piecewise constant model closely matches measured batch
+processing times across a range of settings, with R2 above 0.97 in all cases. The parameters
+4
+
+An earlier version of this manuscript used the approximation tb = c + a max(b − b0 , 0). The updated
+model provides a better fit to measured batch times and does not complicate the analysis.
+
+10
+
+(c, a, b0 ) are determined by the serving configuration and treated as fixed. For example, for
+CodeLlama-34B on a single A100 80 GB GPU (TP-1), we observe c = 11.28 ms, a = 35.47 ms,
+and b0 = 128 tokens; with two GPUs under tensor parallelism (TP-2), the parameters become
+c = 7.24 ms and a = 18.03 ms, and with four GPUs (TP-4), c = 6.96 ms and a = 8.69 ms,
+revealing that the piecewise constant relationship continues to hold when serving across
+multiple GPUs with tensor parallelism.
+The strong agreement between Eq. (4) and measured processing times stems from the
+dominance of linear-layer computations (i.e., feed-forward layers) in typical LLM inference
+workloads (Kamath et al. 2024, Zhu et al. 2024, Ye et al. 2025). This approximation is most
+accurate when request lengths are not extremely long and batches are not extremely large,
+which covers realistic serving traces (e.g., ShareGPT (ShareGPT 2024)). We emphasize
+that Eq. (4) is not intended to capture the full complexity of LLM batch-based inference; in
+Section A, we extend this formula to account for attention-layer computation (which depends
+on the number of KV cache tokens) and characterize when the approximation breaks down.
+Rather, it provides a tractable starting point that already enables the throughput-optimality
+analysis developed in this paper. We welcome further studies on more expressive batch
+processing time models—for example, incorporating attention-layer costs through the total
+number of KV cache tokens as in Ao et al. (2025), or fully analytical batch processing time
+models as in Bari et al. (2025)—and the deeper scheduling-theoretic questions they may
+unlock.
+For the theoretical analysis, we model batch processing times using Eq. (4) under the
+following assumption. In our experiments, we use measured batch processing times directly.
+Assumption 1 (Batch Processing Time). Batch processing times follow Eq. (4). Furthermore,
+we assume that a, c ≥ 0 and bmax is an integer multiple of b0 .
+These conditions are mild and motivated by practical considerations:
+• a, c ≥ 0: The marginal cost a per additional block of b0 tokens and the base cost c per
+iteration are both nonnegative, which holds in all practical settings.
+• b0 | bmax : The parameter b0 reflects the hardware-aligned block size (e.g., GPU matrixmultiplication tiles), typically a power of two. The token budget bmax is naturally
+chosen as a multiple of this block size, often also a power of two.
+
+3
+
+Stochastic Modeling and Throughput-Optimal Scheduling
+Algorithms
+
+Throughout the paper, we focus on batch scheduling algorithms—policies that select the
+batch constituents at each iteration. Given the LLM inference setup, we now study the
+following question:
+What is the maximal throughput of an LLM inference system, and which batch
+scheduling algorithms can achieve it?
+Questions of this form are foundational in queueing theory: for complex queueing systems,
+throughput is often the first performance objective to characterize, after which one can study
+latency and related metrics. We follow this tradition for LLM inference systems.
+11
+
+GPU (one batch)
+arrivals
+
+req j1 (5 tokens)
+
+Prefill queue
+
+req j2 (3 tokens)
+prefill complete
+
+Decode queue
+
+departure
+
+multiple tokens
+per request
+
+prefill
+decode
+
+req i1
+
+req i2
+
+req i3
+
+req i4
+
+token budget:
+
+P
+
+≤ 1 token
+per request
+
+tokens ≤ bmax
+
+Figure 7: LLM inference as a two-class batch-service queueing system. Arriving requests
+join the prefill queue; upon completing prefill, they transition to the decode queue. The
+GPU processes a mixed batch from both queues, subject to the token budget bmax . Crucially,
+multiple prefill tokens from the same request can be batched together, whereas each decode
+request contributes at most one token per batch.
+A new queueing problem. From a queueing-theoretic perspective, LLM inference
+gives rise to a novel two-class batch-service system (see Figure 7). Each request first joins the
+prefill queue and, upon completion, transitions to the decode queue. The server processes a
+batch of tokens drawn from both queues simultaneously, subject to the token budget bmax .
+Two features distinguish this system from classical batch-service queues:
+1. Cross-class batching. A single batch can mix prefill tokens and decode tokens from
+different requests, coupling the two queues through a shared capacity constraint.
+2. Asymmetric per-job processing. In the prefill phase, multiple tokens from the same
+request can be processed in one batch; in the decode phase, each request contributes at
+most one token per batch. This asymmetry is a direct consequence of the autoregressive
+nature of decoding.
+These features make LLM inference a unique batch-service system and present an interesting
+new application challenge for the queueing community.
+
+3.1
+
+Basic LLM queueing model
+
+To study this problem rigorously, we introduce a stochastic model of the inference process,
+which we refer to as the basic LLM queueing model. Although the notation is somewhat
+heavy, it enables precise analysis and provides a systematic, broadly applicable framework
+for reasoning about the system. We will use the term basic LLM queueing model throughout
+the paper to distinguish this single-server, single-class formulation from the multi-class and
+multi-server extensions developed in Section 5.
+For simplicity, we assume time is discrete, indexed by n ∈ N ≡ {1, 2, . . .}. A time slot
+can correspond to the physical clock frequency of the system; extending the analysis to
+continuous time is straightforward.
+Arrival. Multiple requests may arrive in the same time slot, and we index them in
+order of arrival. For i = 1, 2, . . ., request i has a prefill length vp (i) ∈ N and a decode length
+12
+
+vd (i) ∈ N. Since every LLM has a finite context window and a maximum output length, the
+token sizes are bounded: vp (i) ≤ vpmax and vd (i) ≤ vdmax for all i, where vpmax and vdmax are
+finite constants. We assume the sequence {(vp (i), vd (i)) : i ∈ N} is i.i.d. and define
+mp := E[vp (1)],
+
+md := E[vd (1)].
+
+In addition, let an denote the number of requests arriving in time slot n. We assume
+{an : n ∈ N} is an exogenous i.i.d. sequence, independent of {(vp (i), vd (i)) : i ∈ N}, and
+define the arrival rate
+λ := E[a1 ].
+It follows that the expected prefill-token workload arriving per time slot is λmp , and the
+expected decode-token workload arriving per time slot is λmd .
+State. With the arrival setup complete, we introduce a discrete-time Markov chain
+(DTMC) to describe the system dynamics. We begin by defining the system state.
+At each time slot n, let Qn denote the set of requests that have not yet departed. For each
+request i ∈ Qn , let Pi (n) and Di (n) denote the number of unprocessed tokens in the prefill
+and decode stages, respectively, at the beginning of slot n. Thus, {(Pi (n), Di (n)) : i ∈ Qn }
+captures the status of all unfinished requests.
+Since batch processing may span multiple time slots (which we assume are integer-valued),
+let R(n) denote the remaining processing time (in slots) of the current batch. If R(n) = 0,
+a new batch can be formed; otherwise, no decision is required. The system state at the
+beginning of slot n is then defined as
+
+
+X(n) = R(n), {(Pi (n), Di (n)) : i ∈ Qn } .
+(5)
+Let X denote the set of all possible states X(n) for n ∈ N (i.e., the DTMC state space).
+Scheduling algorithms. Let x = (r, {(pi , di ) : i ∈ Q}) ∈ X be an arbitrary system
+state, where r is the remaining processing time of the current batch, and pi , di are the
+unprocessed prefill and decode token counts of request i. Given x with r = 0, a scheduling
+algorithm selects a batch configuration π(x) = (δip , δid )i∈Q , where δip and δid denote the
+number of prefill tokens and decode tokens, respectively, from request i to be included in the
+batch. Unlike the (li , ri ) representation in Section 2.2, which specifies the token range, the
+(δip , δid ) characterization tracks only the number of tokens allocated to each request, which is
+more convenient for the stochastic analysis. For π(x) to be feasible, it must satisfy:
+pi > 0 implies δid = 0
+
+(6a)
+
+δip ≤ pi
+δid ≤ 1
+
+(6b)
+
+X
+
+(6c)
+
+
+δid + δip = b ≤ bmax .
+
+(6d)
+
+i∈Q
+
+Constraint Eq. (6a) ensures that prefill tokens are completed before decoding begins, while
+Eq. (6b) ensures the number of batched prefill tokens does not exceed the remaining unprocessed ones. Eq. (6c) enforces sequential decoding (at most one token per request per
+batch), and Eq. (6d) enforces the total token budget bmax . When r > 0, we set b = 0 as
+13
+
+batch processing is already ongoing. However, even when r = 0, an idle slot (i.e., b = 0) is
+permitted. Any policy π satisfying conditions Eq. (6a)-Eq. (6d) is referred to as a (batch)
+scheduling algorithm. Note that the feasibility constraints Eq. (6) correspond to those
+introduced in Section 2.1, with the token budget bmax enforced here; the batch size constraint
+k ≤ kmax is deferred to Section 6.
+Note that when making decisions, the scheduling algorithm π can utilize the index i of
+each unfinished request. This index may encode request-specific characteristics—such as
+type, content, or arrival order—thereby encompassing a broad range of potential scheduling
+strategies.
+System dynamics. Let X(n) = (R(n), {(Pi (n), Di (n)) : i ∈ Qn }) be the system state
+at the beginning of time slot n. The system evolves according to the following sequence of
+events:
+1. Scheduling: If R(n) = 0, thePalgorithm selects a batch configuration π(X(n)) =
+(δip , δid )i∈Qn with token load b = i∈Qn (δip +δid ). We define post-scheduling unprocessed
+token counts Pi′ (n) = Pi (n) − δip and Di′ (n) = Di (n) − δid . If R(n) > 0, the previous
+batch continues, and we set Pi′ (n) = Pi (n), Di′ (n) = Di (n).
+2. Processing: The remaining processing time R(n + 1) for the next slot is updated as:
+
+
+R(n) − 1 if R(n) > 0,
+R(n + 1) = tb − 1
+(7)
+if R(n) = 0 and tb > 0,
+
+
+0
+if R(n) = 0 and tb = 0,
+where tb is the number of slots required to process a batch of token load b.
+3. Departures: A batch finishes processing at the end of slot n if its remaining time
+R(n + 1) reaches zero (provided the slot was not idle, i.e., R(n) > 0 or tb > 0). When
+a batch completes, requests with no remaining tokens depart, and the set of requests
+becomes Qn′ = Qn \ {i ∈ Qn : Di′ (n) = 0}. Otherwise, Qn′ = Qn .
+4. Arrivals: New requests An arrive. The state at the beginning of slot n + 1 is
+X(n + 1) = (R(n + 1), {(Pi (n + 1), Di (n + 1)) : i ∈ Qn+1 }), where Qn+1 = Qn′ ∪ An .
+For i ∈ Qn′ , token counts are Pi (n + 1) = Pi′ (n) and Di (n + 1) = Di′ (n); for new arrivals
+i ∈ An , they are Pi (n + 1) = vp (i) and Di (n + 1) = vd (i).
+Given the system dynamics above and the i.i.d. assumptions on arrivals, the sequence
+{X(n) : n ∈ N} forms a DTMC in a countable state space.
+
+3.2
+
+Throughput-optimal scheduling algorithms
+
+After formalizing the scheduling problem in Section 3.1, we are now in a position to analyze
+the system rigorously.
+A scheduling algorithm is said to achieve throughput λ if the associated DTMC {X(n), n ∈
+N} is irreducible and positive recurrent when the arrival rate is λ; see Section 5.7 of (Dai and
+Harrison 2020) for a discussion of maximally stable scheduling algorithms. Our main result
+is that a class of work-conserving scheduling algorithms can (almost) achieve the system’s
+maximal throughput rate.
+14
+
+Specifically, a scheduling algorithm π is said to be work-conserving if π(x) forms a batch
+of token load b = bmax whenever possible. Namely, π(x) satisfies
+
+X
+δid + δip = bmax
+(8)
+i∈Q
+
+whenever
+X
+
+
+pi + 1(pi = 0) ≥ bmax .
+
+(9)
+
+i∈Q
+
+Here, the left-hand side represents the maximum number of tokens that could be included
+in a batch: each request in the prefill phase (pi > 0) can contribute up to pi tokens, while
+each request in the decode phase (pi = 0) can contribute at most 1 token. Whenever this
+supply meets or exceeds bmax , a work-conserving algorithm must fill the batch to the full
+token budget, by allowing batches that mix prefill and decode tokens.
+Before stating the theorem, we introduce one additional condition on the scheduling
+algorithm that facilitates the stability analysis via the fluid limit technique (Dai 1995, Stolyar
+1995, Dai and Harrison 2020). This technique is also used to prove stability results for
+networks of LLM servers in Section 5.
+K-FCFS condition. Index requests as i = 1, 2, . . . according to their global arrival time. A
+work-conserving algorithm satisfies the K-FCFS condition if, for any request j that consumes
+at least one decoding token in the batch (i.e., δjd > 0), the following holds:
+∀ i ≤ j − K, if request i is still in the system, then δip + δid ≥ 1.
+In other words, if a request that arrived at least K positions later than request i processes
+a decoding token, then i must also process at least one token in the same batch. The
+condition is triggered by decoding tokens (δjd > 0) rather than by any token processing; this
+accommodates prefill-prioritized algorithms that may process a batch of prefill tokens for
+newly arrived requests before older requests resume decoding (e.g., see Section 4).
+This is a mild condition: no practical system would let a request wait indefinitely while
+serving newer arrivals. Most scheduling policies (e.g., FCFS-based) naturally satisfy this
+condition for a reasonable K. The exact value of K is not important in our analysis, as long
+as it is finite.
+We now state the main theorem.
+Theorem 2. Under the i.i.d. arrival model in Section 3.1 and Thm. 1:
+(a) (Instability.) If the system load satisfies
+λ(mp + md ) > bmax /tbmax ,
+
+(10)
+
+then the total number of unprocessed tokens diverges under any scheduling algorithm:
+P{ lim |X(n)| = ∞} = 1,
+n→∞
+
+where |X(n)| =
+
+P
+
+i∈Qn (Pi (n) + Di (n)).
+
+15
+
+(11)
+
+(b) (Stability.) If the system load satisfies
+λ(mp + md ) < bmax /tbmax ,
+
+(12)
+
+then the DTMC {X(n), n ∈ N} is positive recurrent (i.e., the system is stable) under any
+work-conserving K-FCFS algorithm.
+Theorem 2 provides a complete characterization of the stability region for scheduling
+algorithms subject to the token budget constraint: the critical threshold is λ(mp + md ) =
+bmax /tbmax , where bmax /tbmax is the maximal token processing rate (see the proof sketch
+below). The theorem assumes deterministic batch processing times for clarity; the result
+extends easily to random processing times by replacing tb with E[tb ] throughout.
+This result has several practical implications:
+1. Guideline for scheduling policy design. Practitioners should adopt work-conserving
+scheduling algorithms. In practice, the LLM inference community has been moving
+from non-work-conserving schedulers (e.g., FasterTransformer, vanilla vLLM) toward
+work-conserving ones (e.g., Sarathi-Serve, vLLM with chunked prefill) (see Section 4
+for a detailed examination). Theorem 2 provides a rigorous theoretical basis to endorse
+this trend and to guide future policy design.
+2. Throughput benchmark. The quantity bmax /tbmax represents a theoretical upper
+bound on the token processing rate. It serves as an ideal-case benchmark against which
+practitioners can measure and optimize their system’s throughput.
+3. Foundation for complex systems. Theorem 2 establishes the baseline for a single
+LLM server, providing a foundation for deeper investigation. In Section 5, we build on
+this result to analyze networks of LLM servers handling AI-agent workloads, identifying
+conditions under which work-conserving algorithms remain throughput-optimal and
+conditions under which they fail.
+Next we present a proof sketch; see Section B for the full fluid model proof.
+Proof Sketch. Part (a): Instability. We show that bmax /tbmax is the maximal token
+processing rate achievable by any algorithm. Under Eq. (4), the rate b/tb = b/(c + a⌈b/b0 ⌉)
+is maximized at the right endpoint of each step b = kb0 , where it equals kb0 /(c + ak).
+b0 c
+d kb0
+Since dk
+c+ak = (c+ak)2 > 0, these step-endpoint rates are strictly increasing in k, so the
+overall maximum is bmax /tbmax (under b0 | bmax from Thm. 1). Hence, at most bmax /tbmax
+tokens can be processed per unit time under any algorithm. By the strong law of large
+numbers, the cumulative arriving workload grows at rate λ(mp + md ) > bmax /tbmax , so the
+total unprocessed tokens |X(n)| → ∞ almost surely. See also the proof of Proposition 5.1 of
+Dai (1996).
+Part (b): Stability. Under the load condition Eq. (12), we construct a Lyapunov
+function on the fluid model and show the drift is negative whenever the system is non-empty,
+so the fluid model drains in finite time. The non-trivial part is establishing that every fluid
+limit of the stochastic system—obtained as a scaling limit along subsequences of initial
+states—satisfies the work-conserving fluid model equations. This requires proving uniform
+convergence on compact sets (u.o.c. convergence) of the scaled stochastic processes to their
+16
+
+Clustered Index Sampling &
+IVF Indices
+Ranking
+
+In Depth
+Search
+
+Batch Composition
+
+vLLM
+
+Ad, Bd, Cd
+
+D,E arrives
+
+Orca
+FasterTrasnformer
+
+Dp, Ep
+
+Ad, Bd, Cd, Dd
+
+Bd, Cd, Ed
+
+Prefill Only
+Decode Only
+Mixed (Pre Prioritized)
+Mixed (De Prioritized)
+
+Bd
+
+Ad, Bd, Cd waiting
+
+Ad, Bd, Cd
+
+Dp, Ep,
+Ad, Bd, Cd
+
+Ad, Bd, Cd
+
+Ad, Bd, Cd
+
+Bd, Cd, Dd, Ed
+
+Bd
+
+Bd, Cd
+
+Bd
+
+Dp, Ep
+
+Dd, Ed
+
+Dp, Ep waiting
+
+Sarathi-Serve
+
+Ad, Bd, Cd
+
+Ad,Bd,Cd, Dp
+
+Bd,Cd,Dd, Ep
+
+Bd, Ed
+
+Type A (s,s)
+Request length: Ad = 2, Bd = 4, Cd = 3, Dd = 1, Ed = 1
+
+Agent
+
+Figure 8: Example workload and where work-conserving criteria are broken. For vLLM, the
+second batch is not work-conserving because of limited prefill, and decoding tokens from
+earlier requests are still waiting. For FasterTransformer, the second to fourth batches are not
+work-conserving, because the prefills are blocked with earlier decodes.
+fluid analogs, adapted to the two-class batch-service structure of LLM inference. Once
+established, fluid model stability implies positive recurrence of the DTMC (Dai 1995, Stolyar
+1995, Dai and Harrison 2020). The full proof is given in Section B.
+An alternative, self-contained proof of Part (b) directly constructs a Foster–Lyapunov
+function on the DTMC (Section C). This approach is shorter and uses only the workconserving property (without requiring K-FCFS), but is less extensible; the fluid limit
+technique generalizes naturally to the network settings of Section 5.
+■
+
+3.3
+
+Extension to parallel servers
+
+The result of Thm. 2 extends naturally from a single LLM server to K identical servers
+operating in parallel behind a load balancer. We consider two common load-balancing
+algorithms:
+• Random assignment: each arriving request is routed to a server chosen uniformly at
+random, so each server receives an effective arrival rate λk = λ/K.
+• Join-the-shortest-queue (JSQ): each arriving request is routed to the server k with
+the fewest total unfinished requests |Qk |, with ties broken arbitrarily.
+The state in Eq. (5) needs to be modified as
+
+
+X(n) = Rk (n), {(Pik (n), Dik (n)) : i ∈ Qnk }, k = 1, . . . , K .
+
+(13)
+
+Proposition 3. Suppose K identical servers each run a work-conserving K-FCFS scheduling
+algorithm, with requests routed by either random assignment or JSQ. If the aggregate load
+condition
+λ(mp + md ) < K · bmax /tbmax
+holds, then the DTMC {X(n), n ≥ 0} describing the system is positive recurrent.
+17
+
+(14)
+
+The proof, which applies the fluid limit technique of Section B, is given in Section B.5.
+The argument uses the total system workload across all K servers as a Lyapunov function.
+For random assignment, each server independently receives a fraction λ/K of the arrivals, so
+each busy server has negative drift by the same single-server argument as Thm. 2. The JSQ
+case requires a more delicate Lyapunov drift argument that exploits the property that JSQ
+never sends work to a server that holds more workload in the fluid regime; see Section B.5
+for details.
+Remark 4 (Other routing metrics). The result extends well beyond JSQ. It holds for any
+load-balancing algorithm that routes each arrival to a server minimizing some non-negative
+scalar measure of server occupancy —examples include total remaining tokens, total expected
+remaining workload, or any monotone increasing function of the prefill and decode counts.
+See Section B.5 for details.
+
+4
+
+Work-Conservingness of Existing LLM Inference Systems
+
+In this section, we examine the work-conservingness and stability of widely adopted scheduling
+algorithms for LLM inference. We show that FasterTransformer and vanilla vLLM are not
+work-conserving—and can therefore be unstable even when the load condition Eq. (12) is
+satisfied—while Orca and Sarathi-Serve are work-conserving and hence throughput-optimal
+by Thm. 2. In practice, the LLM inference community has been progressively moving toward
+work-conserving designs: the latest version of vLLM with chunked prefill enabled is also
+work-conserving (vLLM Project 2025a).
+We now describe each algorithm in turn.
+FasterTransformer (NVIDIA 2021) (decode-prioritized, no mixed batching).
+FasterTransformer is a decode-prioritized scheduler without mixed batching. Whenever there
+are requests in the decoding stage, it batches as many decode tokens as possible (up to the
+token budget bmax ) and processes them, leaving requests in the prefill queue untouched. It is
+not work-conserving: prefill tokens wait while the GPU processes decode-only batches.
+Vanilla vLLM (Kwon et al. 2023) (prefill-prioritized, no mixed batching). Vanilla
+vLLM is a prefill-prioritized scheduler without mixed batching. Whenever there are requests
+in the prefill queue, it processes prefill tokens and ignores any requests in the decoding queue.
+It is not work-conserving: decode tokens remain idle while the GPU processes prefill-only
+batches.
+Orca (Yu et al. 2022) (prefill-prioritized, with mixed batching). Orca improves
+upon vanilla vLLM by allowing decoding requests to be batched together with prefill requests.
+It first fills in prefill tokens from requests with pi > 0, then packs as many decode tokens as
+possible until the token budget bmax is reached. Because it mixes both token types in each
+batch, Orca is work-conserving.
+Sarathi-Serve (Agrawal et al. 2023) (decode-prioritized, chunked prefill). SarathiServe introduces chunked prefill with decode prioritization. When forming a batch, it first fills
+in as many decode tokens (at most one per request) as possible; when there is additional space,
+it fills in as many prefill tokens as possible from a minimal number of requests. Sarathi-Serve
+is work-conserving.
+Why FasterTransformer and vanilla vLLM fail. Figure 8 illustrates the mecha18
+
+(a) Sequential chain
+
+Retrieve
+
+Summarize
+
+Format
+
+(b) Fork-join
+
+(c) Self-reflection
+
+Search
+
+refine
+
+Synthesize
+
+Plan
+
+Generate
+
+Evaluate
+
+Analyze
+
+Figure 9: Representative AI-agent workflow topologies. (a) A sequential chain of LLM calls
+(e.g., retrieval-augmented generation). (b) A fork-join pattern where subtasks are processed
+in parallel and synchronized. (c) A self-reflection loop with iterative refinement.
+nisms. In vanilla vLLM, prefill is prioritized over decode. When incoming prefill requests
+are consistently short, the scheduler fails to batch decode tokens together, remaining in the
+memory-bound regime and causing the decode queue to grow without bound. In FasterTransformer, decode is prioritized but mixed batching is absent. When decode requests have token
+loads below b0 (see Eq. (4)), they are processed sequentially without utilizing the GPU’s
+parallel processing capabilities, while incoming prefill requests remain blocked.
+Through our analysis, Orca and Sarathi-Serve—the two work-conserving algorithms—
+should be preferred. Indeed, Figure 1 confirms this on practical workloads: the workconserving schedulers achieve higher throughput, while FasterTransformer and vanilla vLLM
+become unstable even under the same load. Our theoretical analysis provides a rigorous
+endorsement of this trend and encourages practitioners to design scheduling policies within
+the class of work-conserving algorithms.
+
+5
+
+Throughput Optimality for AI-Agent Workloads
+
+LLMs are increasingly deployed as autonomous agents that handle complex tasks through
+sequences of LLM calls, possibly spanning multiple LLM servers (Luo et al. 2025). The
+execution flow of a single agentic user request can involve planning, tool selection, generation,
+verification, refinement, and other steps, forming a workload that may be a directed acyclic
+graph (DAG) or contain loops. Figure 9 illustrates several representative topologies: a
+sequential chain, a fork-join pattern, and a self-reflection loop. We refer to these collectively
+as AI-agent workloads.
+From a queueing-theoretic perspective, we model an AI-agent workload as a multi-class
+batch-service processing network. Each node in the workload graph represents a class of
+LLM-level requests—requests that share the same workload logic and statistical characteristics
+(prefill and decode token sizes). When a request completes processing in one class, it is
+routed to another class according to the workload structure, or departs the system. This
+formulation naturally captures both static DAGs and dynamic workflows, including agentic
+loops where a request may revisit the same class.
+The key distinction from classical stochastic processing networks (Dai and Harrison 2020)
+is twofold. First, requests from different classes at the same server can be batched together
+and processed simultaneously (Figure 10). Second, each LLM-level request inherits the
+two-phase (prefill + decode) structure of Figure 7; in a prefill–decode disaggregated setup,
+the two phases may even be served by different servers.
+In this section, we analyze the stability of such networks. We show that work-conserving
+19
+
+GPU (one batch)
+Generate (P)
+Class 1
+
+Class 1
+Generate (D)
+
+Class 2
+
+Verify (P)
+
+Class 1
+
+prefill
+decode
+Class 2
+
+Class 2
+Verify (D)
+
+token budget:
+
+P
+
+tokens ≤ bmax
+
+Figure 10: Multi-class batch serving. Two classes of requests (e.g., “Generate” and “Verify”)
+share the same LLM server. Each class maintains its own prefill (P) and decode (D) buffers.
+The GPU batches tokens from all classes together, subject to the token budget bmax .
+scheduling remains throughput-optimal when a single LLM server handles multiple request
+classes (Section 5.1), when multiple servers are connected via DAG routing (Section 5.2),
+and when the network has fork-join synchronization (Section 5.3). However, when the
+server-level routing graph contains cycles, work-conserving scheduling alone is no longer
+sufficient: inspired by the Rybko–Stolyar network (Rybko and Stolyar 1992), we construct
+an example where a work-conserving policy causes instability despite the load condition
+being satisfied (Section 5.4). Together, these results suggest that DAG routing structures are
+preferred in multi-server LLM deployments, as they guarantee throughput optimality under
+any work-conserving policy; when routing cycles are unavoidable, the scheduling policy must
+be designed with greater care.
+
+5.1
+
+A single LLM server with multiple request classes
+
+Consider a single LLM server that handles J classes of requests. Each class j has a prefill
+phase and a decode phase with mean prefill and decode token sizes (mjp , mjd ). All classes
+share the same LLM server and can be batched together (Figure 10). Upon completing
+service in class i, a request
+is routed to class j with probability pij and departs the system
+P
+with probability 1 − j pij . Let P = (pij ) be the J × J transion matrix. We assume I − P
+is invertible, which means that each request will eventually leave the system.
+This model arises, e.g., from different stages of an agentic workflow routed to the same
+LLM server. Let αj denote the external arrival rate to class j. The effective arrival rate λj
+to each class is determined by the traffic equations
+λj = α j +
+
+J
+X
+
+λi pij ,
+
+j = 1, . . . , J.
+
+(15)
+
+i=1
+
+The load condition generalizes naturally:
+J
+X
+
+λj (mjp + mjd ) < bmax /tbmax .
+
+j=1
+
+20
+
+(16)
+
+For this multiclass queueing model as well as other queueing models in the rest of this section,
+we need to define state X(n) at time n, similar to the definition in (5) for the basic LLM
+queueing model. Define
+
+
+X(n) = R(n), {(Pij (n), Dij (n)) : i ∈ Qnj }, j = 1, . . . , J .
+(17)
+where superscript j indicates a class j component. Under a suitable distributional assumption
+on inter-request and token size distributions and a scheduling algorithm, {X(n), n ≥ 0} is a
+DTMC. (For other queueing models in this section, we will skip the explicit definition of
+X(n).)
+Theorem 5. Under the load condition Eq. (16), any work-conserving K-FCFS scheduling
+algorithm stabilizes the system (i.e., the DTMC is positive recurrent).
+Proof sketch. The fluid model approach developed in Section B for the basic LLM queueing
+model extends easily to the multiclass setting. We will prove the fluid model in the current
+setting is stable. Recall the fluid model for the basic LLM queueing model is defined via
+Eq. (45)-Eq. (49) in Section B.2. In the current multiclass setting, the fluid model is defined
+analogously via
+Zpj (t) = Zpj (0) + αj t +
+
+J
+X
+
+(18)
+
+pij Fdi (t) − Fpj (t),
+
+i=1
+
+Zdj (t) = Zdj (0) + Fpj (t) − Fdj (t),
+
+(19)
+
+Bfj (0) = 0,
+0 ≤ Bfj (t) − Bfj (s) ≤ (t − s)bmax /tbmax ,
+1
+Ffj (t) = j Bfj (f ), f ∈ {p, d},
+mf
+Wfj (t) = mjf Zfj (t),
+
+0 ≤ s ≤ t,
+
+f ∈ {p, d}.
+
+(20)
+(21)
+(22)
+
+f ∈ {p, d}.
+
+for each class j and any time t ∈ R+ ≡ [0, ∞). In addition, under work-conserving scheduling
+algorithm, the fluid model satisfies
+X
+X
+(Ḃpj (t) + Ḃdj (t)) = bmax /tbmax whenever
+(Zpj (t) + Zdj (t)) > 0
+(23)
+j
+
+j
+
+for each regular point t.
+From Eq. (18) and Eq. (19), we have, in vector form,
+Zp (t) = Zp (0) + αt + P ′ Fd (t) − Fp (t),
+Zp (t) + Zd (t) = Zp (0) + Zd (0) + αt − (I − P ′ )Fd (t).
+These two equalities lead to
+(I − P ′ )−1 (Zp (t) + Zd (t)) = (I − P ′ )−1 (Zp (0) + Zd (0)) + λt − Fd (t),
+′
+
+′ −1
+
+Zp (t) + P (I − P )
+
+′
+
+′ −1
+
+(Zp (t) + Zd (t)) = Zp (0) + P (I − P )
+
+21
+
+(24)
+
+(Zp (0) + Zd (0)) + λt − Fp (t)
+(25)
+
+where in obtaining Eq. (25), we have used the fact α + P ′ λ = λ.
+Let Mp = diag(mp ), Md = diag(md ), and e be the row vector of ones. Define Lyapunov
+function
+
+
+f (t) = eMd (I − P ′ )−1 (Zp (t) + Zd (t)) + eMp Zp (t) + P ′ (I − P ′ )−1 (Zp (t) + Zd (t)) .
+P
+It is clear that f (t) > 0 is equivalent to j (Zpj (t) + Zdj (t)) > 0. It follows from Eq. (24)Eq. (25) that
+X
+X
+f (t) = f (0) + t
+λj (mjp + mjd ) −
+(Bpj (t) + Bdj (t)).
+j
+
+j
+
+Therefore, at each regular point with f (t) > 0,
+f˙(t) =
+
+J
+X
+
+αj µj −
+
+j=1
+
+=
+
+J
+X
+
+J
+X
+
+(Ḃpj (t) + Ḃdj (t))
+
+j=1
+
+λj (mjp + mjd ) − bmax /tbmax
+
+j=1
+
+= −δ < 0,
+proving that f (t) = 0 for t ≥ f (0)/δ. Therefore, we have proved the fluid model is stable.
+Fluid model stability implies positive recurrence of the DTMC by the same argument as in
+Section B.
+■
+This result confirms that work-conserving scheduling remains throughput-optimal for a
+single server regardless of how many request classes it serves—the total workload argument
+applies as long as all classes share the same batch.
+
+5.2
+
+Multi-server DAG networks
+
+We now consider multiple LLM servers whose routing relationships form a directed acyclic
+graph (DAG). There are S servers, where server s handles a set Js of request classes (both
+prefill and decode for each class are processed on the same server). Upon completing class i
+at server σ(i), a request
+P is routed to class j at server σ(j) with probability pij , and departs
+with probability 1 − j pij . Routing across servers forms a DAG, namely, servers can be
+indexed s = 1, . . . , S so that for each s′ < s,
+pi,j = 0
+
+for each
+
+i ∈ Js ,
+
+j ∈ Js′ .
+
+(26)
+
+In DAG, there are no directed cycles among distinct servers (though routing between classes
+on the same server is permitted and handled by Thm. 5).
+The effective arrival rates (λj ) satisfy the traffic equations analogous to Eq. (15), now
+across all classes on all servers. The per-server load condition is
+X
+λj (mjp + mjd ) < cs , s = 1, . . . , S,
+(27)
+j∈Js
+
+where cs = bsmax /tsbsmax is the processing capacity of server s.
+22
+
+Theorem 6. Under the per-server load condition Eq. (27) and work-conserving K-FCFS
+scheduling at each server, the DTMC describing the network is positive recurrent.
+Proof sketch. We prove the corresponding fluid model is stable, following Remark 8.16 of
+Dai and Harrison (2020). Order the servers topologically: s1 , s2 , . . . , sS so that inter-server
+routing only goes from earlier to later servers. We prove by induction that, in the fluid
+model, each server’s Lyapunov function (from Thm. 5) drains to zero in finite time.
+Base case. Server s1 receives only external arrivals (no inter-server routing targets it).
+Applying the Lyapunov argument of Thm. 5 to the classes Js1 , the per-server Lyapunov
+P
+f s1 (t) drains to zero by time T1 = f s1 (0)/δs1 , where δs1 = cs1 − j∈Js λj (mjp + mjd ) > 0.
+1
+For t ≥ T1 , server s1 operates in balance with departure rates matching the effective arrival
+rates.
+Inductive step. Suppose all upstream servers s1 , . . . , si−1 have drained by time Ti−1 =
+maxj<i Tj . For t ≥ Ti−1 , each upstream server departs at its nominal effective rate, so
+server si receives arrivals at the rate λj for each class j ∈ Jsi . The same Lyapunov argument
+gives f˙si (t) = −δsi < 0 whenever f si (t) > 0. During the transient phase [0, Ti−1 ], upstream
+servers may produce departures faster than their steady-state rates as they drain initial
+backlogs, but in the fluid model (|Z(0)| ≤ 1) the total excess arrivals are bounded, so
+f si (Ti−1 ) < ∞. Therefore f si (t) = 0 for t ≥ Ti = Ti−1 + f si (Ti−1 )/δsi .
+All servers drain by time TS , proving fluid stability and hence positive recurrence.
+■
+This result shows that work-conserving scheduling remains throughput-optimal across
+any DAG of LLM servers, as long as each server’s load condition is satisfied. The DAG
+structure ensures no feedback loops between servers, allowing a cascading stability argument.
+
+5.3
+
+Fork-join networks
+
+The DAG result (Thm. 6) uses probabilistic routing, where each completed request routes to
+one downstream class. Fork-join networks introduce two features not captured by this model:
+(i) forking, where a request spawns multiple sub-tasks processed in parallel at different servers,
+and (ii) join synchronization, where all sub-tasks must complete before the request proceeds.
+This pattern arises naturally when one LLM call triggers parallel tool queries, searches, or
+sub-agent invocations (Figure 9(b)).
+Consider k + 1 LLM servers indexed by q1 , q2 , . . . , qk+1 . Requests arrive at server q1 at
+rate λ. Upon completing processing at q1 , each request forks into k − 1 sub-tasks that are
+sent to servers q2 , . . . , qk (processed in parallel). Once all k − 1 sub-tasks complete, the
+results merge and the request is processed by server qk+1 before departing. Let (msp , msd )
+denote the mean prefill and decode token sizes at server qs , and let cs = bsmax /tsbsmax denote
+the processing capacity of server qs .
+Theorem 7. Assume the load condition holds at each server:
+λ(msp + msd ) < cs
+
+for each s ∈ {1, . . . , k + 1}.
+
+(28)
+
+Under any K-FCFS work-conserving scheduling algorithm at each server, the DTMC describing the system is positive recurrent.
+
+23
+
+The key challenge is the join synchronization: a request cannot proceed to qk+1 until
+all k − 1 sub-tasks at q2 , . . . , qk complete. The K-FCFS condition provides a way forward
+through bounded overtaking (Thm. 11 in Section B.1): at each server in q1 , q2 , . . . , qk+1 , the
+completion order is within a constant K ′ of the arrival order. Since all sub-tasks of a given
+request arrive at q2 , . . . , qk in the same order (forked from q1 ), the completion orders across
+fork servers differ by at most 2K ′ . This bounds the total number of requests in "join buffers"
+by 2K ′ (k − 1), which vanishes under fluid scaling. Once the join buffers vanish in the fluid
+limit, the cascading argument of Thm. 6 applies: q1 drains first, then q2 , . . . , qk drain, then
+the join releases at rate λ, and finally qk+1 drains. The full proof is given in Section D.
+Remark 8. Theorem 7 readily extends to a multi-server DAG network (Section 5.2) in which
+individual classes may have fork-join internal structure. From each server’s perspective, fork
+sub-tasks are simply additional classes that arrive, are processed, and depart; the per-server
+Lyapunov argument of Thm. 5 applies, and the cascading argument of Thm. 6 carries through
+with the join buffers controlled by bounded overtaking.
+Related work on fork-join networks. The stability of fork-join queueing networks
+under FIFO service was established by Konstantopoulos and Walrand (1989) and Baccelli
+et al. (1989). Both works proved that the natural load condition suffices for stability when
+each server operates under strict FIFO; Baccelli et al. (1989) further derived stochastic
+ordering bounds on system response times. More recently, Özkan and Ward (2020) studied
+optimal scheduling control at a shared server in a fork-join network under heavy traffic, and
+Gao et al. (2025) characterized stability regions for fork-join systems with redundancy and
+heterogeneous servers under FCFS. Theorem 7 extends the stability guarantee to the broader
+class of K-FCFS policies, which permit bounded reordering and are natural in the LLM
+batch-service setting where multiple requests are processed simultaneously. The key enabling
+technique is the bounded overtaking property (Thm. 11 in Section B.1), which controls the
+join buffer sizes under K-FCFS; this extension from FIFO to K-FCFS may be of independent
+interest for fork-join networks beyond the LLM context.
+
+5.4
+
+Work-conserving algorithms can fail in networks: a Rybko–Stolyar
+example
+
+While work-conserving scheduling is throughput-optimal for a single server (Thm. 2), DAG
+networks (Thm. 6), and fork-join networks (Thm. 7), it is not sufficient when the server-level
+routing graph contains cycles. We demonstrate this through a Rybko–Stolyar (RS) type
+network (Rybko and Stolyar 1992), adapted to the LLM batch-service setting.
+Consider two LLM servers indexed by j ∈ {1, 2} (see Figure 11). Two types of requests
+flow through the network:
+• Type A (product search): first a short task at server 1, then a long task at server 2.
+• Type B (customer complaint): first a short task at server 2, then a long task at
+server 1.
+Such workflows arise naturally in multi-agent systems. For instance, in an e-commerce
+setting, server 1 may run a model specialized for product retrieval (query parsing, RAG,
+24
+
+(l,s)
+
+Type A (s,s)
+LLM Server 1
+
+LLM Server 2
+Type B (s,s)
+
+(l,s)
+
+Figure 11: Rybko–Stolyar type network of two LLM servers. (s,s) denotes short prefill and
+short decode; (l,s) denotes long prefill and short decode.
+verification) while server 2 runs a different model specialized for communication (emotional
+tone, compliance). A product search (type A) starts at server 1 and then routes to server 2;
+a customer complaint (type B) flows in the reverse direction. Because the two request types
+route in opposite directions, the resulting server-level routing graph contains a cycle.
+We simulate this network with the following parameters. Requests arrive as a Poisson
+process with equal rates for types A and B, at total load ρ = 0.9. Each server has token
+budget bmax = 768 and constant batch processing time tb = 1. Token sizes are i.i.d. with
+means
+(A,1)
+
+) = (32, 32),
+
+(m(B,1)
+, md
+p
+
+(A,2)
+
+) = (512, 32),
+
+(m(B,2)
+, md
+p
+
+(m(A,1)
+, md
+p
+
+(B,1)
+
+) = (512, 32)
+
+(29)
+
+for server 1, and
+(m(A,2)
+, md
+p
+
+(B,2)
+
+) = (32, 32)
+
+(30)
+
+for server 2. Both servers use work-conserving scheduling with mixed batching. Server 1
+gives non-preemptive priority to type B sub-tasks, and server 2 gives non-preemptive priority
+to type A sub-tasks. Within each type, decode-priority FCFS is used.
+Figure 12 (top row) shows that despite ρ < 1, the total number of tokens grows without
+bound. This demonstrates that not all work-conserving policies are stable for networks of
+LLM agents: the choice of priority order matters.
+Reversing the priority assignment—server 1 prioritizes type A, server 2 prioritizes type B—
+restores stability (Figure 12, bottom row). One can prove positive recurrence of this
+configuration using the fluid limit approach of Section B. This instability phenomenon is the
+LLM batch-service analog of the classical Rybko–Stolyar example (Rybko and Stolyar 1992,
+Dai and Harrison 2020).
+Design principle: avoid routing cycles across servers. The root cause of instability
+above is the cycle in the server-level routing graph: type A flows from server 1 to server 2,
+while type B flows from server 2 to server 1. By contrast, Thms. 6 and 7 guarantee that
+any work-conserving policy is throughput-optimal whenever the server-level routing graph
+is a DAG (with or without fork-join synchronization). This suggests a practical design
+principle for multi-server LLM deployments: when assigning agentic workloads to servers,
+one should strive to arrange the server-level routing as a DAG, avoiding cycles across servers
+whenever possible. When cycles are unavoidable, the scheduling policy must be chosen
+with care—not all work-conserving policies remain stable. In the conventional multiclass
+25
+
+queueing network setting, dynamic scheduling algorithms such as back-pressure (Tassiulas
+and Ephremides 1990) and proportionally fair resource allocation (Kelly 1997, Kelly et al.
+1998), including HLPPS (Bramson 1996), have been proved to be throughput optimal. See,
+also Chapters 9 and 10 of Dai and Harrison (2020). These algorithms can be adapted to the
+setting of networks of LLM servers. Understanding which algorithms can robustly balance
+the throughput and latency trade-off for general agentic workload is an important direction
+for future work.
+105
+
+Server 1 Requests
+Server 2 Requests
+
+Server 1 Tokens
+Server 2 Tokens
+
+107
+
+103
+
+Number
+
+Number
+
+104
+
+102
+101
+
+105
+
+103
+
+101
+
+100
+101
+
+102
+
+104
+
+103
+Time
+
+102
+
+105
+
+101
+
+Server 1 Requests
+Server 2 Requests
+
+102
+
+104
+
+103
+Time
+
+105
+
+Server 1 Tokens
+Server 2 Tokens
+
+104
+
+Number
+
+Number
+
+103
+101
+
+102
+101
+100
+
+100
+91000
+
+92000
+
+93000
+
+94000
+
+95000
+
+91000
+
+96000
+
+92000
+
+93000
+
+94000
+
+95000
+
+96000
+
+Time
+
+Time
+
+Figure 12: Rybko–Stolyar network at ρ = 0.9. Top row: under the destabilizing priority
+assignment, total requests (left) and tokens (right) grow without bound. Bottom row:
+reversing the priority restores stability.
+
+6
+
+Extension to Maximal Batch Size Constraint
+
+Throughout this paper, the only constraint on a batch has been the token budget b ≤ bmax .
+This is the primary bottleneck in practice: the batch processing time tb is determined by the
+total number of tokens, and GPU compute is the dominant limiting resource. In this regime,
+Thm. 2 provides a clean scalar threshold for stability, and work-conserving scheduling is
+throughput-optimal.
+In practice, however, a maximal batch size constraint k ≤ kmax is often imposed to
+limit GPU memory usage and control tail latency. When kmax is large relative to the
+typical number of tokens per request, this constraint is rarely binding and can be safely
+ignored. However, when kmax is small (e.g., for long-context models or memory-constrained
+deployments), the batch size constraint can fundamentally alter the stability region.
+In this section, we incorporate the batch size constraint k ≤ kmax and show how it
+complicates the analysis. The stability region is no longer a single scalar threshold but
+a convex region in the (λp , λd ) plane, where λp := λmp and λd := λmd are the prefill
+and decode token arrival rates, respectively. We believe that work-conserving scheduling
+26
+
+remains a sound principle to advocate in general, but we demonstrate that under extreme
+configurations, certain work-conserving algorithms can fail while some non-work-conserving
+algorithms succeed. We further experimentally verify this phenomenon and leave a thorough
+study to future work.
+
+6.1
+
+Stability region under the batch size constraint
+
+We now consider both the token budget and the batch size constraint. Each batch is limited
+to at most kmax requests and at most bmax tokens. For notational convenience in this section,
+let kp and kd denote the number of prefill and decode requests in a batch, and let x and y
+denote the total prefill and decode tokens, respectively. The constraints are:
+kp + kd = k ≤ kmax ,
+
+(31)
+
+x + y = b ≤ bmax .
+
+(32)
+
+To characterize the stability region, we decompose the arrival workload into prefill and
+decode components λp and λd . In stationarity, positive recurrence requires the expected
+processing rate of each token type to match or exceed its arrival rate.
+Condition 9 (Necessary condition for stability). Let ux,y denote the long-run fraction of
+time spent processing a batch with x prefill tokens and y decode tokens. P
+The system is positive
+recurrent only if there exists a probability vector u = (ux,y )x,y≥0 with
+ux,y ≤ 1 such that
+X
+x
+λp ≤
+ux,y ,
+(33)
+tx+y
+x+y≤bmax
+y≤kmax −1
+
+λd ≤
+
+X
+x+y≤bmax
+y≤kmax −1
+
+kmax
+y
+ux,y +
+u0,kmax .
+tx+y
+tkmax
+
+(34)
+
+The right-hand side of Eq. (33) is the long-run average rate at which prefill tokens are
+processed: a batch with x prefill tokens and processing time tx+y contributes x/tx+y prefill
+tokens per unit time, weighted by the fraction ux,y . For stability, this must be at least
+λp . Similarly, Eq. (34) requires the decode processing rate to match λd ; the additional
+term u0,kmax accounts for decode-only batches where all kmax slots are occupied by decoding
+requests, each producing one token per step , with no prefill processing.
+While the necessary condition Eq. (33)–Eq. (34) involves an optimization over infinitely
+many variables ux,y , it admits a surprisingly clean characterization under the piecewise
+constant processing time model (Eq. (4)): the stability region reduces to the convex hull of
+just four vertices.
+Theorem 10. Assume batch processing times follow Eq. (4) with a > 0, b0 | bmax , and
+kmax ≤ b0 . The pair (λp , λd ) ∈ R2≥0 satisfies the necessary condition Eq. (33)–Eq. (34) if and
+only if (λp , λd ) lies in the convex hull of the following four vertices:
+b
+
+b
+
+max
+max − kmax + 1 kmax − 1
+A=
+,0 ,
+B=
+,
+,
+tbmax
+tbmax
+tbmax
+b − k
+
+ k
+
+0
+max + 1 kmax − 1
+max
+C=
+,
+,
+D = 0,
+.
+tb0
+tb0
+tkmax
+27
+
+λd
+
+D 0, tkmax
+
+
+
+C
+
+b0 −kmax +1 kmax −1 
+,
+t b0
+tb0
+
+kmax
+
+B
+
+A
+
+bmax −kmax +1 kmax −1 
+, t
+tbmax
+bmax
+
+
+bmax
+,0
+tbmax
+
+λp
+
+Figure 13: Stability region under both the token budget bmax and batch size constraint kmax .
+The achievable (λp , λd ) pairs lie within the convex hull O–A–B–C–D.
+Here, the inequality (λp , λd ) ≤ (a, b) is interpreted componentwise.
+Figure 13 illustrates the stability region. Each vertex corresponds to a distinct operating
+regime:
+(A) The batch consists entirely of prefill tokens, filling the token budget bmax .
+(B) The batch mixes kmax − 1 decode tokens with bmax − kmax + 1 prefill tokens at the
+maximal token budget.
+(C) The batch mixes kmax − 1 decode tokens with b0 − kmax + 1 prefill tokens at the smaller
+token load b0 .
+(D) The batch consists solely of kmax decode tokens, constrained by the batch size limit.
+Vertex C reveals a counterintuitive phenomenon: it is sometimes optimal to form batches
+with token load b0 rather than bmax . This occurs because using the full token budget bmax
+with many decode requests forces the batch processing time to a higher step of tb , reducing
+the per-token processing rate. By operating at token load b0 , the system achieves a more
+favorable rate for certain arrival configurations.
+
+6.2
+
+Work-conserving algorithms can fail
+
+The existence of vertex C has a striking consequence: work-conserving algorithms—which
+always fill batches to the full token budget bmax —may fail to stabilize the system at arrival
+rates near the segment CD.
+We demonstrate this with a concrete experiment. We use CodeLlama-34B with TP1,
+whose batch processing time is modeled by tb = 11.28 + 35.47 × ⌈b/128⌉ (see Figure 6),
+giving b0 = 128. We set kmax = 100 and choose arrival parameters corresponding to vertex
+
+28
+
+C: (λp , λd ) = (29/46.75, 99/46.75), with a fixed inter-arrival time of 467.5 ms, 290 prefill
+tokens, and 990 decode tokens per request.
+Figure 14a shows the results. Under a token budget of bmax = 128, Sarathi-Serve is the
+only algorithm that maintains stability. It constructs batches of exactly 29 prefill tokens and
+99 decode tokens when there are 99 outstanding requests, precisely matching the operating
+point C. In contrast:
+• FasterTransformer and vanilla vLLM fail because they do not support mixed batching,
+preventing them from balancing prefill and decode processing rates.
+• Orca, despite supporting mixed batching, is prefill-prioritized: when a new request
+arrives, it constructs consecutive batches dominated by prefill tokens, causing the
+decode processing rate to fall below vertex C.
+
+1e6
+
+Total Unprocessed Tokens Over Time
+
+Unprocessed Token Count
+
+Total Unprocessed Tokens
+
+Figure 14b further shows that even Sarathi-Serve fails when the token budget is increased
+to bmax = 1024. In this case, the algorithm fills batches to 1024 tokens, which accelerates
+prefill processing but causes the GPU to accumulate kmax = 100 outstanding decode requests.
+Subsequent batches then consist entirely of 100 decode tokens at an inefficient rate, disrupting
+the balance.
+vLLM
+Sarathi-Serve
+Orca
+FasterTransformer
+
+1.25
+1.00
+0.75
+0.50
+0.25
+0.00
+0
+
+100
+
+200
+
+300
+
+400
+
+500
+
+Time (seconds)
+
+×105
+
+Total Unprocessed Tokens Over Time
+b_sarathi=128
+b_sarathi=1024
+
+4
+3
+2
+1
+0
+0
+
+100
+
+200
+
+300
+
+400
+
+500
+
+Time (s)
+
+(b) Sarathi-Serve with bmax ∈ {128, 1024}.
+
+(a) All schedulers with bmax = 128.
+
+Figure 14: Unprocessed tokens over time at the operating point C. (a) Only Sarathi-128
+maintains stability. (b) Sarathi-1024 fails despite being work-conserving, because filling to
+bmax = 1024 disrupts the prefill–decode balance.
+
+6.3
+
+Discussion
+
+The batch size constraint kmax introduces a fundamental asymmetry between prefill and
+decode tokens that the token budget alone does not capture. Because each decode request
+contributes exactly one token per batch but occupies one slot in the batch size limit, decodeheavy workloads are disproportionately affected by kmax .
+The stability region in Thm. 10 provides a necessary condition for positive recurrence.
+An important open question is whether every point in this convex hull is achievable by some
+scheduling algorithm, particularly when the distributions of prefill and decode lengths vary.
+Designing an adaptive algorithm that guarantees stability for all arrival configurations within
+29
+
+0.6
+75.97
+
+94.23
+
+101.30
+
+115.01
+40
+
+6 × 101
+
+100
+
+113.37
+
+E2E (ms)
+
+sarathi (token budget 1024)
+sarathi (token budget 512)
+sarathi (token budget 128)
+
+0.5
+
+CCDF
+
+CCDF
+
+0.6
+0.5
+0.4
+0.3
+0.2
+0.1
+0.0
+
+178.65
+
+0.4
+0.3
+0.2
+0.1
+0.0
+
+2 × 102
+
+20
+
+100
+
+Prefill time (ms)
+
+Figure 15: E2E latency (left) and TTFT (right) for different token budgets of Sarathi-Serve
+on CodeLlama-34B under production conversation traces.
+the convex hull—or proving that no such algorithm exists—remains an interesting direction
+for future work.
+
+7
+
+Future Directions and Conclusion
+
+We have developed a queueing-theoretic framework for LLM inference scheduling. Our main
+contributions are: (i) a complete characterization of the stability region for a single LLM
+server under the token budget constraint, showing that work-conserving K-FCFS algorithms
+are throughput-optimal (Thm. 2); (ii) an extension to parallel servers (Thm. 3) and to a single
+server with multiple request classes (Thm. 5); (iii) stability results for multi-server DAG
+networks (Thm. 6) and fork-join networks (Thm. 7) under K-FCFS; (iv) a Rybko–Stolyar
+example showing that work-conserving scheduling can fail in certain network topologies;
+and (v) an analysis of the batch size constraint, revealing a richer stability region where
+work-conserving algorithms may not suffice. We conclude with preliminary results on latency
+and several open directions.
+Latency optimization. This paper focuses on throughput and stability. However, in
+practice, the choice of scheduling algorithm also affects latency, and the best policy depends
+on the workload and latency metric of interest. As a preliminary investigation, Table 3
+reports end-to-end (E2E) latency, time to first token (TTFT), and time between tokens
+(TBT) for the four scheduling algorithms on CodeLlama-34B under production coding traces
+at 1.2 queries per second (QPS). Sarathi-Serve achieves the best E2E and prefill latency
+across all percentiles, while FasterTransformer has the lowest TBT due to its decode-only
+batching—highlighting a trade-off between prefill responsiveness and decode smoothness.
+Figure 15 further shows how the token budget within Sarathi-Serve affects latency under
+conversation traces. A moderate budget (e.g., 512 tokens) yields the lowest median E2E
+latency, a larger budget (e.g., 1024 tokens) improves prefill latency, and an excessively small
+budget (e.g., 128 tokens) incurs significant overhead from repeated chunked prefill iterations.
+The key takeaway is that the optimal token budget depends on the distribution of prefill
+lengths and service level objectives (SLOs). A comprehensive study of latency optimization
+is an important direction for future work.
+Other directions. Beyond latency, several important directions remain.
+• Full treatment of the batch size constraint. The stability region under the
+30
+
+Table 3: Latency comparison of the four scheduling algorithms on CodeLlama-34B (single
+A100, 1.2 QPS, production coding traces).
+E2E (ms)
+FasterTransformer
+Orca
+vLLM
+Sarathi-Serve
+
+Median
+45.38
+7.1
+6.22
+3.78
+
+P90
+116.81
+16.13
+14.62
+8.8
+
+P95
+123.98
+18.6
+20.74
+12.29
+
+P99
+139.65
+30.59
+40.75
+22.36
+
+TTFT (ms)
+FasterTransformer
+Orca
+vLLM
+Sarathi-Serve
+
+Median
+44.61
+4.55
+2.52
+2.02
+
+P90
+114.53
+13.99
+7.07
+3.87
+
+P95
+123.63
+14.83
+8.58
+5.81
+
+P99
+138.87
+15.9
+10.09
+7.47
+
+TBT (ms)
+FasterTransformer
+Orca
+vLLM
+Sarathi-Serve
+
+Median
+0.04
+0.08
+0.17
+0.13
+
+P90
+0.04
+0.19
+0.43
+0.17
+
+P95
+0.04
+0.24
+0.47
+0.17
+
+P99
+0.05
+0.38
+0.65
+0.17
+
+joint token budget and batch size constraint (Section 6) is only partially characterized.
+Designing an adaptive algorithm that achieves throughput optimality for all arrival
+configurations within the convex hull remains open.
+• Richer batch processing time models. Our analysis uses the piecewise constant
+model tb = c + a⌈b/b0 ⌉, which captures the dominant linear-layer cost but omits
+attention-layer effects. Extending the stability analysis to more expressive models—for
+example, incorporating the total number of KV cache tokens as in Ao et al. (2025),
+or the fully analytical batch processing time characterization developed in Bari et al.
+(2025)—is an important direction. In particular, understanding how these richer models
+interact with multi-server AI-agent topologies (Section 5) may reveal new scheduling
+trade-offs not captured by our current framework.
+• Tail-latency objectives. Optimal scheduling under tail-latency measures (e.g., tail
+TBT or TTFT) under various load regimes warrants further study (Yu and Scully 2024,
+Zhang et al. 2025).
+• System-level optimization. Joint optimization of model autoscaling, resource
+allocation across multiple models, KV cache policies, and load balancing may yield
+substantial improvements, particularly under bursty or skewed workloads. Scheduling
+under multi-tenancy—where best-effort and latency-critical requests share the same
+servers—presents additional challenges.
+We hope this work encourages collaborative efforts between queueing theorists and system
+practitioners to develop models that accurately capture LLM inference dynamics and inform
+the design of next-generation scheduling algorithms.
+
+31
+
+References
+Amey Agrawal, Ashish Panwar, Jayashree Mohan, Nipun Kwatra, Bhargav S Gulavani, and Ramachandran Ramjee. Sarathi: Efficient llm inference by piggybacking decodes with chunked
+prefills. arXiv preprint arXiv:2308.16369, 2023.
+Amey Agrawal, Nitin Kedia, Jayashree Mohan, Ashish Panwar, Nipun Kwatra, Bhargav Gulavani,
+Ramachandran Ramjee, and Alexey Tumanov. Vidur: A large-scale simulation framework for
+llm inference. Proceedings of Machine Learning and Systems, 6:351–366, 2024.
+Ruicheng Ao, Gan Luo, David Simchi-Levi, and Xinshang Wang. Optimizing llm inference: Fluidguided online scheduling with memory constraints, 2025.
+François Baccelli, Armand M. Makowski, and Adam Shwartz. The fork-join queue and related systems
+with synchronization constraints: Stochastic ordering and computable bounds. Advances in
+Applied Probability, 21(3):629–660, 1989.
+Jens Baetens, Bart Steyaert, Dieter Claeys, and Herwig Bruneel. Delay analysis of a two-class
+batch-service queue with class-dependent variable server capacity. Mathematical Methods of
+Operations Research, 88(1):37–57, 2018.
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana. Optimal scheduling algorithms for LLM
+inference: Theory and practice. arXiv preprint arXiv:2508.01002, 2025.
+Maury Bramson. Convergence to equilibria for fluid models of head-of-the-line proportional processor
+sharing queueing networks. Queueing Systems, 23(1):1–26, 1996.
+Ran Canetti and Sandy Irani. Bounding the power of preemption in randomized scheduling. In
+Proceedings of the twenty-seventh annual ACM symposium on Theory of computing, pages
+606–615, 1995.
+Sung-Hee Chang and Doo-Il Choi. Performance analysis of a finite-buffer discrete-time queue with
+bulk arrival, bulk service and vacations. Computers & Operations Research, 32(4):795–812,
+2005.
+Jinsheng Chen, Jing Dong, and Pengyi Shi. Optimal routing under demand surges: The value of
+future arrival rates. Operations Research, 73(1):510–542, 2025a. URL https://pubsonline.
+informs.org/doi/full/10.1287/opre.2022.0282.
+Zixi Chen, Yinyu Ye, and Zijie Zhou. Adaptively robust LLM inference optimization under prediction
+uncertainty, 2025b.
+J. G. Dai. A fluid limit model criterion for instability of multiclass queueing networks. Ann.
+Appl. Probab., 6(3):751–757, 1996. ISSN 1050-5164. doi: 10.1214/aoap/1034968225. URL
+https://doi.org/10.1214/aoap/1034968225.
+JG Dai. On positive harris recurrence of multiclass queueing networks: a unified approach via fluid
+limit models. The Annals of Applied Probability, 5(1):49–77, 1995.
+JG Dai and J Michael Harrison. Processing networks: fluid models and stability. Cambridge
+University Press, 2020.
+Databricks. Llm inference performance engineering: Best practices, October 2023. URL https://
+www.databricks.com/blog/llm-inference-performance-engineering-best-practices.
+Chutong Gao, Seyed Iravani, and Ohad Perry. Stability, design and control of fork-join systems with
+redundancy and heterogeneous servers. Working paper, 2025.
+Ali Ghodsi, Matei Zaharia, Benjamin Hindman, Andy Konwinski, Scott Shenker, and Ion Stoica.
+Dominant resource fairness: Fair allocation of multiple resource types. Proceedings of the
+8th USENIX Symposium on Networked Systems Design and Implementation, 2011. URL
+https://dl.acm.org/doi/10.5555/1972457.1972470.
+Isaac Grosof, Mor Harchol-Balter, and Alan Scheller-Wolf. New stability results for multiserver-job
+models via product-form saturated systems. SIGMETRICS Performance Evaluation Review,
+
+32
+
+51(2):6–8, October 2023. doi: 10.1145/3626570.3626574. URL https://dl.acm.org/doi/10.
+1145/3626570.3626574.
+Tatsunori Hashimoto, Percy Liang, Neil Band, Marcel Rød, and Rohith Kuditipudi. Cs336: Language
+modeling from scratch, spring 2025. https://stanford-cs336.github.io/spring2025/, 2025.
+Accessed: 2025-11-14.
+Yue Hu, Carri W. Chan, and Jing Dong. Optimal scheduling of proactive service with customer
+deterioration and improvement. Management Science, 68(4):2533–2578, April 2022. doi:
+10.1287/mnsc.2021.3992. URL https://pubsonline.informs.org/doi/abs/10.1287/mnsc.
+2021.3992.
+Rishabh Iyer, Musa Unal, Marios Kogias, and George Candea. Achieving microsecond-scale tail
+latency efficiently with approximate optimal scheduling. In Proceedings of the 29th Symposium
+on Operating Systems Principles, pages 466–481, 2023.
+A.J.E.M. Janssen and J.S.H. van Leeuwaarden. Analytic computation schemes for the discrete-time
+bulk service queue. Queueing Systems, 50(2):141–163, 2005.
+Aditya K Kamath, Ramya Prabhu, Jayashree Mohan, Simon Peter, Ramachandran Ramjee, and
+Ashish Panwar. Pod-attention: Unlocking full prefill-decode overlap for faster llm inference.
+arXiv preprint arXiv:2410.18038, 2024.
+Frank Kelly.
+Charging and rate control for elastic traffic.
+Telecommunications, 8(1):33–37, 1997.
+
+European transactions on
+
+Frank P Kelly, Aman K Maulloo, and David Kim Hong Tan. Rate control for communication networks:
+shadow prices, proportional fairness and stability. Journal of the Operational Research society,
+49(3):237–252, 1998.
+Panagiotis Konstantopoulos and Jean Walrand. Stationarity and stability of fork-join networks.
+Journal of Applied Probability, 26(3):604–614, 1989.
+Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying Sheng, Lianmin Zheng, Cody Hao Yu, Joseph
+Gonzalez, Hao Zhang, and Ion Stoica. Efficient memory management for large language model
+serving with pagedattention. In Proceedings of the 29th Symposium on Operating Systems
+Principles, pages 611–626, 2023.
+Yueying Li, Nikita Lazarev, David Koufaty, Tenny Yin, Andy Anderson, Zhiru Zhang, G Edward Suh,
+Kostis Kaffes, and Christina Delimitrou. Libpreemptible: Enabling fast, adaptive, and hardwareassisted user-space scheduling. In 2024 IEEE International Symposium on High-Performance
+Computer Architecture (HPCA), pages 922–936. IEEE, 2024.
+Yueying Li, Zhanqiu Hu, Esha Choukse, Rodrigo Fonseca, G. Edward Suh, and Udit Gupta. Ecoserve:
+Designing carbon-aware ai inference systems, 2025.
+Michael Luo, Xiaoxiang Shi, Colin Cai, Tianjun Zhang, Justin Wong, Yichuan Wang, Chi Wang,
+Yanping Huang, Zhifeng Chen, Joseph E Gonzalez, et al. Autellix: An efficient serving engine
+for llm agents as general programs. arXiv preprint arXiv:2502.13965, 2025.
+Basil Maglaris, Dimitris Anastassiou, Prodip Sen, Gunnar Karlsson, and John D Robbins. Performance
+models of statistical multiplexing in packet video communications. IEEE transactions on
+communications, 36(7):834–844, 1988.
+Michael Mitzenmacher. The power of two choices in randomized load balancing. IEEE Transactions
+on Parallel and Distributed Systems, 12(10):1094–1104, 2001.
+Michael Mitzenmacher and Rana Shahout. Queueing, predictions, and llms: Challenges and open
+problems. arXiv preprint arXiv:2503.07545, 2025.
+NVIDIA. Fastertransformer. https://github.com/NVIDIA/FasterTransformer, 2021.
+NVIDIA Corporation. NVIDIA Nsight Systems, 2023. URL https://developer.nvidia.com/
+nsight-systems. Version 2023.5.
+
+33
+
+OpenAI. Tokenizer — openai api. https://platform.openai.com/tokenizer. Accessed: 2025-1116.
+Erhun Özkan and Amy R. Ward. On the control of fork-join networks. The Annals of Applied
+Probability, 30(4):1730–1785, 2020.
+Pratyush Patel, Esha Choukse, Chaojie Zhang, Íñigo Goiri, Aashaka Shah, Saeed Maleki, and Ricardo
+Bianchini. Splitwise: Efficient generative llm inference using phase splitting. arXiv preprint
+arXiv:2311.18677, 2023.
+Archit Patke, Dhemath Reddy, Saurabh Jha, Haoran Qiu, Christian Pinto, Chandrasekhar Narayanaswami, Zbigniew T. Kalbarczyk, and Ravi Iyer.
+Queue
+management for slo-oriented large language model serving.
+ACM Symposium
+on
+Cloud
+Computing,
+2024.
+URL
+https://www.semanticscholar.org/
+paper/Queue-Management-for-SLO-Oriented-Large-Language-Patke-Reddy/
+7c229d35c0befee40be4a3b01cba90deb19c5e9b.
+G Venkata Reddy, R Nadarajan, and P Kandasamy. Scheduling in a multi-class single-server
+batch-service queueing system. Computers & operations research, 20(2):211–218, 1993.
+Aleksandr Nikolaevich Rybko and Alexander L Stolyar. On the ergodicity of stochastic processes
+describing functioning of open queueing networks. Problemy Peredachi Informatsii, (3):3–26,
+1992.
+SGLang. SGLang, 2025. URL https://github.com/sgl-project/sglang. Accessed: 2025-06-01.
+ShareGPT. Sharegpt: A dataset of multi-turn chat interactions with large language models. https:
+//sharegpt.com/, 2024. Accessed: 2024-11-18.
+Li Shen, Jisoo Kim, Xiaodong Zhang, et al. Pytorch profiler: Design and applications. In Proceedings
+of the Machine Learning and Systems Conference (MLSys), pages 1–15. PyTorch Foundation,
+2022. URL https://pytorch.org/docs/stable/profiler.html.
+Ion Stoica, Scott Shenker, and Hui Zhang. Core-stateless fair queueing: Achieving approximately fair bandwidth allocations in high speed networks. In Proceedings of the ACM
+SIGCOMM’98 conference on Applications, technologies, architectures, and protocols for
+computer communication, pages 118–130, 1998.
+Alexander L Stolyar. On the stability of multiclass queueing networks: a relaxed sufficient condition
+via limiting fluid processes. Markov Processes and Related Fields, 1(4):491–512, 1995.
+Leandros Tassiulas and Anthony Ephremides. Stability properties of constrained queueing systems
+and scheduling policies for maximum throughput in multihop radio networks. In 29th IEEE
+Conference on Decision and Control, pages 2130–2132. IEEE, 1990.
+Muhammad Tirmazi, Adam Barker, Nan Deng, Md E. Haque, Zhijing Gene Qin, Steven Hand,
+Mor Harchol-Balter, and John Wilkes. Borg: The next generation. In Proceedings of the
+Fifteenth European Conference on Computer Systems, EuroSys ’20, pages 1–14, New York,
+NY, USA, April 2020. Association for Computing Machinery. ISBN 978-1-4503-6882-7. doi:
+10.1145/3342195.3387517. URL https://dl.acm.org/doi/10.1145/3342195.3387517.
+vLLM Project. Chunked prefill — optimization and tuning, 2025a. URL https://docs.vllm.ai/
+en/latest/performance/optimization.html#chunked-prefill. Accessed: 2025-04-23.
+vLLM Project. vLLM V1, 2025b. URL https://blog.vllm.ai/2025/01/27/v1-alpha-release.
+html. Accessed: 2025-06-01.
+Meixuan Wang, Yinyu Ye, and Zijie Zhou. LLM serving optimization with variable prefill and decode
+lengths, 2025.
+Ward Whitt. Tail probabilities with statistical multiplexing and effective bandwidths in multi-class
+queues. Telecommunication Systems, 2:71–107, 1993.
+Kuang Xu. Drift method: from stochastic networks to machine learning. URL: https://web. stanford.
+edu/˜ kuangxu/papers/driftmethod. pdf. Last visited on, 3(09), 2023.
+
+34
+
+Zihao Ye, Lequn Chen, Ruihang Lai, Wuwei Lin, Yineng Zhang, Stephanie Wang, Tianqi Chen,
+Baris Kasikci, Vinod Grover, Arvind Krishnamurthy, and Luis Ceze. Flashinfer: Efficient and
+customizable attention engine for llm inference serving, 2025.
+George Yu and Ziv Scully. Strongly tail-optimal scheduling in the light-tailed m/g/1. Proceedings of
+the ACM on Measurement and Analysis of Computing Systems, 8(2):1–33, 2024.
+Gyeong-In Yu, Joo Seong Jeong, Geon-Woo Kim, Soojeong Kim, and Byung-Gon Chun. Orca:
+A distributed serving system for transformer-based generative models. In 16th USENIX
+Symposium on Operating Systems Design and Implementation (OSDI 22), pages 521–538,
+2022.
+Zhuolong Yu, Jingfeng Wu, Vladimir Braverman, Ion Stoica, and Xin Jin. Twenty years after:
+Hierarchical Core-Stateless fair queueing. In 18th USENIX Symposium on Networked Systems
+Design and Implementation (NSDI 21), pages 29–45. USENIX Association, April 2021. ISBN
+978-1-939133-21-2. URL https://www.usenix.org/conference/nsdi21/presentation/yu.
+Hong Zhang, Yupeng Tang, Anurag Khandelwal, and Ion Stoica. {SHEPHERD}: Serving {DNNs}
+in the wild. In 20th USENIX Symposium on Networked Systems Design and Implementation
+(NSDI 23), pages 787–808, 2023.
+Wenxin Zhang, Yueying Li, Ciamac C. Moallemi, and Tianyi Peng. Tail-optimized caching for LLM
+inference, 2025.
+Yinmin Zhong, Shengyu Liu, Junda Chen, Jianbo Hu, Yibo Zhu, Xuanzhe Liu, Xin Jin, and Hao
+Zhang. {DistServe}: Disaggregating prefill and decoding for goodput-optimized large language
+model serving. In 18th USENIX Symposium on Operating Systems Design and Implementation
+(OSDI 24), pages 193–210, 2024.
+Kan Zhu, Yilong Zhao, Liangyu Zhao, Gefei Zuo, Yile Gu, Dedong Xie, Yufei Gao, Qinyu Xu, Tian
+Tang, Zihao Ye, Keisuke Kamahori, Chien-Yu Lin, Stephanie Wang, Arvind Krishnamurthy,
+and Baris Kasikci. Nanoflow: Towards optimal large language model serving throughput, 2024.
+Noa Zychlinski, Carri W. Chan, and Jing Dong. Managing queues with different resource requirements.
+Operations Research, 71(4):1387–1413, 2023. URL https://pubsonline.informs.org/doi/
+10.1287/opre.2022.2284.
+
+A
+
+Batch Processing Time Beyond the Linear Regime
+
+In the main text, Eq. (4) models the batch processing time as a function of the token load
+b alone. This is justified when the linear-layer (i.e., feed-forward) computation dominates,
+which holds for moderate input contexts, output lengths, and batch sizes. However, for longer
+contexts or larger batches, additional computational components become non-negligible.
+RecallP
+from Section 2.2 that a batch is represented as {(xili , . . . , xiri ) : i ∈ B}, with token
+load b = i∈B (ri − li + 1). For each request i in the batch, (ri − li + 1) new tokens are
+processed, and each attends to all tokens up to position ri (i.e., li − 1 previously processed
+tokens plus the new chunk). Note that for decode requests, the feasibility constraints in
+Section 2.1 enforce ri = li .
+A more complete model of the batch processing time tb takes the form
+X
+X
+X
+tb = c + a1
+(ri − li + 1) + a2
+(ri − li + 1)2 + a3
+(ri − li + 1)(li − 1), (35)
+i∈B
+
+|
+
+i∈B
+
+{z
+
+linear layer
+
+}
+
+|
+
+i∈B
+
+{z
+
+self-attention
+
+35
+
+}
+
+|
+
+{z
+
+cross-attention
+
+}
+
+where c, a1 , a2 , a3 ≥ 0 are hardware- and model-dependent constants. The self-attention
+term accounts for attention among the (ri − li + 1) new tokens within each chunk, while the
+cross-attention term accounts for each new token attending to the li − 1 previously processed
+tokens. Note that for decode requests (ri = li ), the self-attention cost reduces to a2 and the
+cross-attention cost becomes a3 (li − 1).
+In typical LLM architectures, a1 ≫ a2 , a3 , because the linear-layer (feed-forward) computation involves large matrix multiplications that dominate per-token cost, while the attention
+computation per token pair is comparatively cheap. This separation of scales gives rise to
+three asymptotic regimes:
+1. Moderate input, batch size, and output lengths: The linear-layer term dominates:
+X
+tb ≈ c + a1
+(ri − li + 1).
+i∈B
+
+This is the regime where Eq. (4) provides an accurate approximation, as the iteration
+time depends primarily on the total token load b. This regime covers many realistic
+serving traces (e.g., ShareGPT (ShareGPT 2024)).
+2. Long output or large batch size: The cross-attention term dominates via the
+decode requests (where ri = li ):
+X
+tb ≈ c + a3
+(li − 1).
+i∈B
+
+3. Long input context: The self-attention and cross-attention terms dominate via the
+prefill requests:
+X
+
+tb ≈ c +
+a2 (ri − li + 1)2 + a3 (ri − li + 1)(li − 1) .
+i∈B
+
+Our theoretical analysis focuses on the first regime. Extending the throughput-optimality
+results to the latter two regimes—where the batch processing time depends on the composition
+of the batch, not just its total token load—is an important direction for future work. For a
+more detailed explanation for the modeling above, we refer the reader to Bari et al. (2025).
+
+B
+
+Fluid Model Proof of Thm. 2 Part (b)
+
+In this appendix, we prove Part (b) (stability) of Thm. 2 using the fluid limit technique (Dai
+1995, Dai and Harrison 2020). Part (a) (instability) is proved directly in the main text.
+Given the fluid limit technique developed in Section B.3, Part (a) also easily follows from
+Theorem 3.1 and Proposition 5.1 of Dai (1996). We restate the load condition Eq. (12) here
+for convenience:
+λ(mp + md ) < bmax /tbmax ,
+
+(36)
+
+where bmax is the token budget, mp and md are the mean prefill and decode token sizes,
+tbmax is the processing time of a full batch, and λ is the request arrival rate. The appendix is
+36
+
+organized as follows. In Section B.1, we introduce the dynamics of the processing model. In
+Section B.2, we define the fluid model and prove it is stable under Eq. (36). In Section B.3,
+we introduce fluid limits that justify the fluid model equations. In Section B.4, we complete
+the proof of Thm. 2.
+While a simpler, self-contained Lyapunov proof of Part (b) (stability) is also given in
+Section C, the fluid limit technique developed here is more flexible and extends naturally
+to the network settings of Section 5. Readers are referred to (Dai and Harrison 2020) for a
+detailed treatment of the fluid limit technique for stochastic processing networks.
+
+B.1
+
+System dynamics and scheduling algorithms
+
+To study the dynamics of the processing model of the LLM server, we introduce aggregate
+quantities derived from the per-request state {(Pi (n), Di (n)) : i ∈ Qn } defined in Section 3.1.
+Let Zp (n) and Zd (n) be the number of requests in the prefill and decode phases, respectively,
+at the end of time slot n:
+Zp (n) = |{i ∈ Qn : Pi (n) > 0}|,
+
+Zd (n) = |{i ∈ Qn : Pi (n) = 0}|.
+
+Let Wp (n) and Wd (n) be the total number of remaining prefill and decode tokens, respectively:
+X
+X
+Wp (n) =
+Pi (n),
+Wd (n) =
+Di (n).
+i∈Qn
+
+i∈Qn
+
+Note that Wp (n) + Wd (n) = |X(n)|, the total unprocessed tokens in Eq. (11).
+Assume a batch is completed at n and is ready to load the next batch to be started at
+time n + 1. The LLM server needs a scheduling algorithm to decide which tokens to go into
+the batch.
+The following scheduling algorithms can be used to load the next batch. Using newly
+introduced notation, we recap the definitions of two families of scheduling algorithms.
+Work-conserving scheduling algorithms. When
+Wp (n) + Zd (n) ≥ bmax ,
+
+(37)
+
+the next batch is a full batch (token load b = bmax ).
+To describe the dynamics, we further introduce the quantities Bf (n), E(n), Ff (n), and
+Vf (N ). For each phase f ∈ {p, d}, define Bf (n) to be the cumulative number of tokens that
+have been completed phase f processing by time n; define Ff (n) to be the cumulative
+number
+P
+of requests that have completed phase f processing by time n; define E(n) = nℓ=1 aℓ to be
+the cumulative number of requests that have arrived by n, and
+Vf (N ) =
+
+N
+X
+i=1
+
+37
+
+vf (i)
+
+(38)
+
+to be the total number of phase f tokens brought in by the first N requests. It follows that
+Zp (n) = Zp (0) + E(n) − Fp (n) ≥ 0,
+
+(39)
+
+Zd (n) = Zd (0) + Fp (n) − Fd (n) ≥ 0,
+
+(40)
+
+Wp (n) = Vp (Zp (0) + E(n)) − Bp (n) ≥ 0,
+
+(41)
+
+Wd (n) = Vd (Zd (0) + Fp (n)) − Bd (n) ≥ 0,
+
+
+Bf n2 tbmax − Bf n1 tbmax ≤ (n2 − n1 )bmax ,
+
+(42)
+
+for each f ∈ {p, d},
+
+n1 , n2 ∈ N with n1 < n2 .
+
+(43)
+
+To establish the fluid limit in Section B.3, we need to show that requests complete each
+phase in approximately arrival order (bounded overtaking). Recall that the token sizes are
+bounded: vp (i) ≤ vpmax and vd (i) ≤ vdmax for all i. Writing v max := vpmax + vdmax , the following
+lemma shows that the K-FCFS condition together with bounded token sizes guarantees this
+property.
+Lemma 11 (Bounded overtaking in phase completion order). Under any K-FCFS scheduling
+algorithm, there exists a finite constant K ′ (depending on K, v max , and bmax ) such that for
+each phase f ∈ {p, d}, request j can complete phase f only if every request i ≤ j − K ′ has
+already completed phase f .
+Proof. The key observation is: whenever any request j ′ ≥ i + K processes a decoding token
+(δjd′ = 1), the K-FCFS condition forces δip + δid ≥ 1, so request i makes at least one token of
+progress. Since i requires at most v max tokens in total to depart, it departs after at most
+v max such batches.
+It remains to count how many later requests can overtake i within these v max batches.
+In each batch, at most bmax requests decode simultaneously (each contributing one decode
+token to the budget), so at most bmax requests with index ≥ i + K can depart per batch.
+Over v max batches, at most v max · bmax later requests overtake i, giving K ′ ≤ K + v max · bmax
+for f = d (departure order).
+For f = p (prefill completion order): when i is still in prefill (Pi (n) > 0), feasibility
+constraint Eq. (6a) forces δid = 0, so the guaranteed token is a prefill token (δip ≥ 1). Since i
+has at most vpmax prefill tokens, the same counting gives K ′ ≤ K + vpmax · bmax .
+■
+With Thm. 11 in hand, the cumulative tokens processed Bf (n) are tightly coupled with
+the cumulative tokens brought by completed requests Vf (Ff (n)). Specifically, the bounded
+overtaking constant K ′ from Thm. 11 yields
+
+
+Vf Ff (n) − K ′ ≤ Bf (n) ≤ Vf Ff (n) + K ′ , f ∈ {p, d}.
+(44)
+For the upper bound: by Thm. 11, the only requests that can have any phase-f tokens
+processed by time n are those with arrival index at most Ff (n) + K ′ , so Bf (n) ≤ Vf (Ff (n) +
+K ′ ). For the lower bound: all requests with arrival index ≤ Ff (n) − K ′ must have completed
+phase f by time n (again by bounded overtaking), so their full token loads are included in
+Bf (n), giving Bf (n) ≥ Vf (Ff (n) − K ′ ).
+This is the analog of Key Relationship (6.51) in (Dai and Harrison 2020). Since K ′ is a
+finite constant, it vanishes under fluid scaling.
+38
+
+B.2
+
+The LLM fluid model & fluid model calculus
+
+In this section, we introduce the fluid model of the LLM server. The fluid model is defined
+through a set of fluid model equations including some inequalities. These equations will
+need to be justified through a fluid limit procedure to be explained in Section B.3. Fix
+any K-FCFS scheduling algorithm. These fluid model equations include: for any time
+t ∈ R+ ≡ [0, ∞),
+Zp (t) = Zp (0) + λt − Fp (t),
+
+(45)
+
+Zd (t) = Zd (0) + Fp (t) − Fd (t),
+
+(46)
+
+Bf (0) = 0,
+0 ≤ Bf (t) − Bf (s) ≤ (t − s)bmax /tbmax ,
+1
+Ff (t) =
+Bf (f ), f ∈ {p, d},
+mf
+Wf (t) = mf Zf (t),
+
+0 ≤ s ≤ t,
+
+f ∈ {p, d}.
+
+(47)
+(48)
+(49)
+
+f ∈ {p, d}.
+
+Here, we intentionally overload the notational system in Section B.1 to emphasize the
+similarity of the fluid analog. Each overloaded function is differentiated by its argument
+n ∈ N and t ∈ R+ . Fluid model equation (47) says that the function Bf (·) is Lipschitz
+continuous with Lipschitz constant bmax /tbmax . Fluid model equation (48) implies that
+function Ff (·) is Lipschitz continuous. Fluid model equations (45)-(46) and (49) imply
+that Zf (·) and Wf (·) are Lipschitz continuous as well. In conclusion, the multidimensional
+function
+
+Bf (·), Ff (·), Wf (·), Zf (·), f ∈ {p, d}
+(50)
+is Lipschitz continuous. Therefore, from real analysis (c.f. Lemma A.2 of (Dai and Harrison
+2020). and its commentary), this function is absolutely continuous. As a consequence, it is
+differential almost surely everywhere, and for any component x(·) in (50),
+Z t
+x(t) − x(s) =
+
+ẋ(u)du,
+
+s < t,
+
+(51)
+
+s
+
+where ẋ(u) denotes the derivative of the function x(·) at time u. Equation (51) is simply
+the fundamental theorem of calculus when x(·) is continuously differentiable. In general, the
+integral on the right of (51) is interpreted as the Lebesgue integral, and it is sufficient that
+ẋ(u) is well defined almost everywhere. See, for example, Lemma A.3 of (Dai and Harrison
+2020). and the references there.
+Definition 12. A point t > 0 is said to be a regular point for a fluid model solution (50) if
+the solution is differentiable at time t.
+When the fluid model solution is clear in a context, we simply say a time t is a regular
+point without reference to the fluid model solution. When the K-FCFS scheduling algorithm
+is also work-conserving, the fluid model equations include: for any regular time t > 0,
+Wp (t) + Wd (t) > 0 implies Ḃp (t) + Ḃd (t) = bmax /tbmax .
+
+39
+
+(52)
+
+Definition 13. A function in (50) is said to be a fluid model solution if it satisfies fluid
+model equation (45)-(49), a work-conserving fluid model solution if, in addition, it satisfies
+(52).
+Definition 14. The fluid model is said to be stable if there exists a time δ > 0 such that
+Z(t) = 0 for t ≥ δ for any fluid model solution with |Z(0)| ≡ Zp (0) + Zd (0) ≤ 1.
+Proposition 15. Under any work-conserving, K-FCFS algorithm, the fluid model is stable
+under load condition Eq. (36).
+Proof. Given any fluid model solution (B(·), F (·), W (·), Z(·)), we use the Lyapunov function
+f (t) = (mp + md )Zp (t) + md Zd (t)
+
+(53)
+
+as the total workload in the system at time t: each prefill request still requires (mp + md )
+tokens of processing (prefill plus future decode), while each decode request requires md tokens.
+It follows from fluid model equations (45)-(49) that
+
+f (t) = f (0) + λ(mp + md )t − Bp (t) + Bd (t) .
+For each regular point t > 0, f (t) > 0 implies that f˙(t) = λ(mp + md ) − bmax /tbmax , which is
+negative by load condition Eq. (36). It follows from Lemma 8.5 of (Dai and Harrison 2020)
+that f (t) = 0 for t ≥ f (0)/δ, where
+δ = bmax /tbmax − λ(mp + md ) > 0.
+■
+
+B.3
+
+Fluid limit
+
+Fix a work-conserving K-FCFS scheduling algorithm. In this section, we define fluid limits
+and prove that each fluid limit is a fluid model solution satisfying (45)-(52). For each state x
+in the space X in Section 2.2, we use zp and zd to denote the corresponding token counts in
+prefill phase and decode phase, respectively. Define |x| = zp + zd to be the total number of
+tokens in state x. Assume that two iid sequences in (2.1) are defined on some probability
+space (Ω, F, P). Since the token sizes are bounded (vf (i) ≤ vfmax ), all moments are finite:
+h
+i
+E (vf (1))1+ϵ < ∞ for all ϵ > 0,
+
+f ∈ {p, d}.
+
+(54)
+
+ v max
+1
+max vp (i) + vd (i) ≤
+→ 0 as N → ∞.
+N 1≤i≤N
+N
+
+(55)
+
+In particular,
+
+Recall the definitions in Section B of Bf (n), E(n), Ff (n), Wf (n), and Zf (n) for each
+n ∈ N and each phase f ∈ {p, d}. For each sample path ω ∈ Ω, one has realization of two
+sequences {an (ω), n ∈ N} and {(vp (i, ω), vd (i, ω)), i ∈ N}. With these two sequences, the
+given initial state x ∈ X, and any fixed K-FCFS scheduling algorithm, one can construct
+the corresponding realization Bfx (n, ω), E(n, ω), Ffx (n, ω), Wfx (n, ω), and Zfx (n, ω) for each
+40
+
+n ∈ N and each f ∈ {p, d}. For each ω ∈ Ω, each time t ≥ 0, and each state x ∈ X with
+|x| > 0, define fluid scaled quantities
+1
+1 x
+1 x
+E(|x|t, ω), B̂fx (t, ω) =
+B (|x|t, ω), F̂fx (t, ω) =
+F (|x|t, ω),
+|x|
+|x| f
+|x| f
+1
+1 x
+Ŵfx (t, ω) =
+W x (|x|t, ω), Ẑfx (t, ω) =
+Z (|x|t, ω),
+|x| f
+|x| f
+Ê x (t, ω) =
+
+where, whenever |x|t is not an integer, it is applied the floor operation to make it an integer.
+Following the SLLN theorem,
+n
+1
+P ω ∈ Ω : lim E(n, ω) = λ,
+n→∞ n
+
+1
+Vp (N, ω) = mp ,
+N →∞ N
+lim
+
+o
+1
+Vd (N, ω) = md = 1.
+N →∞ N
+(56)
+lim
+
+Denote the set Ω0 ⊂ Ω in which the limits in (56) and (55) exist. Clearly P{Ω0 } = 1. We
+now define fluid limits for each sample path ω ∈ Ω0 .
+Lemma 16. For each ω ∈ Ω0 and each unbounded set A ⊆ X, there exists a sequence
+{xk } ⊂ A with |xk | → ∞ as k → ∞, and a function (B̂p (·), B̂d (·)) such that
+(x )
+
+lim sup |Bf k (t, ω) − B̂f (t)| = 0
+
+k→∞ 0≤t≤T
+
+for each T > 0 and f ∈ {p, d}.
+
+(57)
+
+The proof follows from the Lipschitz property (43) and is identical to the proof of (12.37)
+on page 285 of (Dai and Harrison 2020). The convergence mode in (57) is known as the
+uniform convergence on compact sets or u.o.c. convergence. Since |Ẑ (xk ) (0, ω)| = 1, the
+sequence {Ẑ (xk ) (0, ω), k ≥ 1} is in a compact set of R2+ . By taking a subsequence if needed,
+we will assume
+Z (xk ) (0, ω) → z = (zp , zd )
+
+(58)
+
+for some z ∈ R2+ for the sequence of xk in (57).
+Lemma 17. Under any K-FCFS scheduling algorithm, fix a ω ∈ Ω0 and a sequence {xk } ⊂ X
+such that (57) and (58) hold. For each f ∈ {p, d},
+
+
+
+
+F̂fxk (·, ω), Ŵfxk (·, ω), Ẑfxk (·, ω) , → F̂f (·), Ŵf (·), Ẑf (·)
+u.o.c.
+as k → ∞,
+(59)
+where
+1
+B̂f (t),
+mf
+
+(60)
+
+Ẑp (t) = zp + λt − F̂p (t),
+
+(61)
+
+Ẑd (t) = zd + F̂p (t) − F̂d (t),
+
+(62)
+
+Ŵf (t) = mf Ẑf (t).
+
+(63)
+
+F̂f (t) =
+
+41
+
+Proof. To prove (59), it is sufficient to prove the u.o.c. convergence for each component.
+For F̂fxk (·, ω), we utilize relationship (44). The proof is given by Lemma 6.8 of (Dai and
+Harrison 2020). and fluid model equation (60) is identical to (6.43) of (Dai and Harrison
+2020). The rest of the proof is easy to complete, following (39)-(42) and analogous to the
+proof of Theorem 12.13 in (Dai and Harrison 2020).
+■
+Definition 18. Functions (B̂f (·), F̂f (·), Wf (·), Zd (·)) is called a fluid limit if there exists
+ω ∈ Ω0 and a sequence of initial states {xn } ⊂ X such that |x|k → ∞ and limits (57)-(59)
+hold.
+Lemma 19. Under any K-FCFS work-conserving scheduling algorithm, each fluid limit
+satisfies fluid model equations (45)-(52).
+Proof. The fluid limit satisfies fluid model equations (45)-(50) is covered in (60)-(63). It
+suffices to prove that each work-conserving fluid limit satisfies (52). The proof of the latter
+is analogous to the proof of Theorem 7.2 of (Dai and Harrison 2020).
+■
+
+B.4
+
+Proof of Theorem 1
+
+Definition 20. Under a fixed scheduling algorithm, the fluid limits are said to be stable if
+there exists a constant δ > 0 such that
+Ẑf (t) = 0 t ≥ δ
+
+(64)
+
+for each fluid limit (B̂, F̂ , Ŵ , Ẑ) defined in Definition 18.
+Proposition 21. Fix a K-FCFS work-conserving scheduling algorithm. If the fluid limits
+are stable, then the corresponding DTMC in Section 2.2 is positive recurrent.
+Proof. The proof is analogous to the proof of Theorem 6.2 of (Dai and Harrison 2020). The
+latter theorem is stated in the setting of continuous time Markov chains. Assume the fluid
+limits are stable. The Lyapunov function used in Lemma 3.7 of (Dai and Harrison 2020).
+in the continuous setting can be copied verbatim in the current setting; see the proof of
+Theorem 12.27 in (Dai and Harrison 2020)., which is for the slotted discrete time model. In
+the proof of Theorem 6.2 in (Dai and Harrison 2020)., one needs to verify that the sequence
+of random variables
+
+
+E(n)
+, n ≥ 1 is uniformly integrable.
+(65)
+n
+In (Dai and Harrison 2020), Proposition B.5 is cited to prove (65). The proof of Proposition
+B.5 there utilized the finiteness of the second moment of an in (2.1). Examining the proof of
+Lemma 4.5 of (Dai 1995), one concludes that Proposition B.5 continues to hold under the
+first moment assumption on an as in (2.2).
+■
+Proof of Thm. 2 Part (b). Part (a) (instability) has been proved directly in the main paper.
+It remains to prove Part (b) (stability). By Thm. 19, each fluid limit (B̂, F̂ , Ŵ , Ẑ) satisfies
+|Z(0)| = 1 and fluid model equations (45)-(52). The fluid model has been shown stable in
+Thm. 15 under the load condition Eq. (36). Therefore the fluid limits are stable. By Thm. 21,
+the DTMC is positive recurrent.
+■
+42
+
+B.5
+
+A Sketch of the Proof of Proposition 3
+
+Proof. The fluid limit technique for proving Theorem 1 continues to apply here. Let
+(Zpk (t), Zdk (t)) be the fluid request level at server k. Let Ak (t) be the cumulative amount of
+fluid request to server k by time t. By SLLN,
+X
+Ak (t) = λt, t ≥ 0.
+(66)
+k
+
+See, e.g, the proof of (11.13) of Dai and Harrison (2020). Define the (total) workload for
+server k
+f k (t) = (mp + md )Zpk (t) + md Zdk (t).
+It follows that
+f k (t) = f k (0) + Ak (t)(mkp + mkd ) − (Bpk (t) + Bdk (t)) t ≥ 0.
+and for each regular point t,
+f k (t) > 0 implies Ḃpk (t) + Ḃdk (t) = bmax /tbmax .
+
+(67)
+
+Furthermore, it can be proved by SLLN that under the random assignment load-balancing
+algorithm,
+Ak (t) = (λ/K)t,
+
+t ≥ 0,
+
+(68)
+
+k = 1, . . . , K,
+
+and under join-the-shortest-queue (JSQ), at each regular point t,
+′
+
+′
+
+Ȧk (t) = 0 whenever Zpk (t) + Zdk (t) > min
+(Zpk (t) + Zdk (t)).
+′
+k ̸=k
+
+(69)
+
+Define the total system workload
+F (t) =
+
+K
+X
+
+f k (t)
+
+k=1
+
+to be the Lyapunov function. We claim that there exists δ > 0 such that at each regular
+point t > 0 with F (t) > 0,
+Ḟ (t) ≤ −δ.
+
+(70)
+
+Eq. (70) implies that F (t) = 0 for t ≥ F (0)/δ and the fluid model is stable.
+The rest of this proof is devoted to prove Eq. (70). Let M(t) denote the set of servers
+with positive workload, i.e., those with f k (t) > 0. Since t is a regular point, f˙k (t) = 0 for
+each k ̸∈ M(t). Thus,
+X
+Ḟ (t) =
+f˙k (t)
+k∈M(t)
+
+43
+
+Proof Thm. 3 under random assignment algorithm For each k ∈ M(t), it follows from Eq. (68)
+and Eq. (67) that
+f˙k (t) = (mp + md )λ/K − bmax /tbmax < 0.
+Since F (t) > 0, the set M(t) is nonempty. Therefore, Eq. (70) holds with δ = bmax /tbmax −
+(mp + md )λ/K.
+Proof Thm. 3 under JSQ algorithm If M(t) = {1, . . . , K},
+Ḟ (t) = (mp + md )λ − K · bmax /tbmax .
+If M(t) ̸= {1, . . . , K}, there exists server ℓ whose workload is zero. Therefore, we have
+Zpℓ (t) = Zdℓ (t) = 0. For each server k ∈ M(t), Zpk (t) + Zdk (t) > 0. It follows from Eq. (69)
+that Ȧk (t) = 0 for each k ∈ M(t), which together with Eq. (67) implies
+Ḟ (t) = −|M(t)|bmax /tbmax ≤ −bmax /tbmax .
+Therefore, we have proved Eq. (70) with
+
+
+δ = min bmax /tbmax , K · bmax /tbmax − (mp + md )λ .
+■
+
+C
+
+Direct Lyapunov Proof of Theorem 2 Part (b)
+
+This appendix provides an alternative, self-contained proof of Part (b) (stability) of Thm. 2
+via the Foster–Lyapunov criterion, without invoking the fluid limit machinery. Unlike the
+fluid limit proof in Section B, this argument uses only the work-conserving property and
+does not require the K-FCFS condition. However, it does not extend to the network settings
+of Section 5.
+Proof. Assume bmax − λ(mp + md ) = ϵ′ . Let ϵ = min(ϵ′ , Lλ), where L := E[vd (1)2 ]. We
+construct the following Lyapunov function:
+
+X 
+ϵ(1(p′i > 0) + d′i )2
+′
+′
+f (X) =
+pi + d i +
+.
+4Lλ
+i∈[Q(X)]
+
+Let π(X) = (δip , δid )i∈Q(X) . Note that 1(p′i > 0) + d′i will decrease by 1 only when δip = p′i or
+δid = 1. Thus the decrease of the Lyapunov function is
+!
+′
+′ > 0)) − 1)
+X
+ϵ(2(d
++
+1(p
+i
+i
+∆(X) =
+(δip + δid ) +
+1(δip = p′i or δid = 1) .
+4Lλ
+i∈[Q(X)]
+
+Note that for the new arrivals, we have E[pl + dl ] = mp + md and E[(dl + 1)2 ] ≤ 2E[d2l ] ≤ 2L.
+Hence, the one-step change of the Lyapunov function is bounded by
+E[f (X(n + 1))] − f (X(n)) ≤ λ(mp + md ) +
+44
+
+2ϵLλ
+− ∆(X(n)).
+4Lλ
+
+We aim to show that once f (X(n)) ≥ B for a large enough B, we have
+ϵ
+ϵ
+E[f (X(n + 1))] − f (X(n)) ≤ λ(mp + md ) + − ∆(X(n)) ≤ − .
+(71)
+2
+2
+If so, we can invoke the classical Foster–Lyapunov criterion (Theorem 4.3.1 in (Xu 2023))
+to conclude that X(n) is positive recurrent.
+P
+P
+To show Eq. (71) holds, note that if i∈[Q(X)] p′i + i∈[Q(X)] 1(p′i = 0) ≥ bmax , then
+X
+∆(X(n)) ≥
+(δip + δid ) = bmax
+i∈[Q(X)]
+
+by the work-conserving policy. Thus Eq. (71) holds:
+ϵ
+ϵ
+ϵ
+E[f (X(n + 1))] − f (X(n)) ≤ λ(mp + md ) + − bmax ≤ − ϵ′ ≤ − .
+2
+2
+2
+P
+P
+Now consider i∈[Q(X)] p′i + i∈[Q(X)] 1(p′i = 0) < bmax , and f (X(n)) ≥ B > bmax . In
+this setting, every request i in the queue will have either δip = p′i or δid = 1; otherwise the
+work-conserving assumption is violated.
+The key intuition is: when f (X(n)) is large enough, there exists a request with sufficiently
+˜ This request will be served and the decrease ∆(X) will be lower
+large decoding length d.
+˜
+
+d−1)
+bounded by ϵ(24Lλ
+≥ bmax , which suffices for Eq. (71).
+2
+In particular, let B := 2bmax 4Lλ
++ bmax and d˜ := maxi∈[Q(X)] d′i . We have
+ϵ bmax
+
+X 
+ϵ(d′i + 1)2
+′
+′
+f (X(n)) ≥ B =⇒
+≥B
+pi + d i +
+4Lλ
+i∈[Q(X)]
+
+(i)
+
+X
+
+=⇒
+
+d′i +
+
+i∈[Q(X)]
+
+ϵ(d′i )2
+≥ B − bmax
+Lλ
+
+(B − bmax )
+ϵd˜2
+(ii)
+≥
+=⇒ d˜ +
+Lλ
+bmax
+(B
+−
+b
+(iii)
+max )
+=⇒ 2d˜2 ≥
+bmax
+4Lλ
+bmax
+=⇒ d˜ ≥
+ϵ
+P
+where (i) uses i∈[Q(X)] p′i < bmax and d′i + 1 ≤ 2d′i for d′i ≥ 1; (ii) uses Q(X) < bmax (since
+each request contributes at least one token) and the pigeonhole principle; (iii) uses d′i ≤ (d′i )2
+and ϵ ≤ Lλ.
+Next, d˜ provides a lower bound for ∆(X) because all requests satisfy δip = p′i or δid = 1:
+∆(X(n)) ≥
+
+ϵ(2d˜ − 1)
+ϵd˜
+≥
+.
+4Lλ
+4Lλ
+
+Then when f (X(n)) ≥ B, we have
+ϵd˜
+ϵ 4Lλ
+≥
+bmax = bmax .
+4Lλ
+4Lλ ϵ
+Thus Eq. (71) holds and the proof is complete.
+∆(X(n)) ≥
+
+45
+
+■
+
+D
+
+Proof of Theorem 7 (Fork-Join Network)
+
+This appendix proves Thm. 7. The proof builds on the fluid limit machinery of Section B
+and applies the bounded overtaking property of K-FCFS scheduling (Thm. 11) to control
+the join buffer sizes.
+
+D.1
+
+Network model and notation
+
+Consider k + 1 LLM servers q1 , . . . , qk+1 arranged in a fork-join topology: requests arrive at
+server q1 , fork to servers q2 , . . . , qk in parallel, and rejoin at server qk+1 after all sub-tasks
+complete.
+E(n) Cumulative external arrivals by time n.
+Ds (n) Cumulative departures from server qs by time n, for s ∈ {1, . . . , k + 1}.
+Ji (n) Join buffer for server qi : the number of requests whose sub-task at qi has completed
+but that are still waiting for other sub-tasks, for i ∈ {2, . . . , k}.
+R(n) Cumulative releases from the join by time n (= cumulative arrivals to qk+1 ).
+The flow-balance equations are:
+(72)
+
+Q1 (n) = Q1 (0) + E(n) − D1 (n),
+Qs (n) = Qs (0) + D1 (n) − Ds (n),
+Ji (n) = Ji (0) + Di (n) − R(n),
+
+s ∈ {2, . . . , k},
+i ∈ {2, . . . , k},
+
+Qk+1 (n) = Qk+1 (0) + R(n) − Dk+1 (n).
+
+D.2
+
+(73)
+(74)
+(75)
+
+Bounded overtaking and join buffer bound
+
+Lemma 22 (Join buffer bound). Under K-FCFS scheduling at each fork server q2 , . . . , qk ,
+the total join buffer is uniformly bounded:
+k
+X
+
+Ji (n) ≤ 2K ′ (k − 1)
+
+for all n ≥ 0,
+
+i=2
+
+where K ′ is the bounded overtaking constant from Thm. 11.
+Proof. Let Ci (r) denote the position of request r in the completion order at fork server qi .
+By Thm. 11, |Ci (r) − r| ≤ K ′ for each i and r, since all sub-tasks of a given request arrive
+at the fork servers in the same order (all forked from q1 in arrival order).
+For any two fork servers qi and qℓ , the triangle inequality gives |Ci (r) − Cℓ (r)| ≤ 2K ′ .
+Request r is released from the join when the last fork server completes its sub-task, i.e., when
+maxi Ci (r) completions have occurred. At the time request r’s sub-task at qi completes, at
+most 2K ′ additional completions at any other fork server qℓ are needed before r is released.
+To bound the total join buffer: at any time n, each “waiting” request r in Ji (n) has
+completed at qi but is waiting for some qℓ . The number of such requests is bounded by the
+gap |Ci (r) − Cℓ (r)| ≤ 2K ′ between completion orders. Summing over all k − 1 fork servers
+gives the bound 2K ′ (k − 1).
+■
+46
+
+D.3
+
+Fluid limits
+
+Define fluid-scaled processes for initial state x with |x| =
+Ê x (t) =
+
+E(|x|t)
+,
+|x|
+
+D̂sx (t) =
+
+Ds (|x|t)
+,
+|x|
+
+Q̂xs (t) =
+
+Pk+1
+
+Qs (|x|t)
+,
+|x|
+
+s=1 Qs (0) +
+
+Pk
+
+i=2 Ji (0):
+
+Ji (|x|t)
+Jˆix (t) =
+,
+|x|
+
+R̂x (t) =
+
+R(|x|t)
+.
+|x|
+
+Lemma 23 (Fluid limit properties). With probability one, for each unbounded sequence of
+initial states, there exists a subsequence along which all scaled processes converge uniformly
+on compact sets to Lipschitz-continuous limit functions
+ˆ R̂)
+(Ê, D̂, Q̂, J,
+with
+Ê(t) = λt
+Jˆi (t) = 0,
+
+(76)
+i = 2, . . . , k,
+
+R̂(t) = D̂i (t)
+
+for each i = 2, . . . , k.
+
+(77)
+(78)
+
+The fluid model equations for each individual server follow from the single-server analysis in
+Section B.
+P
+P
+Proof. By Thm. 22, i Ji (n) ≤ 2K ′ (k − 1) for all n. Dividing by |x| → ∞ gives i Jˆi (t) = 0
+in the limit. Since Jˆi (t) ≥ 0, each Jˆi (t) = 0. Combining with the scaled flow-balance equation
+Jˆi (t) = Jˆi (0) + D̂i (t) − R̂(t) and Jˆi (0) = 0 yields Eq. (78).
+■
+
+D.4
+
+Fluid model stability
+
+Proof of Thm. 7. We show fluid model stability, which implies positive recurrence by the
+argument in Section B.4. Define the per-server Lyapunov function f s (t) = (msp + msd ) Zps (t) +
+msd Zds (t) for server qs , where Zps and Zds are the fluid-level prefill and decode request counts.
+Write δs = cs − λ(msp + msd ) > 0 for the slack at server qs .
+Step 1: Server q1 drains. Server q1 receives only external arrivals at rate λ. When
+f 1 (t) > 0, work conservation gives f˙1 (t) = λ(m1p + m1d ) − c1 = −δ1 < 0. By Lemma 8.5
+of (Dai and Harrison 2020), f 1 (t) = 0 for t ≥ T1 = f 1 (0)/δ1 .
+Step 2: Fork servers q2 , . . . , qk drain. For t ≥ T1 , server q1 is in balance: departures
+occur at rate λ, so each fork server receives arrivals at rate λ. Before T1 , the fork servers may
+accumulate work from q1 ’s initial drain, but f s (T1 ) is bounded for each s (in the fluid model,
+|Z(0)| ≤ 1 and total departures from q1 over [0, T1 ] are bounded by c1 T1 ). When f s (t) > 0,
+f˙s (t) = λ(msp + msd ) − cs = −δs < 0. Therefore f s (t) = 0 for t ≥ T2s = T1 + f s (T1 )/δs .
+Step 3: Join releases at rate λ. Let T2 = maxs∈{2,...,k} T2s . For t ≥ T2 , all fork servers
+are in balance with departure rate λ. By Eq. (77), the join buffers vanish in the fluid limit,
+so R̂(t) = D̂i (t) for each i. Therefore the release rate Ṙ(t) = λ for t ≥ T2 .
+Step 4: Server qk+1 drains. For t ≥ T2 , server qk+1 receives arrivals at rate λ. When
+k+1
+k+1 (t) = 0 for
+f
+(t) > 0, f˙k+1 (t) = λ(mk+1
++ mk+1
+p
+d ) − ck+1 = −δk+1 < 0. Therefore f
+k+1
+t ≥ T3 = T2 + f
+(T2 )/δk+1 .
+All fluid queues drain by time T3 , proving fluid stability. Positive recurrence follows by
+the argument in Section B.4.
+■
+47
+
+E
+
+Proof of Theorem 10 (Convex Hull)
+
+Proof of Thm. 10. We prove the theorem in three steps: first establish a key monotonicity
+lemma, then verify the four vertices, and finally show that every feasible point lies in the
+convex hull.
+Lemma 24. Let ts = c + a · ⌈s/b0 ⌉ with a > 0, c ≥ 0, and b0 > 0. Then for any integers
+x ≥ 0, y ≥ 0 with x + b0 ≤ bmax ,
+x + b0
+x
+.
+≥
+tx+y+b0
+tx+y
+Proof. Let T = x + y. Since ⌈(T + b0 )/b0 ⌉ = ⌈T /b0 ⌉ + 1, we have tT +b0 = tT + a. Crossmultiplying, the desired inequality is equivalent to
+(x + b0 ) tT ≥ x (tT + a)
+
+⇐⇒
+
+b0 tT ≥ x a.
+
+Since ⌈T /b0 ⌉ ≥ ⌈x/b0 ⌉ ≥ x/b0 , we obtain
+b0 tT = b0 c + a b0 ⌈T /b0 ⌉ ≥ b0 c + a x ≥ a x,
+where the last inequality uses c ≥ 0. This completes the proof.
+
+■
+
+We now verify each vertex of the convex hull.
+
+Vertex A. The point A = bmax /tbmax , 0 corresponds to allocating all tokens to prefill.
+By Thm. 24 (with y = 0), the ratio x/tx satisfies (x + b0 )/tx+b0 ≥ x/tx for all x ≤ bmax − b0 .
+Applying this inductively from x = 0 in steps of b0 , and using b0 | bmax , we conclude that
+bmax /tbmax is the maximum achievable prefill rate. Hence A is a vertex.
+
+Vertex D. The point D = 0, kmax /tkmax corresponds to decode-only batches using all
+kmax slots. Since kmax ≤ b0 , we have ⌈y/b0 ⌉ = 1 for all 1 ≤ y ≤ kmax , so ty = c + a is
+constant in this range. Thus y/ty = y/(c + a) is increasing in y, and the decode rate is
+maximized at y = kmax . Hence D is a vertex.
+Vertices B and C. These represent mixed batches with y = kmax − 1 decode tokens at
+different prefill loads:
+B=
+
+max − kmax + 1
+
+b
+
+tbmax
+
+,
+
+kmax − 1 
+,
+tbmax
+
+C=
+
+b − k
+0
+
+max + 1
+
+tb0
+
+,
+
+kmax − 1 
+.
+tb0
+
+Every feasible point lies in the convex hull. Consider any feasible operating point
+(x/tx+y , y/tx+y ) with x + y ≤ bmax and y ≤ kmax − 1. Let m be the unique integer such that
+(m − 1)b0 < x + y ≤ mb0 ≤ bmax . Then tx+y = tmb0 = c + am, and since x ≤ mb0 − y,
+x
+mb0 − y
+≤
+,
+tx+y
+tmb0
+
+48
+
+y
+y
+≤
+.
+tx+y
+tmb0
+
+Thus the point is dominated (componentwise) by
+Pm =
+
+ mb − y
+0
+
+tmb0
+
+,
+
+y 
+tmb0
+
+.
+
+It suffices to show Pm ∈ conv(O, A, B, C, D) for all valid m and 0 ≤ y ≤ kmax − 1.
+Step 1. For each fixed m, define
+Am =
+
+ mb
+
+0
+
+tmb0
+
+
+,0 ,
+
+Qm =
+
+ mb − k
+0
+
+max + 1
+
+tmb0
+
+,
+
+kmax − 1 
+.
+tmb0
+
+Then Pm is a convex combination of Am and Qm :
+
+
+y
+y
+Pm = 1 −
+Am +
+Qm .
+kmax − 1
+kmax − 1
+By Thm. 24, the sequence mb0 /tmb0 is nondecreasing in m, so Am lies on the segment OA
+and hence in the convex hull. It remains to show Qm lies in the convex hull.
+Step 2. We show that Qm lies on or below the line segment BC for all 1 ≤ m ≤ bmax /b0 .
+Note that Q1 = C and Qbmax /b0 = B, so the boundary cases hold with equality. For
+1 < m < bmax /b0 , let q = bmax /b0 . The x-coordinates of B, C, and Qm are
+xB =
+
+qb0 − kmax + 1
+,
+c + aq
+
+xC =
+
+b0 − kmax + 1
+,
+c+a
+
+xQm =
+
+mb0 − kmax + 1
+.
+c + am
+
+By Thm. 24, xQm is increasing in m, so xC ≤ xQm ≤ xB . Thus there exists a unique
+α ∈ [0, 1] with xQm = α xB + (1 − α) xC .
+The y-coordinate of Qm is (kmax − 1)/(c + am), while the corresponding point on BC
+has y-coordinate
+ α
+1 − α
+yline = (kmax − 1)
++
+.
+c + aq
+c+a
+Define f (m) = 1/(c + am). Since a > 0, we have f ′′ (m) = 2a2 /(c + am)3 > 0, so f is strictly
+convex. By Jensen’s inequality,
+f (m) < α f (q) + (1 − α) f (1)
+for 1 < m < q, which gives
+ α
+1 − α
+kmax − 1
+< (kmax − 1)
++
+.
+c + am
+c + aq
+c+a
+Hence the y-coordinate of Qm is strictly below yline , confirming Qm lies strictly below BC
+and therefore inside conv(O, A, B, C, D).
+Step 3: Decode-only batches. Finally, consider decode-only batches with x = 0 and
+y = kmax . The operating point is (0, kmax /tkmax ) = D, which is a vertex of the convex hull.
+Conclusion. Every feasible point (x/tx+y , y/tx+y ) with x + y ≤ bmax and y ≤ kmax is
+dominated by a point in conv(O, A, B, C, D). Conversely, each vertex is achievable by an
+appropriate batch composition, so the convex hull is tight.
+■
+49
+
+

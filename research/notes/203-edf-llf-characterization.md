@@ -1,0 +1,25 @@
+> **Post-contest archive note (Oct 2026):** Pre-contest literature review completed before the Aug 14–28 2026 contest window. Contest ended Aug 28 2026 — final rank #56 worldwide (top 1.3%). "Port plan" proposals below are preserved as historical working notes; what was adopted or rejected is recorded in `research/notes/experiments-log.md`, `research/notes/rejected-ideas.md`, and `docs/DECISIONS.md`. Author: Ntokozo Dlamini (with assistant support for fetching/summaries/checks). Technical content unchanged.
+
+# 203 — Generalization of EDF and LLF (Uthaisombut 2008) — [SECOND-HAND]
+
+> Unavailable note: Springer (Algorithmica), paywalled; no legitimate free copy found. Summary below is second-hand, from the published abstract, the INRIA research report RR-2966 (EDF/LLF optimality context), the Davis–Burns FPZL survey (Leung 1989 multiprocessor results), and Oh & Yang (MLLF, RTCSA 1998). Any claim marked §S is from these secondary sources, not the paper itself.
+
+**Claim.** For preemptive single-machine scheduling with release times, 1|r_j, pmtn|L_max, EDF and LLF are both optimal (classic, Dertouzos 1974 / Mok 1983 §S). This paper goes further: it introduces *compound laxity* and gives a **complete characterization of all online algorithms that are optimal for 1|r_j,pmtn|L_max** — EDF and LLF are just two special cases of the characterized family (§S, abstract).
+
+**Relevance.** Our `grant_decodes` (src/Solution.cpp:96) is a deadline-first (EDD) preemptive-ish dispatcher: decode tokens are granted one at a time, so the *order* in which DW-phase requests get their next token is exactly a preemptive priority choice at tick granularity. The theory says: in the clean model, EDD and LLF have equal scheduling power — any feasible set is schedulable by either. The difference is *behavior under overload and estimation error*, where LLF (laxity = D − t − remaining_work) reacts to both deadline *and* remaining work, while EDD reacts only to deadline.
+Our decode ordering already has an EDD base; a laxity key is a one-line comparator change worth A/B-testing.
+
+**Algorithm sketch.** §S: at every tick t, for each ready job with deadline D and remaining work r(t), laxity = D − t − r(t). LLF runs the min-laxity job. Compound laxity family (§S, abstract): priority is any monotone function of (D, r(t), t) that reduces to EDF-like behavior on "critical" points; both EDF (ignore r) and LLF (use r) are in the family. Non-preemptive case: EDF remains optimal (non-idling), LLF is **not** (INRIA RR-2966 §4.2.1 §S — priorities change continuously, forcing preemption).
+Multiprocessor (m>1): global LLF dominates global EDF (Leung 1989 §S, per Davis), but exact schedulability is co-NP-hard for both §S.
+
+**Port plan.** Add variant key `KEY_LAXITY` for the decode grant order in `grant_decodes` (sort at src/Solution.cpp:103): primary = `D − t − tokens_left·per` asc (laxity, per = PEDGE+COMM+PCLOUD+COMM), tiebreak = USA1 desc, then A. Also try a *mixed* key: EDD first, but when two deadlines are within ε (e.g., 2·per), prefer smaller remaining tokens (SPT-on-remaining) — this protects short near-deadline decodes from being starved by long ones, the classic EDF overload failure mode §S.
+A/B via `tools/ab_test.py`; interaction with LOOKAHEAD's simulated scoring is automatically captured (candidate sims score the full horizon).
+
+**Weaknesses (transfer gaps).**
+
+- Optimality is for a *single* machine with full preemption at zero cost. We have two sites (edge+cloud) with capacity, comm windows, and per-request serial dependencies between stages; EDF/LLF optimality is not known to extend, and global-EDF/LLF on m>1 machines is *not* optimal in general §S (our two sites are a degenerate m=2 case, but with disjoint stage sets, not interchangeable machines).
+- Laxity is only as good as the remaining-work estimate; our per-token estimate (tokens_left·per) is exact *if* tokens are granted back-to-back, but bubble-induced waiting makes actual remaining time longer — laxity then overstates urgency (risk: preempting healthy jobs to feed a request that is actually already doomed).
+- Our tokens are granted with a commitment-free policy (a grant can be skipped next tick), but each grant *books* a window (mark_window), so ordering decisions have multi-tick consequences the single-machine model does not capture.
+- LLF's known pathology (§S, Oh–Yang MLLF): laxity ties → thrashing/context-switch explosion. In our setting that is bounded (one decision per request per tick), but tie handling matters: use a deterministic tiebreak (A asc), never random.
+
+**Sources.** P. Uthaisombut, *Algorithmica* 50(3):312–328, 2008, DOI 10.1007/s00453-007-9083-9 — NOT fetched (paywalled). Secondary: G. Goossens & P. Richard (INRIA RR-2966, 1996) https://www.rocq.inria.fr/novaltis/research_reports/RR-2966.pdf; R. Davis (FPZL survey, York) https://www-users.york.ac.uk/~rd17/papers/FPZL_FPCLv9.2.pdf (Leung 1989 global-LLF dominance); Oh & Yang, MLLF, RTCSA 1998, DOI 10.1109/RTCSA.1998.726348.

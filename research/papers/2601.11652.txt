@@ -1,0 +1,3016 @@
+arXiv:2601.11652v2 [cs.DC] 7 Apr 2026
+
+WISP: Waste- and Interference-Suppressed Distributed
+Speculative LLM Serving at the Edge via Dynamic Drafting
+and SLO-Aware Batching
+XIANGCHEN LI, Virginia Tech, USA
+JIAKUN FAN, Virginia Tech, USA
+QINGYUAN WANG, University College Dublin, Ireland
+DIMITRIOS SPATHARAKIS, National Technical University of Athens, Greece
+SAEID GHAFOURI, Queen’s University Belfast, UK
+HANS VANDIERENDONCK, Queen’s University Belfast, UK
+DEEPU JOHN, University College Dublin, Ireland
+BO JI, Virginia Tech, USA
+ALI R. BUTT, Virginia Tech, USA
+DIMITRIOS S. NIKOLOPOULOS, Virginia Tech, USA
+As Large Language Models (LLMs) become increasingly accessible to end users, an ever-growing number of
+inference requests are initiated from edge devices and computed on centralized GPU clusters. However, the
+resulting exponential growth in computation workload is placing significant strain on data centers, while edge
+devices remain largely underutilized, leading to imbalanced workloads and resource inefficiency across the
+network. Integrating edge devices into the LLM inference process via speculative decoding helps balance the
+workload between the edge and the cloud, while maintaining lossless prediction accuracy. In this paper, we
+identify and formalize two critical bottlenecks that limit the efficiency and scalability of distributed speculative
+LLM serving: Wasted Drafting Time and Verification Interference. To address these challenges, we propose
+WISP, an efficient and SLO-aware distributed LLM inference system that consists of an intelligent speculation
+controller, a verification time estimator, and a verification batch scheduler. These components collaboratively
+enhance drafting efficiency and optimize verification request scheduling on the server. Extensive numerical
+results show that WISP improves system capacity by up to 2.1× and 4.1×, and increases system goodput by up
+to 1.94× and 3.7×, compared to centralized serving and SLED, respectively.
+CCS Concepts: • Computing methodologies → Distributed computing methodologies; Distributed
+artificial intelligence; Natural language processing; • Computer systems organization → Distributed
+architectures; • Networks → Cloud computing; • General and reference → General conference proceedings.
+Additional Key Words and Phrases: Speculative Decoding, Large Language Models, Edge Computing, Distributed Inference, Token Verification, Resource-Aware Serving
+Authors’ Contact Information: Xiangchen Li, Virginia Tech, Blacksburg, Virginia, USA, lixiangchen@vt.edu; Jiakun Fan,
+Virginia Tech, Blacksburg, Virginia, USA, jiakunfan@vt.edu; Qingyuan Wang, University College Dublin, Dublin, Ireland, qingyuan.wang@ucdconnect.ie; Dimitrios Spatharakis, National Technical University of Athens, Athens, Greece,
+dspatharakis@netmode.ntua.gr; Saeid Ghafouri, Queen’s University Belfast, Belfast, Northern Ireland, UK, s.ghafouri@
+qub.ac.uk; Hans Vandierendonck, Queen’s University Belfast, Belfast, Northern Ireland, UK, h.vandierendonck@qub.ac.uk;
+Deepu John, University College Dublin, Dublin, Ireland, deepu.john@ucd.ie; Bo Ji, Virginia Tech, Blacksburg, Virginia, USA,
+boji@vt.edu; Ali R. Butt, Virginia Tech, Blacksburg, Virginia, USA, butta@cs.vt.edu; Dimitrios S. Nikolopoulos, Virginia
+Tech, Blacksburg, Virginia, USA, dsn@vt.edu.
+
+This work is licensed under a Creative Commons Attribution 4.0 International License.
+© 2026 Copyright held by the owner/author(s).
+ACM 2476-1249/2026/6-ART55
+https://doi.org/10.1145/3805653
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+55:2
+
+Li et al.
+
+ACM Reference Format:
+Xiangchen Li, Jiakun Fan, Qingyuan Wang, Dimitrios Spatharakis, Saeid Ghafouri, Hans Vandierendonck,
+Deepu John, Bo Ji, Ali R. Butt, and Dimitrios S. Nikolopoulos. 2026. WISP: Waste- and Interference-Suppressed
+Distributed Speculative LLM Serving at the Edge via Dynamic Drafting and SLO-Aware Batching. Proc. ACM
+Meas. Anal. Comput. Syst. 10, 2, Article 55 (June 2026), 31 pages. https://doi.org/10.1145/3805653
+
+1
+
+Introduction
+
+Large Language Models (LLMs) have revolutionized the landscape of artificial intelligence, demonstrating unprecedented capabilities in natural language understanding, reasoning, and content
+generation. However, the widespread adoption of LLMs is severely constrained by the prohibitive costs associated with inference, making LLM inference a pure GPU cluster workload while
+leaving user devices idle. The exponentially growing demand for LLM inference, particularly on
+edge devices such as personal assistants and in-field systems, has intensified the GPU Floating
+Point Operations Per Second (FLOPS) crisis, making the computational power of these devices
+increasingly indispensable.
+Unlike traditional machine learning workloads, which are typically system-initiated, batch-style
+prediction services processed within centralized data centers, LLMs are directly exposed to end
+users as interactive assistants and are triggered at the network edge by smartphones, personal
+computers, and IoT devices. ChatGPT processes roughly 2.5 billion user prompts per day [15],
+Apple reports that Siri handles approximately 1.5 billion voice requests daily [4], and Google’s
+Gemini ecosystem serves roughly 650 million monthly users via the Gemini app and nearly 2 billion
+monthly users through AI Overviews in Search [2, 3]. Despite this massive volume of inference
+initiated at the edge, the computation is still predominantly centralized in data centers, with
+the majority of LLM inference handled by GPU clusters. This centralization creates a significant
+resource inefficiency: while billions of edge devices—now increasingly equipped with capable NPUs
+and GPUs—sit largely idle during inference requests, the cloud bears the full computational burden,
+incurring high operational costs.
+In contrast, on-device LLM inference [42, 43] seeks to exploit device-side computational resources
+by deploying lightweight or compressed models capable of token generation under resourceconstrained environments. However, the resulting output quality remains inadequate in today’s
+competitive landscape, where model capacity plays a critical role in performance.
+To reconcile the need for utilizing edge FLOPS with the demand for competitive output quality,
+distributed speculative edge inference systems offer a promising direction to achieve both efficiency
+and performance. The "drafting-then-verifying" paradigm introduced by speculative decoding [25]
+enables a collaborative edge-cloud approach, where token generation is offloaded to underutilized
+edge resources while verification is retained in the cloud. Consequently, more GPU resources are
+conserved for efficient verification rather than being consumed by token generation. Specifically,
+SLED [26] operationalized this idea by orchestrating speculative execution across heterogeneous
+edge devices and servers. Nevertheless, SLED remains a preliminary framework with critical
+limitations; most notably, its reliance on static batching and best-effort scheduling fails to guarantee
+strict Service Level Objectives (SLOs), resulting in unpredictable latency in real-world, multi-tenant
+scenarios.
+In this paper, we present WISP, a SLO-aware, efficient, and intelligent LLM inference system
+based on speculative decoding for heterogeneous devices. Building on the distributed speculative
+edge LLM serving architecture, we identify and formally define Wasted Drafting Time (WDT), the
+cumulative latency spent on edge-side draft tokens that are later rejected by the server, which
+directly degrades device throughput and overall system capacity. To reduce WDT, WISP introduces
+an intelligent drafting controller that triggers verification dynamically using a lightweight reject
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+WISP : Waste- and Interference-Suppressed Distributed Speculative LLM Serving at the Edge via Dynamic Drafting and
+SLO-Aware Batching
+55:3
+
+predictor, which is mathematically proved to reduce WDT. We further incorporate SLOs in terms of
+token generation speed to capture heterogeneous application requirements and identify Verification
+Interference, which is the head-of-line effect induced by mixing heterogeneous verification requests
+within a GPU micro-batch, as a primary cause of SLO violations. To mitigate interference, we
+formulate SLO-aware batch construction as a knapsack problem and design a greedy scheduler that
+accounts for both SLO slack and interference. Finally, WISP employs a fine-grained verification-time
+estimator, profiled across batch configurations, to enable online feasibility checks during scheduling.
+Extensive simulations and experiments show that WISP enlarges the feasible operating region of
+speculative edge serving: under token-speed SLOs, it improves system capacity by up to 2.1× over
+centralized serving and 4.1× over SLED, and increases end-to-end system goodput by up to 1.94×
+and 3.7×, respectively, while markedly reducing SLO violations under multi-tenant verification
+interference.
+Our key contributions are summarized as follows:
+• For the first time, we identify and define two fundamental bottlenecks in distributed speculative edge LLM serving: Wasted Drafting Time (WDT) and Verification Interference, and we
+provide extensive evaluation showing that they fundamentally limit scalability by driving
+SLO violations and suppressing throughput/capacity. Guided by these insights, we propose
+WISP, an SLO-aware collaborative LLM inference system that distributes inference across
+user devices and GPU clusters to reduce violations while improving device throughput and
+overall system capacity.
+• We develop a predictive modeling framework to orchestrate efficient collaborative execution,
+including an ML-based rejection predictor (mathematically proved to reduce WDT) and a
+fine-grained verification-time estimator that predicts server-side batch latency by separately
+modeling self-attention and linear-operation costs.
+• We formulate SLO-aware batch construction as a knapsack problem and propose a greedy
+scheduling algorithm that explicitly accounts for SLO slack and Verification Interference.
+• Finally, we build an end-to-end evaluation pipeline, including trace-driven simulations and a
+prototype system, and show that WISP consistently improves system goodput/throughput
+and capacity while significantly reducing SLO violations under verification interference,
+compared with centralized serving and prior speculative edge baselines.
+The remainder of this paper is organized as follows: Section 2 categorizes and discusses existing
+thrusts of pushing LLM towards edge devices into on-device inference, model splitting-based
+inference, and distributed speculative LLM serving system, and the basic theory of speculative
+decoding is also covered. Section 3 identifies and evaluates the two key factors in the existing
+collaborative speculative decoding-based inference systems, which also motivate the system design
+of this work. Then, the WISP is introduced and elaborated in Section 4. Later, Section 5 shows the
+settings and results of numerical simulations and experiments. Finally, Section 6 concludes this
+paper.
+
+2
+
+Related Work and Background
+
+The rapidly evolving landscape of edge-based Large Language Model (LLM) serving can be broadly
+categorized into three distinct technical thrusts: pure on-device inference, model splitting inference
+(partitioning layers between device and cloud), and collaborative inference frameworks that leverage
+speculative decoding to orchestrate resources across the edge-cloud continuum.
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+55:4
+
+2.1
+
+Li et al.
+
+On-device Inference
+
+Pure on-device inference aims to execute the entire model on the edge device to ensure maximum
+privacy and offline availability. To achieve this, researchers have primarily focused on model
+compression techniques, such as quantization and pruning, or the development of specialized
+lightweight architectures like MobileLLM [28]. Memory-efficient inference has also been explored;
+notably, LLM in a Flash [1] enables running models up to twice the size of available DRAM by
+strategically loading parameters from flash memory on demand. For heterogeneous hardware
+utilization, PowerInfer [34] exploits activation sparsity to design a GPU-CPU hybrid inference
+engine, achieving up to 11.69× speedup over llama.cpp on consumer-grade GPUs, while its successor
+PowerInfer-2 [38] extends this approach to smartphones. Addressing the scheduling bottlenecks in
+such hybrid setups, APEX [14] introduces a profiling-informed scheduling strategy that dynamically
+overlaps CPU self-attention operations with GPU to maximize parallelism on memory-constrained
+hardware. More recently, system-level optimizations have emerged; for instance, EdgeLLM [42]
+implements a complete speculative decoding framework directly on the device, utilizing a selfadaptive fallback strategy to manage resource consumption. Lightweight inference engines such as
+llama.cpp [16] and MLC-LLM [29] have also enabled practical deployment of quantized models on
+edge platforms. However, despite these advancements, the viability of pure on-device inference
+remains fundamentally bound by hardware physics. At the end of the day, the performance and
+quality of on-device inference are strictly constrained by the actual size of the model that can be
+squeezed into the device’s limited DRAM and power budget, often precluding the deployment of
+state-of-the-art multi-billion parameter models.
+2.2
+
+Model Splitting
+
+Another approach to leverage edge resources is model splitting, where the heavy LLM is partitioned
+across the edge device and the cloud server to distribute the computational load. A prominent
+direction in this domain is phase disaggregation, which isolates the distinct computational patterns of
+LLM inference. For instance, Splitwise [32] and P/D-Device [22] decouple the prefill and decoding
+phases, offloading the compute-intensive prompt processing to the cloud while executing the
+latency-sensitive token generation on the edge. Beyond phase splitting, other works focus on
+adaptive layer partitioning; EdgeShard [43] employs dynamic programming to jointly optimize
+device selection and model partitioning across heterogeneous clusters. Similarly, SplitLLM [30]
+develops efficient splitting algorithms that balance computation and communication costs to
+maximize throughput. To adapt to fluctuating environments, Galaxy [39] and other learning-based
+frameworks [9] propose resource-efficient coordination protocols to maintain consistency across
+distributed nodes. However, despite their theoretical benefits, these pipelining strategies necessitate
+the frequent transmission of large intermediate activation tensors. The resulting synchronization
+overhead and the bandwidth bottlenecks of wireless networks often negate the computational
+gains, making them challenging to scale for real-time interactive applications.
+2.3
+
+Collaborative edge LLM serving system
+
+Since SLED [26] first introduced speculative decoding into the collaborated LLM inference for edge
+devices, more and more attention has been paid to this more promising technique. For instance,
+Venkatesha et al. [37] addressed the challenge of heterogeneous vocabularies between draft and
+target models, proposing a universal speculative decoding mechanism that enables flexible model
+pairing without retraining. However, their work primarily focuses on the algorithmic compatibility
+of model pairs and overlooks the system-level scheduling complexities required to support multiple
+concurrent edge users under resource constraints. More recently, Yu et al. [40] proposed DSD, a
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+WISP : Waste- and Interference-Suppressed Distributed Speculative LLM Serving at the Edge via Dynamic Drafting and
+SLO-Aware Batching
+55:5
+
+distributed speculative decoding framework that introduces an Adaptive Window Control (AWC)
+policy to dynamically adjust speculation window sizes for throughput optimization. While effective
+for single-stream performance, DSD optimizes primarily for average throughput rather than strict
+tail latency, failing to provide the explicit Service Level Objective (SLO) guarantees necessary for
+real-time interactive applications. Similarly, Ning et al. [31] introduced Distributed Split Speculative
+Decoding (DSSD), which partitions the verification phase between device and edge to minimize
+the communication overhead of transmitting vocabulary distributions. Although this reduces
+uplink payload, the rigid partitioning of the verification logic introduces high synchronization
+dependencies and does not address the server-side contention when scaling to massive crowds of
+heterogeneous edge devices.
+2.4 Background: Speculative Decoding
+Speculative decoding accelerates autoregressive generation by combining a light-weight draft
+model and a high-quality target model. Given the current prefix x, the draft model sequentially
+proposes a block of 𝐾 draft tokens y1:𝐾 ≜ (𝑦1, . . . , 𝑦𝐾 ), where 𝑦𝑖 ∼ 𝑞(· | x, y<𝑖 ) and 𝑞(·) denotes
+the draft next-token distribution. The target model then verifies these draft tokens in order using
+the standard acceptance rule:
+
+
+𝑝 (𝑦𝑖 | x, y<𝑖 )
+𝑎𝑖 ≜ min 1,
+,
+𝐴𝑖 ≜ 1 [𝑢𝑖 ≤ 𝑎𝑖 ] , 𝑢𝑖 ∼ Unif (0, 1),
+(1)
+𝑞(𝑦𝑖 | x, y<𝑖 )
+where 𝑝 (·) is the target next-token distribution and 𝐴𝑖 ∈ {0, 1} indicates whether the 𝑖-th draft
+token is accepted. Let
+𝑅 ≜ min{𝑖 ∈ {1, . . . , 𝐾 } : 𝐴𝑖 = 0}, with 𝑅 = 𝐾 + 1 if all are accepted,
+
+𝐿 ≜ 𝑅 − 1,
+
+(2)
+
+so that y1:𝐿 are accepted and the process stops at position 𝑅. Finally, the target model produces one
+target token at the stopping position,
+𝑦˜𝑅 ∼ 𝑝 (· | x, y<𝑅 ),
+
+(3)
+
+which replaces the first rejected draft token when 𝑅 ≤ 𝐾, or becomes the next token after a fully
+accepted block when 𝑅 = 𝐾 + 1. In this way, each drafting-verifying iteration appends y1:𝐿 and 𝑦˜𝑅
+to the prefix x while preserving the target distribution. By reducing the forwarding requests on the
+large target model, speculative decoding is capable of generating tokens faster and more efficient
+than traditional autoregressive decoding.
+3
+3.1
+
+Motivations
+SLO-aware Inference
+
+Edge applications exhibit heterogeneous responsiveness expectations. Workloads that involve
+continuous text consumption, such as conversational interaction or document reading, typically
+benefit from steady token streaming. Human studies report an average silent reading rate of about
+175–300 words per minute, which corresponds to a moderate token streaming rate on the order of
+4–6 tokens/s for fluent interaction [7]. In contrast, programming-oriented tasks may demand higher
+token rates to match the semantic density of code [6]. Conversely, in decision- or command-driven
+settings, such as industrial operator assistance, responses are often deliberately constrained to short
+outputs (e.g., one or two sentences), and can therefore tolerate lower token generation speeds [23].
+Prior distributed speculative edge-serving systems largely treat the verification server as a besteffort, or First Come First Serve (FCFS) backend [26], without explicitly reasoning about its SLOs.
+However, in speculative edge serving, user-perceived responsiveness is ultimately bounded by how
+quickly the verification server can return and commit results. Therefore, supporting consistent
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+55:6
+
+Li et al.
+
+Table 1. Token Generation Speed Violation Rate under FCFS Verification Strategy.
+System
+
+Class 4: 8 (tokens/s)
+
+Class 3: 6 (tokens/s)
+
+Class 2: 4 (tokens/s)
+
+Class 1: 2 (tokens/s)
+
+WISP
+FCFS
+
+98.27%
+98.35%
+
+82.10%
+94.15%
+
+10.80%
+36.45%
+
+0.00%
+0.00%
+
+responsiveness across heterogeneous edge applications requires the verification server to be SLOaware, rather than operating in a purely best-effort manner.
+Table 1 reports the token-generation-speed SLO violation behavior of an FCFS verification
+system in a heterogeneous-speed setting. In this experiment, multiple edge devices issue requests
+with different target token speeds, while verification is served by a single GPU verifier running
+the Qwen3-32B target model on an NVIDIA A100-80GB. The results indicate that FCFS becomes
+increasingly incapable of meeting stringent speed targets as more devices share the verifier, whereas
+only the most relaxed targets remain consistently achievable. This is because FCFS is SLO-agnostic:
+by treating requests with different urgency uniformly, it amplifies queueing and contention, causing
+time-sensitive requests to be delayed by less urgent traffic and motivating SLO-aware verification
+scheduling.
+Motivated by these practical variations, WISP groups requests into 𝐶 SLO classes and assigns
+each class 𝑐 ∈ 1, 2, . . . , 𝐶 a target token generation speed 𝑠𝑐 (tokens/s).
+Consider a request that is drafted at the edge and verified by the server within an iteration. Let
+𝑁 𝑣 denote the number of tokens accepted after verification in this iteration, and let 𝑇total denote
+the total time consumed by this iteration. The achieved token speed is:
+𝑁𝑣
+(4)
+𝑠=
+𝑇total
+By decomposing the iteration time as 𝑇total = 𝑇draft + 𝑇network + 𝑇queue + 𝑇verify , the achieved
+token speed can be written as:
+𝑁𝑣
+𝑠 =
+,
+(5)
+𝑇draft + 𝑇network + 𝑇queue + 𝑇verify
+where 𝑇draft is the edge drafting time, 𝑇network is the communication time for sending the draft
+payload and receiving the verification outcome, 𝑇queue is the server-side waiting time before verification starts, and 𝑇verify is the verification execution time on the server. In our setting, 𝑇draft is
+determined by the edge device, and 𝑇network can be measured by timestamps; in contrast, 𝑇queue and
+𝑇verify are dominated by server batching and interference.
+We estimate 𝑁 𝑣 using the draft length 𝑁𝑑 and the acceptance rate 𝛼 ∈ [0, 1]:
+𝑁ˆ 𝑣 = 𝛼 · 𝑁𝑑 ,
+(6)
+where 𝛼 is determined by the selection of draft model, target model, and drafting strategy. Combining
+(4)–(6) yields an equivalent server-side budget constraint:
+𝑇queue + 𝑇verify ≤
+
+𝛼 · 𝑁𝑑
+− 𝑇draft − 𝑇network .
+𝑠𝑐
+|
+{z
+}
+
+(7)
+
+𝜏𝑐 (𝑖 )
+
+which enforces the speed SLO of class 𝑐.
+Here, 𝜏𝑐 (𝑖 ) defines the per-request verification-side time budget required to achieve the target
+token speed. Importantly, (7) makes the core implication explicit: once it receives a verification
+request from a device, 𝑇𝑑𝑟𝑎𝑓 𝑡 and 𝑇𝑛𝑒𝑡 𝑤𝑜𝑟𝑘 are known, satisfying the application-level token-speed
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+WISP : Waste- and Interference-Suppressed Distributed Speculative LLM Serving at the Edge via Dynamic Drafting and
+SLO-Aware Batching
+55:7
+
+Impact of Wasted Drafting Tokens on Device Goodput
+Target Model: Qwen3-32B
+Draft Model: Qwen3-1.7B
+Draft TPS: 50 tok/s
+Trials: 3 per config
+
+Device Goodput (tokens/sec)
+
+16
+
+Trend (2nd order)
+Measured goodput
+
+14
+L=6
+
+L=1
+
+12
+10
+
+L = 11
+
+8
+
+L = 20
+
+L = 16
+
+6
+4
+0
+
+250
+
+500
+
+750
+
+1000
+
+Wasted Drafting Tokens
+
+1250
+
+1500
+
+1750
+
+Fig. 1. Impact of WDT on Device Goodput
+
+objective reduces to controlling server-side queuing and verification latency. This motivates why
+WISP treats SLO-awareness as a design goal: the verification server must incorporate profiling
+and SLO-aware scheduling to explicitly manage 𝑇queue and 𝑇verify , so that application-level token
+generation speeds can be met.
+3.2
+
+Wasted Drafting Time
+
+Distributed speculative LLM edge serving systems enable an edge device to collaboratively generate
+tokens with a more capable verification server hosting the target model. Following the speculative
+decoding procedure in Section. 2.4, in each iteration the edge device drafts a fixed block of 𝐾 draft
+tokens y1:𝐾 ≜ (𝑦1, . . . , 𝑦𝐾 ) and submits them for verification. The verification server then checks
+the draft block against the target model in order, and the verification outcome can be summarized
+𝐾 and the induced stopping index 𝑅 and acceptance length 𝐿
+by the acceptance indicator {𝐴𝑖 }𝑖=1
+defined in Eq. (1)–Eq. (2).
+By construction, verification proceeds until the first rejection occurs at index 𝑅 (or 𝑅 = 𝐾 + 1
+if all tokens are accepted), hence only the verified prefix y1:𝐿 with 𝐿 = 𝑅 − 1 is committed to the
+response, while the remaining suffix y (𝐿+1):𝐾 is discarded. Consequently, when the edge drafts a
+fixed-length block, any drafted tokens beyond the realized acceptance length 𝐿 do not contribute to
+the final output of that iteration and therefore constitute wasted computation on the edge device.
+Definition of WDT.. When the edge drafts a fixed window 𝐾, any drafted token beyond the
+accepted prefix is over-drafted. Following the standard notion of speculative “waste,” we define the
+number of wasted draft tokens as
+𝑊 ≜ (𝐾 − 𝐿) + = max{0, 𝐾 − 𝐿},
+
+(8)
+
+which is exactly the portion of the fixed draft window that is rejected by the server. Let 𝜏𝑑 be the
+average per-token drafting time on the edge (or equivalently, 𝑠𝑑 = 1/𝜏𝑑 be the draft throughput in
+tokens/s). The WDT in one speculate–verify iteration is defined as
+𝑊
+.
+𝑠𝑑
+Hence, the total edge drafting time can be decomposed into a useful part and a wasted part:
+𝑇wdt ≜ 𝜏𝑑 · 𝑊 =
+
+use
+𝑇draft = 𝜏𝑑 𝐾 = 𝜏𝑑 𝐿 + 𝜏𝑑 (𝐾 − 𝐿) = 𝑇draft
++ 𝑇wdt .
+
+(9)
+
+(10)
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+55:8
+
+Li et al.
+Draft Token Acceptance Rate vs Confidence Score
+
+0.4
+
+0.6
+
+0.8
+
+0.0
+
+1.0
+
+Sample Count
+
+6000
+4000
+2000
+0.0
+
+0.2
+
+0.4
+
+0.6
+
+Confidence Score
+
+0.8
+
+1.0
+
+0.0
+
+0.5
+
+1.0
+
+1.5
+
+0.0
+
+2.0
+
+6000
+4000
+2000
+0
+
+0.4
+
+0.0
+
+(a) Confidence Score
+
+0.5
+
+1.0
+
+Entropy
+
+1.5
+
+2.0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+0.4
+
+0.0
+
+1.0
+
+6000
+4000
+2000
+0
+
+0.6
+
+0.2
+
+0.0
+
+Sample Count
+
+0.2
+
+0.6
+
+0.2
+
+Sample Count
+
+0.0
+
+0.8
+
+Acceptance Rate
+
+0.4
+
+0.2
+
+0.2
+
+Sample Count
+
+0.6
+
+Acceptance Rate
+Overall: 0.732
+
+1.0
+
+0.8
+
+Acceptance Rate
+
+Acceptance Rate
+
+Acceptance Rate
+
+0.4
+
+Draft Token Acceptance Rate vs Standard Deviation
+
+Acceptance Rate
+Overall: 0.732
+
+1.0
+
+0.8
+
+0.6
+
+0
+
+Acceptance Rate
+Overall: 0.732
+
+1.0
+
+0.8
+
+0.0
+
+Draft Token Acceptance Rate vs Margin
+
+Draft Token Acceptance Rate vs Entropy
+
+Acceptance Rate
+Overall: 0.732
+
+1.0
+
+0.0
+
+(b) Entropy
+
+0.2
+
+0.4
+
+Margin
+
+0.6
+
+0.8
+
+1.0
+
+(c) Margin
+
+0.00
+
+0.05
+
+0.10
+
+0.05
+
+0.10
+
+0.15
+
+0.20
+
+0.25
+
+0.30
+
+0.15
+
+0.20
+
+0.25
+
+0.30
+
+6000
+4000
+2000
+0
+
+0.00
+
+Standard Deviation
+
+(d) Standard Deviation
+
+Fig. 2. Relationships of Draft Logits Statistics with Acceptance Rate
+Feature Correlation Matrix
+Confidence
+Entropy
+
+-0.886
+
+Margin
+
+0.888
+
+Std Dev
+
+0.905
+
+Accepted
+
+1.00
+
+1.000
+
+0.377
+
+-0.410
+
+0.386
+
+0.393
+
+1.000
+
+Confidence
+
+Entropy
+
+Margin
+
+Std Dev
+
+Accepted
+
+-0.886
+
+0.888
+
+0.905
+
+0.377
+
+1.000
+
+-0.932
+
+-0.950
+
+-0.410
+
+-0.932
+
+1.000
+
+0.948
+
+0.386
+
+-0.950
+
+0.948
+
+1.000
+
+0.393
+
+0.75
+
+0.25
+0.00
+
+Pearson Correlation
+
+0.50
+
+0.25
+0.50
+0.75
+1.00
+
+Fig. 3. Correlation between Logits Statistics and Token acceptance
+
+Impact on goodput and SLO. Goodput is the rate (tokens/s) of verified and committed output
+tokens delivered to the application, excluding any draft tokens that are later rejected and discarded.
+Figure. 1 shows a clear negative correlation between wasted drafting tokens (a proxy for WDT)
+and the achieved device goodput: as waste increases, the device spends a growing fraction of its
+fixed drafting capacity (50 tokens/s) on tokens that never contribute to final output, causing the
+effective throughput to degrade.
+Moreover, by substituting 𝑇𝑑𝑟𝑎𝑓 𝑡 in Eq. 5 with Eq. 10, we have:
+𝑠 =
+
+𝑁𝑣
+,
+use + 𝑇
+(𝑇draft
+wdt ) + 𝑇network + 𝑇queue + 𝑇verify
+
+(11)
+
+which indicates that higher WDT leads to lower token generation speed, further leading to SLO
+violations.
+3.3
+
+Predictable Acceptance Rate
+
+Across a speculative session, draft tokens vary in difficulty: tokens requiring long-range context or
+domain knowledge are more likely to be rejected by the target model at verification time. Prior
+work [21] and our observations show that this difficulty is reflected in draft-side logits. At step 𝑡,
+the draft model outputs a next-token distribution 𝑝𝑡 (·) whose summary statistics (e.g., confidence,
+entropy, top-2 margin, and logit dispersion) quantify token-level uncertainty: a sharper distribution
+(higher confidence/larger margin/lower entropy) typically implies higher agreement with the
+target model and thus higher acceptance probability. We instrument WISP to log these statistics
+together with verification outcomes and find a strong, consistent monotonic relationship (Fig. 2):
+acceptance increases with confidence/margin and decreases with entropy/dispersion, which is
+further supported by the Pearson correlation trends (Fig. 3). Motivated by these signals, WISP uses
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+WISP : Waste- and Interference-Suppressed Distributed Speculative LLM Serving at the Edge via Dynamic Drafting and
+SLO-Aware Batching
+55:9
+
+Fig. 4. Verification Interference among Heterogeneous Requests
+
+lightweight logit-derived features to predict imminent rejections online and trigger verification
+adaptively instead of drafting a fixed window, reducing WDT with negligible overhead.
+Overall, WDT is a structurally unavoidable inefficiency in fixed-window speculative decoding:
+whenever the target model rejects early, the edge has already paid the full drafting cost for the
+unused suffix. This waste directly reduces verified token generation speed and tightens the SLO
+feasibility region, motivating WISP ’s design to explicitly control speculation so as to minimize
+WDT while preserving server efficiency.
+3.4
+
+Verification Interference
+
+By batching tokens from multiple requests, the verification server consolidates many per-request
+launches into a few large GPU kernels, improving utilization and amortizing overheads [24, 41].
+However, batching benefits are highly operator-dependent: GEMM-dominated QKV projections
+and Multilayer Perceptrons (MLPs) scale well with the aggregated token count, while self-attention
+is constrained by heterogeneous sequence lengths and KV-cache memory traffic (plus reductions
+such as softmax), yielding weaker and less uniform scaling [13, 36]. Consequently, practical serving systems often adopt selective batching—aggressively batching linear operators while treating
+attention with more conservative batching and specialized kernels [41].
+This operator heterogeneity (batch-friendly linear layers vs. less uniformly scalable attention)
+turns into a latency issue in speculative serving, where verification requests can arrive with different
+draft lengths. When such heterogeneous requests are co-batched to maximize GPU parallelism,
+the micro-batch becomes a synchronization barrier: it completes only after the slowest request
+finishes its layer stack. As a result, long verifications inflate the batch time and short verifications
+inherit the same completion time. We term this head-of-line effect verification interference: a few
+long verification requests, which are typically bottlenecked by the less-batch-friendly attention/KVcache path, can dominate the batch and increase the end-to-end latency of many short requests.
+Fig. 4 is obtained by profiling vLLM verification latency of LLaMA-70B on two A100 GPUs, where
+the cached short request 𝐵 has a 500-token prefix plus 5 newly drafted tokens to verify. When
+executed in isolation, the long request (Solo A) increases with its verification length, whereas the
+cached short request (Solo B) remains nearly flat; however, once co-batched (Batched A+B), the
+batch completion time is dictated by the long request, causing the short request to suffer from the
+long-request latency.
+4
+
+WISP Design
+
+Motivated by the lack of SLO-awareness, the wasted drafting time, the predictable acceptance rate,
+and the Verification Interference observed in prior distributed speculative edge LLM serving systems,
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+55:10
+
+Li et al.
+
+Score
+SLA
+Slack
+
+Tok
+
+Tok
+
+Tok
+
+Tok
+
+Queue
+
+Receive
+
+Iteratively
+add head
+
+head
+
+Draft
+Length
+Req ID
+
+Draft Token
+
+Logit
+
+Req ID
+
+Draft Token
+
+Logit
+
+Req ID
+
+Draft Token
+
+Logit
+
+Req ID
+
+Draft Token
+
+Logit
+
+Batch
+= Null
+
+？
+Rejected Index
+
+Tok Tok Tok Tok
+
+Edge Device
+
+Extra Token
+
+gRPC
+
+Response
+Verification
+Engine
+
+Memory Verification
+Constrain
+Time
+Check
+Estimator
+
+Verify
+
+Schedule Batch
+
+Verification Server
+
+Fig. 5. WISP architecture and data flow
+
+we present WISP. In WISP, user devices speculate draft tokens while the GPU cluster batches and
+verification requests, enabling the system to serve more edge devices with the same GPU capacity
+while maintaining high-quality, lossless LLM outputs. Beyond this baseline architecture, WISP
+integrates an intelligent drafting controller, an SLO-aware scheduler, a verification time estimator,
+and a verification engine. Together, these components enable adaptive drafting and SLO-aware
+verification, improving drafting efficiency while reducing verification-side SLO violations under
+heterogeneous and time-varying workloads.
+To guarantee that WISP remains strictly lossless, the verification engine follows the standard
+speculative sampling algorithm [25], as shown in Section 2.4. According to the mathematical proof
+in Leviathan’s work [25], the verification role guarantees that the resulting output distribution
+is identical to that produced by decoding from the target model alone. Importantly, physically
+separating the drafter (edge) and verifier (cloud) in WISP only affects the latency of verification,
+but does not change the token distributions involved or the acceptance/rejection logic itself, hence
+the output quality of WISP is lossless. The output qualities of WISP and traditional auto-regressive
+decoding are tested and compared in Appendix D.
+On the verification server, WISP further implements PageAttention [24] and a prefix cache [17]
+to reuse KV states across consecutive verification rounds for the same response, thereby increasing
+verification throughput and mitigating redundant verification work. To the best of our knowledge,
+WISP is the first comprehensive distributed speculative edge LLM serving system that jointly
+provides dynamic drafting, SLO-aware control and interference-aware verification batching (i.e.,
+explicitly addressing Verification Interference), alongside practical cache optimizations on the
+verification server.
+Figure. 5 shows the basic architecture of WISP and data flow among edge device and verification
+server. On edge devices, a small draft model is selected according to the device’s memory and
+computation constraint and then deployed. The intelligent drafting controller samples candidate
+token from draft model and verify it with a light-weight predictor for confidence checking iteratively,
+until the predictor signals a verification request is needed. Then, draft tokens are transmitted to
+verification server through gRPC [18] call. Once request arrives at verification server, it will be sent
+to either utility queue or urgent queue according to the request’s SLO slack and the utility score
+that reflects the expected goodput contributed by this request. Meanwhile, an asynchronized batch
+scheduler collect a certain number of request from the queues to form a verification batch without
+violating the memory constrain and SLO deadline. Thereafter, the batch will be forwarded through
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+WISP : Waste- and Interference-Suppressed Distributed Speculative LLM Serving at the Edge via Dynamic Drafting and
+SLO-Aware Batching
+55:11
+
+verification engine to get the verification results, namely rejected position and extra token, which
+will then be responded to edge device.
+4.1
+
+Intelligent Drafting Controller
+
+In the distributed speculative edge serving systems like SLED, a fixed number of draft tokens
+are generated and sent to verification server. As motivated in Section.3.2, we observe the strong
+relationship between acceptance possibility with the statistics of draft logits, which can be used to
+prevent over-drafting. Therefore, we propose an intelligent drafting controller over the draft model
+to adjust speculative length dynamically.
+Specifically, a machine learning based predictor is designed to give the prediction of whether
+this draft token will be accepted by target model according to the input features of: confidence
+score, the entropy, the margin, and the standard deviation. Based on the prediction, we adopt a
+simple stop-at-first-predicted-rejection strategy to request for verification from the verification
+server. We analyze the relationship of predictor and the WDT, and have the Theorem 1 below:
+Theorem 1 (Monotonicity of WDT). With predictor model 𝜃 ′ trained with lower false alarm
+rate than model 𝜃 , we have:
+E[𝑊𝜃 ′ ] ≤ E[𝑊𝜃 ],
+(12)
+
+Theorem 1 shows that, by training a predictor with lower false alarm rate, we are able to reduce
+the WDT, hence improving system goodput and drafting-verification round between user devices
+and verification server.
+Rejection predictor design. Inspired by Theorem 1, we design a lightweight binary rejection
+predictor that estimates whether the next drafted position is likely to be the first target-side
+rejection within the current speculative window, enabling a stop-at-first-predicted-rejection policy
+that triggers verification early and avoids over-drafting. The predictor operates purely on draft-side
+signals: for each token position, we compute a compact feature vector from summary statistics of
+the draft logits, and train a small edge-friendly classifier to distinguish accepted tokens from the
+first rejected token; positions after the first rejection are intentionally ignored since verification
+terminates immediately and those suffix tokens do not affect either the acceptance length or wasted
+work.
+4.2
+
+Verification Batch Scheduling Problem
+
+With verification requests from edge devices, WISP dynamically batches the verification requests
+for execution, ensuring higher GPU utilization and system throughput. Meanwhile, verification
+requests with diverse application types need to be served to fulfill the required token generation
+speed. In WISP, We model the batch scheduling problem as a knapsack problem and then propose
+an SLO-aware scheduling algorithm.
+According to the server-side processing budget in Eq.7, we model the verification SLO for request
+𝑖 arrives at time 𝑎𝑖 as a relative deadline:
+𝑑𝑖 ≜ 𝑎𝑖 + 𝜏𝑐 (𝑖 ) ,
+
+(13)
+
+A request meets its verification SLO if its completion time 𝐶𝑖 satisfies 𝐶𝑖 ≤ 𝑑𝑖 . This deadline-based
+SLO abstraction is standard in real-time scheduling and deadline-aware serving systems [27, 44].
+We formulate verification batching as an SLO-constrained long-run goodput maximization
+problem. Let 𝑡𝑘 denote the 𝑘-th dispatch epoch, at which the scheduler selects a batch 𝐵𝑘 from
+the pending requests and submits it to the GPU. Each request 𝑖 carries an estimated number
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+55:12
+
+Li et al.
+
+of verified tokens 𝑁ˆ𝑖𝑣 , defined in Eq. 6, an estimated memory footprint 𝑚ˆ 𝑖 , and a deadline 𝑑𝑖
+derived from its class 𝑐. The objective maximizes the time-average total goodput accumulated by
+all dispatched batches over an infinite horizon. Each batch must satisfy a GPU memory constraint,
+and an SLO feasibility constraint requiring every included request to complete before its deadline.
+The optimization problem is shown in Eq. 14-16.
+
+
+1  ∑︁ ∑︁ ˆ 𝑣 
+𝑁𝑖 
+max lim inf E 
+(14)
+𝑇 →∞ 𝑇
+{𝐵𝑘 }
+𝑘: 𝑡𝑘 <𝑇 𝑖 ∈𝐵𝑘 
+
+
+∑︁
+s.t.
+𝑚ˆ 𝑖 ≤ 𝑀 (𝑡𝑘 ), ∀𝑘,
+(15)
+𝑖 ∈𝐵𝑘
+
+𝑡𝑘 + 𝑇ˆ𝑏𝑎𝑡𝑐ℎ (𝐵𝑘 ) ≤ 𝑑𝑖 ,
+
+∀𝑖 ∈ 𝐵𝑘 , ∀𝑘.
+
+(16)
+
+The optimization problem captures the common “efficiency under SLO” goal, which is widely
+adopted in production LLM inference scheduling [5, 20]. By solving optimization problem in Eq.
+Eq. 14-16, system goodput can be maximized while SLO requirements being met. However, even
+with a simplified runtime model, selecting 𝐵𝑘 under memory and deadline constraints is NP-hard.
+Moreover, 𝑇ˆ𝑏𝑎𝑡𝑐ℎ (𝐵𝑘 ) is workload-dependent (batch size and token-length heterogeneity), making
+the exact per-batch optimization intractable, which motivates lightweight online heuristics, which
+has been adopted in prior SLO-aware inference schedulers [5, 33].
+To derive a practical scheduler, we adopt a standard per-epoch reduction: at each dispatch time
+𝑡𝑘 , we treat the available GPU budget as a bounded resource and seek a locally optimal batch that
+delivers the largest incremental goodput while remaining SLO-feasible. Specifically, we approximate
+the marginal verification goodput of admitting a request by a profiling the number of its expected
+verified tokens and its marginal verification cost. Under this view, the per-epoch batch selection
+becomes a knapsack-like packing problem: each request 𝑖 provides value 𝑔ˆ𝑖 (expected accepted
+tokens) and consumes verification cost 𝑣ˆ𝑖 , and we aim to pack high-value items within the feasible
+budget. This motivates our utility score as a value density:
+𝑁ˆ 𝑣
+𝑈𝑖 ≜ 𝑖 ,
+(17)
+𝑣ˆ𝑖
+which measures expected goodput gained by admitting verification request 𝑖 in the batch.
+4.3
+
+Scheduling Algorithm
+
+In this work, we propose a greedy algorithm to select batches from decreasing 𝑈𝑖 , which is a
+principled approximation to the per-epoch knapsack objective. Meanwhile, in order to guarantee
+the SLO, we deliberately keep SLO as a constraint/priority override. Precisely, We introduce a
+time-critical fast path that overrides density ordering, following the common “critical-first, besteffort-later” pattern in SLO-aware inference schedulers [5, 33].
+For each request 𝑖, we define a conservative latest start time (LST):
+LST𝑖 ≜ 𝑑𝑖 − 𝑣ˆ𝑖 − 𝛿,
+
+(18)
+
+where 𝛿 is a guard time for modeling error and queueing uncertainty, a standard technique in
+SLO-aware serving to absorb estimation errors and tail effects, and it’s determined from experience.
+A request becomes urgent and put into urgent queue at time 𝑡 if 𝑡 ≥ LST𝑖 . Urgent requests
+are ordered by earliest deadline (EDF), while non-critical requests are ordered by utility score 𝑈𝑖 ,
+forming the utility queue.
+At each dispatch epoch 𝑡𝑘 , the planner builds a batch incrementally: it first admits EDF-ordered
+critical requests, and then fills the residual capacity using utility score-ordered requests. While
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+WISP : Waste- and Interference-Suppressed Distributed Speculative LLM Serving at the Edge via Dynamic Drafting and
+SLO-Aware Batching
+55:13
+
+Algorithm 1 SLO-aware Greedy Verification Batch Scheduling at Dispatch Epoch 𝑡𝑘
+ˆ 𝑖 , 𝑑𝑖 }𝑖 ∈Q (𝑡𝑘 ) ; batch-time
+Require: Pending request set Q (𝑡𝑘 ) ; memory budget 𝑀 (𝑡𝑘 ) ; guard time 𝛿 ; per-request estimates {𝑔ˆ𝑖 , 𝑣ˆ𝑖 , 𝑚
+estimator 𝑇ˆ (·) .
+Ensure: Dispatched batch 𝐵𝑘 .
+1: function FeasibleAdd(𝐵, 𝑖, 𝑡𝑘 )
+2:
+𝐵′ ← 𝐵 ∪ Í
+{𝑖 }
+ˆ𝑗
+3:
+𝑚 (𝐵 ′ ) ← 𝑗 ∈𝐵 ′ 𝑚
+4:
+𝐷 min (𝐵 ′ ) ← min 𝑗 ∈𝐵 ′ 𝑑 𝑗
+
+
+5:
+return 𝑚 (𝐵 ′ ) ≤ 𝑀 (𝑡𝑘 ) ∧ 𝑡𝑘 + 𝑇ˆ (𝐵 ′ ) ≤ 𝐷 min (𝐵 ′ )
+6: end function
+
+7: for all 𝑖 ∈ Q (𝑡𝑘 ) do
+8:
+𝑈𝑖 ← 𝑔ˆ𝑖 /𝑣ˆ𝑖
+9:
+LST𝑖 ← 𝑑𝑖 − 𝑣ˆ𝑖 − 𝛿
+10: end for
+11: Qcrit ← {𝑖 ∈ Q (𝑡𝑘 ) | 𝑡𝑘 ≥ LST𝑖 }
+12: Qnon ← Q (𝑡𝑘 ) \ Qcrit
+13: Sort Qcrit by increasing 𝑑𝑖
+14: Sort Qnon by decreasing 𝑈𝑖
+15: 𝐵 ← ∅
+16: stop ← false
+
+⊲ Utility (value density)
+⊲ Latest start time (Eq. 18)
+
+⊲ EDF among critical requests
+⊲ Greedy by utility score
+
+⊲ (1) Time-critical fast path: admit EDF-ordered critical requests first
+
+17: for all 𝑖 ∈ Qcrit do
+18:
+if FeasibleAdd(𝐵, 𝑖, 𝑡𝑘 ) then
+19:
+𝐵 ← 𝐵 ∪ {𝑖 }
+20:
+else
+21:
+stop ← true
+22:
+break
+23:
+end if
+24: end for
+
+⊲ Violation observed; stop growing batch
+
+⊲ (2) Best-effort fill: only if all critical admissions did not trigger violation
+
+25: if not stop then
+26:
+for all 𝑖 ∈ Qnon do
+27:
+if FeasibleAdd(𝐵, 𝑖, 𝑡𝑘 ) then
+28:
+𝐵 ← 𝐵 ∪ {𝑖 }
+29:
+else
+30:
+break
+31:
+end if
+32:
+end for
+33: end if
+34: 𝐵𝑘 ← 𝐵
+35: return 𝐵𝑘
+
+⊲ Violation observed; stop growing batch
+
+⊲ Dispatch 𝐵𝑘 at time 𝑡𝑘 ; remaining requests stay pending
+
+requests being added to batch repeatedly, each tentative batch is validated by both constraints (Eq.
+15- 16), until any violation is seen. The scheduling algorithm is shown in Algorithm. 1.
+4.4
+
+Verification Time Estimator
+
+To enforce SLO constraints while dynamically constructing micro-batches, we require a lightweight
+estimator that predicts verification latency 𝑇batch . A critical challenge in speculative serving is
+that a single micro-batch often contains a heterogeneous mix of verification requests in different
+verifying stages. We distinguish between two primary verification types that coexist in the batch:
+• First-time Verification (Cold Start): The request is new to the server (or its cache was
+evicted). The server must process the entire prompt sequence plus the initial draft tokens.
+Here, the number of new tokens 𝐿new is large (typically hundreds), while the cached length
+𝐿cached is zero.
+• Follow-up Verification (Warm Cache): The request has valid history in the KV cache. The
+server only processes the small set of newly generated draft tokens (e.g., 3–5 tokens). Here,
+𝐿new is small, but the draft tokens must attend to a long history 𝐿cached .
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+55:14
+
+Li et al.
+
+Building on the operator heterogeneity analysis in Section 3.4, we model the total batch latency
+as an additive combination of three orthogonal components that capture these diverse states: linear
+computation, attention interaction, and memory access.
+Computational modeling. First, we analyze the linear operations (embeddings, QKV projections,
+FFNs). These layers are stateless and process each token independently. Regardless of whether a
+request is a "first-time" prompt or a "follow-up" draft, the computational cost scales strictly with
+the number of tokens entering the GPU. Thus, the aggregate
+linear complexity is simply the sum
+Í
+of new tokens across all requests in the batch: 𝑁 linear = 𝑖 𝐿new,𝑖 .
+Second, we analyze the attention mechanism, which is highly sensitive to the verification type.
+For a first-time verification, the new tokens attend primarily to each other (quadratic self-attention).
+For a follow-up verification, the few draft tokens must primarily attend to the long cached history
+(linear cross-attention). We unify these behaviors under a single complexity metric. For every
+request 𝑖, the query vectors of the 𝐿new,𝑖 tokens must compute dot products with keys from the
+entire sequence context 𝐿total,𝑖 = 𝐿cached,𝑖 + 𝐿new,𝑖 . We define the aggregate attention complexity
+𝑁 interactions as the total count of query-key interactions:
+∑︁
+𝑁 interactions =
+(𝐿total,𝑖 × 𝐿new,𝑖 )
+(19)
+𝑖
+
+This formulation automatically adapts to the request type: it scales quadratically for cold starts
+(where 𝐿total ≈ 𝐿new ) and linearly with prefix length for warm follow-ups.
+Finally, to capture the memory-bandwidth bottleneck, we quantify the IO overhead by the
+total count
+Í of cached tokens that must be loaded from HBM to the streaming multiprocessors:
+𝑁 cached = 𝑖 𝐿cached,𝑖 . Combining these factors, we estimate the batch verification latency as:
+𝑇ˆbatch = 𝑎 · 𝑁 linear + 𝑏 compute · 𝑁 interactions + 𝑏 read · 𝑁 cached + 𝑐
+
+(20)
+
+where 𝑐 represents constant system overheads (e.g., kernel launches).
+Profiling and validation. We fit this model using Ordinary Least Squares (OLS) on a dataset
+profiled on NVIDIA A100 GPUs with Qwen3-32B, ensuring coverage of compute-bound, memorybound, and mixed regimes. The latency estimator achieves high accuracy with 𝑅 2 > 0.99 and a Mean
+Absolute Error (MAE) of 3.38 ms on the test set. In the online system, we apply a small guard time
+𝛿 to this prediction to absorb residual worst-case errors. These coefficients are deployment-specific
+rather than per-request dynamic: once profiled for a fixed GPU type, target model, quantization
+setting, and inference backend, the same latency model can typically be reused during normal
+operation. Re-profiling and coefficient refitting are only needed when the execution stack changes
+materially, e.g., moving to a different GPU platform, switching kernels/backends, or changing the
+target model family/size or quantization setup.
+Robustness to estimator error. WISP is designed to remain robust under moderate latency-estimation
+error. Let the true batch latency be
+𝑇batch (𝐵) = 𝑇ˆbatch (𝐵) + 𝜀 (𝐵),
+
+(21)
+
+where 𝜀 (𝐵) is the prediction error. In our scheduler, the guard time 𝛿 in the latest-start-time rule
+serves as an explicit robustness margin against such error. Therefore, moderate underestimation
+mainly reduces the available SLO slack, while overestimation mainly makes the scheduler more
+conservative and lowers utilization or goodput. In other words, the effect is graceful rather than
+catastrophic: estimator error primarily shifts the slack–utilization tradeoff, rather than breaking
+correctness or the overall scheduling logic.
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+WISP : Waste- and Interference-Suppressed Distributed Speculative LLM Serving at the Edge via Dynamic Drafting and
+SLO-Aware Batching
+55:15
+
+Verification Engine
+Accept
+
+Accept/
+Reject
+Rule
+
+Output
+Logits
+
+One Step
+Verification
+
+ZMQ
+Wrapper
+
+Target Model
+Reject&
+Extra
+Token
+Page Attention
+
+Prefix Cache
+
+(Lower memory footprint) (Reuse for consecutive verifications)
+
+Fig. 6. Architecture of verification engine
+
+4.5
+
+Verification Engine
+
+After the SLO-aware scheduler assembles a verification batch, WISP executes it in the verification
+engine, which is responsible for (i) forwarding the batched inputs through the target model, (ii)
+applying the speculative accept/reject rule to obtain the rejected position and the extra token, and
+(iii) maintaining per-request KV states to accelerate consecutive verifications for the same response.
+Figure. 6 illustrates the main pipeline.
+Batched one-step verification and speculative outputs. Given a verification batch 𝐵𝑘 , the target
+engine performs one-step verification by forwarding each request’s newly drafted block y on top
+of its committed-prefix KV states. Concretely, it reuses the cached KV for the already accepted
+prefix and runs a prefill/extend pass only for the 𝐾 new draft tokens, producing logits {ℓ 1, . . . , ℓ 𝐾 }
+(and the next-token logits when needed). For each request, it then applies the standard in-order
+accept/reject rule and stops at the first mismatch [25]: letting 𝑅 be the first rejection index (or
+𝑅=𝐾+1 if none) and 𝐿=𝑅−1 the accepted length, the engine returns (𝑅, 𝐿) and an extra token 𝑦˜
+sampled from the target model at the rejection position to preserve the correct output distribution.
+Efficient consecutive verifications with PageAttention and prefix cache. Distributed speculative
+serving triggers many consecutive speculate–verify rounds per response, so verification requests
+repeatedly share a long, growing prefix; re-verifying from scratch would redundantly recompute
+prefix prefill and waste GPU time/bandwidth. WISP avoids this with two complementary engine
+optimizations: (i) a PageAttention-style paged KV layout that stores per-request KV in fixed-size
+blocks to reduce fragmentation and support dynamic sequence growth under tight GPU memory
+budgets [24], and (ii) a per-session prefix cache that persists committed-prefix KV across rounds so
+the target model forwards only the newly drafted block and updates KV in-place [17]. Together
+with batched one-step verification, these mechanisms keep verification compute-efficient (large
+coalesced GPU kernels) and state-efficient (minimal redundant prefill), enlarging the feasibility
+region for meeting token-speed SLOs under heterogeneous, interference-prone workloads.
+5
+
+Evaluation
+
+We evaluate WISP with the goal of answering three questions: (i) system-level impact—how
+much WISP improves system capacity (max supported edge devices under token-speed SLOs) and
+system goodput compared to prior distributed speculative serving and centralized serving; (ii) SLO
+behavior under contention—whether SLO-aware batching can reduce token-speed violations
+under heterogeneous SLO classes and fluctuating verification workloads; and (iii) component-level
+fidelity—whether the intelligent drafting controller and the verification-time estimator provide
+the necessary accuracy/overhead trade-offs to be used in the online control loop.
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+55:16
+
+5.1
+
+Li et al.
+
+Settings
+
+Experimental setup. We compare WISP against (i) centralized serving, where all generation
+runs on the GPU server, and (ii) SLED, a distributed speculative baseline with FCFS verification;
+The verification server is implemented with vLLM using PageAttention and a prefix cache to reuse
+KV states across consecutive verifications, and edge–server communication uses gRPC.
+To comprehensively validate the WISP and conduct careful comparisons with baselines in end-toend evaluations, we deploy the target LLMs, including Qwen3-32B, Qwen3-14B and Llama3.1-70BInstruct, on an NVIDIA A100 80GB GPU, while running the lightweight draft models, including
+Qwen3-0.6B/1.7B/4B/8B, on edge devices. We measure predictor overhead on Raspberry Pi 5/4B
+CPUs. We generate load using a scalable verification-workload simulator that emulates many
+concurrent devices and produces verification requests across speculate–verify iterations, with four
+token-speed SLO classes {2, 4, 6, 8} tok/s; we log per-iteration drafting, network, queueing, and
+verification times to compute achieved token speed, and mark an SLO violation when the achieved
+speed falls below the class target.
+5.2
+
+System Capacity and Throughput Analysis
+
+We evaluate WISP at the system level by quantifying (i) system capacity—the maximum number
+of concurrent edge instances supportable under token-speed SLOs—and (ii) system goodput—the
+aggregate rate of verified and committed tokens. We fix the verifier to a single NVIDIA A100
+80GB and use a scalable verification-workload simulator to emulate 𝑁 edge devices that iteratively
+draft tokens and send verification requests. Each device is assigned a token-speed requirement
+𝑐 ∈ {2, 4, 6, 8} tokens/s, and we compute all metrics from per-batch server logs.
+5.2.1 System capacity. For each service level 𝑐, we define capacity as the largest 𝑁 whose measured
+SLO violation rate stays below a threshold 𝜖:
+Cap(𝑐) ≜ max {𝑁 | Pr[token-speed < 𝑐] ≤ 𝜖} .
+
+(22)
+
+We sweep 𝑁 upward, run the system to steady state, and estimate Pr[·] from end-to-end tokenspeed traces (including queueing and verification time). Table 2 summarizes the results for WISP,
+SLED, and centralized serving.
+WISP achieves the highest system capacity across all SLO classes 𝑐 and both target models,
+with particularly strong gains under tighter SLOs (larger 𝑐). For Qwen3-32B, WISP scales to
+164/142/103/86 devices across Classes 1–4, compared to 97/80/54/41 for centralized serving and
+83/42/27/21 for SLED, translating to 1.69–2.10× speedup over centralized and 1.98–4.10× over
+SLED; for Qwen3-14B and Llama3.1-70B, the speedups are also profound. The widening gap at
+tight SLOs is explained by two orthogonal controls: dynamic speculation and an SLO-aware batch
+scheduler, together with WISP’s prefix-cache reuse. In contrast, SLED does not use caching and must
+recompute prefixes on every verification, so verification compute and interference escalate quickly
+as the SLO tightens; meanwhile, when the supported device count is already large (looser SLOs
+/ higher aggregate throughput), fixed per-batch overheads (e.g., dispatch/scheduling and kernellaunch effects) occupy a larger fraction of time, making the multiplicative speedup comparatively
+smaller, consistent with the more modest gains in the highest-capacity regimes.
+5.2.2 System goodput. We further compare system goodput, defined as the aggregate throughput of
+verified and committed tokens across all devices (tokens/s), i.e., excluding rejected draft tokens and
+uncommitted intermediate outputs. Table 3 reports that WISP consistently delivers significantly
+higher goodput than both baselines under the same verifier budget. This improvement is driven
+by three mechanisms: (i) the rejection predictor reduces wasted speculative work, increasing the
+fraction of drafted tokens that become committed outputs; (ii) prefix-cache reuse with PageAttention
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+WISP : Waste- and Interference-Suppressed Distributed Speculative LLM Serving at the Edge via Dynamic Drafting and
+SLO-Aware Batching
+55:17
+
+Table 2. System capacity (max supported devices) under different SLO classes. Higher is better.
+Systems
+
+Target Model
+
+Class 1
+
+Class 2
+
+Class 3
+
+Class 4
+
+SLED
+
+Qwen3-32B
+Qwen3-14B
+Llama-70B
+
+83
+119
+48
+
+42
+88
+17
+
+27
+71
+7
+
+21
+52
+3
+
+Qwen3-32B
+Qwen3-14B
+Llama-70B
+
+97
+198
+85
+
+80
+165
+26
+
+54
+109
+13
+
+41
+86
+4
+
+WISP
+
+Qwen3-32B
+Qwen3-14B
+Llama-70B
+
+164
+245
+128
+
+142
+223
+64
+
+103
+194
+22
+
+86
+154
+9
+
+Speedup vs. SLED
+
+Qwen3-32B
+Qwen3-14B
+Llama-70B
+
+1.98×
+2.06×
+2.67×
+
+3.38×
+2.53×
+2.56×
+
+3.81×
+2.73×
+3.14×
+
+4.10×
+2.96×
+3.00×
+
+Speedup vs. Centralized
+
+Qwen3-32B
+Qwen3-14B
+Llama-70B
+
+1.69×
+1.24×
+1.51×
+
+1.78×
+1.35×
+2.46×
+
+1.91×
+1.78×
+1.69×
+
+2.10×
+1.79×
+2.25×
+
+Centralized Serving
+
+accelerates consecutive verifications by reusing KV states, improving verifier-side batch efficiency;
+and (iii) offloading token generation to edge devices frees the GPU verifier from autoregressive
+decoding. Together, these effects increase the amount of useful output produced per unit verifier
+time, especially near saturation where baseline goodput collapses due to queueing and interference.
+Table 3. System goodput comparison.
+Metric
+Whole System Goodput
+
+5.3
+
+Target Model
+
+SLED
+
+Centralized Serving
+
+WISP
+
+Qwen3-32B
+Qwen3-14B
+Llama-70B
+
+170.82 tokens/s
+276.38 tokens/s
+103.25 tokens/s
+
+326.12 tokens/s
+552.34 tokens/s
+191.52 tokens/s
+
+631.86 tokens/s
+1044.92 tokens/s
+348.40 tokens/s
+
+SLO Analysis
+
+We next examine how well WISP sustains token-speed SLOs under increasing multi-tenant load.
+We consider four SLO classes with requirements 𝑐 ∈ {2, 4, 6, 8} tokens/s (Class 1–4). In each run, we
+sweep the number of simultaneously served edge devices 𝑁 and generate multiple responses per
+device. A request is counted as an SLO violation if its achieved end-to-end token speed (including
+queueing and verification) falls below device’s class requirement.
+Figure. 7 plots the violation rate as a function of 𝑁 for WISP and an FCFS verification baseline,
+which is implemented by disabling the scheduler in WISP. Two patterns are clear. First, violations
+stay near zero at low load and then rise sharply once the verifier approaches saturation, indicating
+a “knee” where queueing and batch completion time begin to dominate. Second, WISP consistently
+shifts this knee to larger 𝑁 and reduces the violation rate at the same load across all classes, with
+the largest relative gains in tighter classes (6/8 tokens/s) where latency headroom is smallest.
+This is because FCFS readily mixes heterogeneous verification lengths inside the same batch,
+amplifying head-of-line blocking and cascading delays to short requests, whereas WISP constructs
+latency-feasible batches and prioritizes urgency using the online verification-time estimator, thereby
+containing Verification Interference and preventing runaway queue growth.
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+Li et al.
+
+SLO Violation Rate Comparison - Service Level 2.0 TPS
+
+SLO Violation Rate Comparison - Service Level 4.0 TPS
+
+SLO Violation Rate Comparison - Service Level 6.0 TPS
+
+SLO Violation Rate Comparison - Service Level 8.0 TPS
+
+1.0
+
+1.0
+
+1.0
+
+1.0
+
+0.6
+0.4
+0.2
+0.0
+
+10 20 30 40 50 60 70 80 90 100110120130140150160170180190200
+
+Number of Devices
+(a) Class 1
+
+(a) Class 1
+
+0.8
+0.6
+0.4
+0.2
+0.0
+
+10 20 30 40 50 60 70 80 90 100110120130140150160170180190200
+
+Number of Devices
+(b) Class 2
+
+(b) Class 2
+
+WISP 6.0 TPS
+FCPS 6.0 TPS
+
+0.8
+
+SLO Violation Rate (%)
+
+0.8
+
+WISP 4.0 TPS
+FCPS 4.0 TPS
+SLO Violation Rate (%)
+
+WISP 2.0 TPS
+FCPS 2.0 TPS
+SLO Violation Rate (%)
+
+SLO Violation Rate (%)
+
+55:18
+
+0.6
+0.4
+0.2
+0.0
+
+10 20 30 40 50 60 70 80 90 100110120130140150160170180190200
+
+WISP 8.0 TPS
+FCPS 8.0 TPS
+
+0.8
+0.6
+0.4
+0.2
+0.0
+
+Number of Devices
+
+10 20 30 40 50 60 70 80 90 100110120130140150160170180190200
+
+Number of Devices
+
+(c) Class 3
+
+(c) Class 3
+
+(d) Class 4
+
+(d) Class 4
+
+Fig. 7. Token Generation Speed and SLO Violations
+
+Fig. 8. Violation attribution in the queue–compute plane under WISP.
+
+Violation attribution in the queue–compute plane. We analyze WISP’s verification-SLO violations
+using per-verification logs from the concurrent device simulator. Each verification event records
+the queueing delay 𝑡 queue (time spent waiting to be scheduled into a batch) and the measured GPU
+verification time 𝑡 verify (batch execution time attributed to the request). We plot all events in the
+(𝑡 queue, 𝑡 verify ) plane (Figure. 8) and color points by whether they violate the SLO.
+Among violated events, we label an event as compute-dominant if its verification time exhibits a
+clear spike relative to recent server behavior. Let MA𝑊 (𝑡 verify ) be the sliding mean over the most
+recent 𝑊 batches (or events); we define
+𝑡 verify
+𝜌≜
+,
+(23)
+MA𝑊 (𝑡 verify )
+and classify a violated event as compute-dominant if 𝜌 > 𝜏 (e.g., 𝜏=1.5). Otherwise, violated
+events are labeled queue-dominant, indicating they occur under a near-baseline 𝑡 verify and are more
+consistent with backlog-induced waiting. The figure highlights that most violations coincide with
+elevated 𝑡 verify spikes even when 𝑡 queue is moderate, while a smaller fraction arises from large
+𝑡 queue without a corresponding compute spike, revealing distinct violation regimes under batched
+verification.
+Stress-test under bursty arrivals. To evaluate robustness under bursty traffic conditions, we construct a synthetic workload trace consisting of three burst events, with peak loads of approximately
+110, 155, and 215 concurrent requests, superimposed on a diurnal baseline ranging from 10 to 55
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+WISP : Waste- and Interference-Suppressed Distributed Speculative LLM Serving at the Edge via Dynamic Drafting and
+SLO-Aware Batching
+55:19
+
+SLO Compliance Under Bursty Arrivals
+WISP 2 TPS
+WISP 4 TPS
+WISP 6 TPS
+WISP 8 TPS
+Workload
+
+80
+
+FCFS 2 TPS
+FCFS 4 TPS
+FCFS 6 TPS
+FCFS 8 TPS
+
+250
+200
+
+Concurrent Requests
+
+SLO Compliance Rate (%)
+
+100
+
+60
+
+150
+
+40
+
+100
+
+20
+
+50
+
+0
+
+0
+
+50
+
+100
+
+150
+
+200
+
+Time (s)
+
+250
+
+0
+
+Fig. 9. SLO compliance under bursty workload.
+
+Predictor
+
+Acc.
+
+AUC
+
+Rec1
+
+Spec.
+
+FPR
+
+BalAcc
+
+MLP (3-layer)
+LightGBM
+Random Forest
+XGBoost
+
+0.7510
+0.7431
+0.7459
+0.7528
+
+0.7727
+0.7939
+0.7964
+0.7978
+
+0.8011
+0.9396
+0.9396
+0.9322
+
+0.5750
+0.1404
+0.1517
+0.2022
+
+0.4250
+0.8596
+0.8483
+0.7978
+
+0.6881
+0.5400
+0.5457
+0.5672
+
+Table 4. Predictor operating point for stop-at-first-predicted-rejection. Rec1 is recall on the Accepted
+(1) class (speculative coverage), while Spec./FPR quantify rejection detection on the Rejected (0) class (waste
+control). BalAcc = (Rec1 + Spec.)/2.
+
+requests. Under this workload, we compare WISP against the FCFS baseline across four SLO classes,
+using Qwen3-32B as the target model. Figure 9 reports the instantaneous SLO compliance rate for
+all four service classes. During off-peak periods, both systems maintain near-perfect compliance.
+The performance gap becomes evident during burst events. At the first burst, with a peak of 110
+concurrent requests, both systems remain robust for the 2–6 TPS SLO classes, while for the most
+stringent 8 TPS class, WISP improves the SLO compliance rate by 18 percentage points over FCFS.
+As the burst intensity increases, compliance degrades for both systems; however, WISP consistently
+demonstrates stronger resilience. At the largest burst, with 215 concurrent requests, WISP still
+outperforms FCFS by 17 and 6 percentage points for the 2 TPS and 4 TPS service classes, respectively.
+Across all service classes, WISP also recovers to full compliance more rapidly after each burst
+subsides, demonstrating that its priority-aware scheduling strategy provides substantial robustness
+under bursty arrivals, particularly for latency-sensitive services.
+5.4
+
+Intelligent Drafting Controller Evaluations
+
+This subsection evaluates the intelligent drafting controller—in particular, the stop-at-first-predictedrejection policy—to verify that it reduces wasted drafting while preserving speculative coverage.
+We (i) benchmark candidate rejection predictors under an operating point that penalizes false
+acceptance of truly rejected tokens (which directly causes over-drafting), and (ii) run ablations
+that toggle the predictor ON/OFF to measure downstream effects on draft-token acceptance and
+end-to-end system goodput. Overall, the MLP offers the best trade-off for our objective by cutting
+FPR to 0.425 (about 2× lower than tree ensembles), and enabling the predictor increases draft
+acceptance by 34%–54% and system goodput by 20%–30%.
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+55:20
+
+Li et al.
+
+dolly
+
+69.8
+
+79.2
+
+85.3
+
+74.9
+
+alpaca
+
+72.3
+
+72.0
+
+79.4
+
+84.5
+
+73.7
+
+Train Distribution
+code
+alpaca
+
+72.6
+
+71.2
+
+80.3
+
+84.8
+
+74.3
+
+80
+
+gsm8k
+
+73.6
+
+70.2
+
+79.6
+
+85.6
+
+75.5
+
+70
+
+mmlu
+
+100
+
+74.5
+
+72.9
+
+70.9
+
+79.9
+
+85.1
+
+75.4
+
+mixed
+
+Rejection Predictor Accuracy (%) Under Distribution Shift
+
+72.5
+
+71.7
+
+80.2
+
+85.2
+
+74.6
+
+dolly
+
+alpaca
+
+code
+alpaca
+Test Distribution
+
+gsm8k
+
+mmlu
+
+90
+
+60
+
+50
+
+Fig. 10. Rejection predictor distribution shift
+
+Evaluation and model choice. Our dataset is acceptance-dominated, so overall accuracy can remain
+high even for predictors biased toward predicting acceptance. However, under our stop-at-firstpredicted-rejection drafting policy, false positives on truly rejected tokens directly cause over-drafting
+and WDT, because they allow the device to draft past the first true rejection. Therefore, we prioritize
+rejection detection (Spec./FPR) over majority-class recall. As shown in Table 4, tree-based models
+achieve high Accepted recall (Rec1 ≈ 0.93–0.94) but exhibit very poor specificity (Spec.= 0.14–0.20,
+i.e., FPR = 0.80–0.86), which would translate into frequent over-drafting when an early rejection
+occurs. In contrast, the MLP reduces FPR to 0.425 (a ∼2× reduction), yielding the best balanced
+accuracy and better aligning with our objective of minimizing WDT; we therefore adopt the MLP in
+WISP. Detailed per-class counts and normalized confusion matrices are deferred to Appendix B.1.
+Robustness under distribution shift. To evaluate the sensitivity of the rejection predictor to the
+prompt distribution used during training, we collected speculative decoding trajectories from
+five diverse prompt datasets: Dolly[12] (general instruction), Alpaca[35] (instruction-following),
+CodeAlpaca[8] (code generation), GSM8K[11] (mathematical reasoning), and MMLU[19] (academic
+QA), with Qwen3-1.7B as the draft model and Qwen3-32B as the target model. For each dataset, we
+trained an MLP classifier (hidden layers: 512-128-64), and evaluated it on all five test distributions.
+As shown in Fig. 10, the predictor exhibits strong robustness to distribution shift: for any given
+test distribution, the accuracy varies by at most 2.2 percentage points regardless of the training
+source. This uniformity across rows indicates that the input features, including draft confidence,
+entropy, margin, and standard deviation, capture distribution-agnostic statistical properties of
+token acceptance rather than content-specific patterns. Notably, a model trained on pooled data
+from all five distributions performs within 1.9 percentage points of the best in-distribution model
+on every test set, suggesting that online adaptation through diverse data aggregation is a practical
+and effective strategy that does not require retraining on the target distribution.
+5.4.1 Predictor ablations. We isolate the contribution of the rejection predictor by turning it ON/OFF
+while keeping all other components unchanged. We report two effects: (i) how the predictor changes
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+WISP : Waste- and Interference-Suppressed Distributed Speculative LLM Serving at the Edge via Dynamic Drafting and
+SLO-Aware Batching
+55:21
+
+the draft token acceptance rate (a proxy for wasted verification work), and (ii) how this translates
+into end-to-end goodput under multi-device load.
+Draft acceptance rate (w/ vs. w/o predictor). Table 5 compares the fraction of drafted tokens that
+are ultimately accepted by the verifier for four draft models. Enabling the predictor increases
+acceptance from 0.31 → 0.48, 0.42 → 0.63, 0.47 → 0.66, and 0.53 → 0.71 for Qwen3-{0.6B, 1.7B, 4B,
+8B}, yielding 34%–54% relative improvements. The gains are larger for smaller draft models because
+they exhibit lower baseline alignment with the target model.
+Table 5. Ablation of draft token acceptance rate with and without the predictor.
+Draft Models
+
+Qwen3-0.6B
+
+Qwen3-1.7B
+
+Qwen3-4B
+
+Qwen3-8B
+
+Predictor: OFF
+Predictor: ON
+Improvement
+
+0.31
+0.48
+54.0% ↑
+
+0.42
+0.63
+50.0% ↑
+
+0.47
+0.66
+44.7% ↑
+
+0.53
+0.71
+34.0% ↑
+
+System goodput (w/ vs. w/o predictor). Table 6 reports aggregate system goodput (verified committed tokens/s) when serving 𝑁 ∈ {2, 4, 8, 16} concurrent devices. With the predictor enabled,
+goodput improves by 20.5%–30.0%, and the relative gain increases with 𝑁 . This scaling trend
+indicates that the predictor primarily helps by reducing verifier-side load: fewer rejected draft tokens
+means fewer wasted verification FLOPs and less batch elongation, which directly mitigates queue
+build-up and head-of-line blocking under contention. Consequently, near saturation (e.g., 𝑁 =16),
+the saved verification work converts more efficiently into committed throughput.
+Table 6. Ablation of system goodput with and without the predictor.
+Number of devices
+Predictor: OFF
+Predictor: ON
+Improvement (%)
+
+5.5
+
+2
+
+4
+
+8
+
+16
+
+14.23
+17.14
+20.45
+
+21.12
+26.43
+25.14
+
+56.12
+70.43
+25.49
+
+102.13
+132.80
+30.03
+
+Accuracy and Calibration of the Verification-Time Estimator
+
+We now evaluate the fidelity of our additive verification-time estimator, which serves as the runtime
+primitive for (i) predicting batch verification latency during incremental batch construction and (ii)
+enforcing SLO-feasibility with minimal conservatism.
+Table 7 summarizes the model performance. On the training set, the model achieves 𝑅 2 = 0.986
+with MAE of 3.85 ms and Mean Absolute Percentage Error (MAPE) of 8.91%. On the held-out
+test set, performance improves slightly to 𝑅 2 = 0.992 with MAE of 3.38 ms and MAPE of 4.93%,
+demonstrating excellent generalization. The 𝑅 2 difference of only 0.006 between training and test
+sets confirms that the model does not overfit. Cross-validation on the training set yields mean
+𝑅 2 = 0.982 ± 0.008, indicating stable parameter estimates across different data subsets.
+Figure. 11a compares the predicted batch latency against the measured latency. The scatter
+closely follows the 𝑦 = 𝑥 reference line across a wide latency range, with the majority of samples
+lying within the ±10% envelope, indicating that the additive form captures the dominant scaling
+trends of verification cost. This near-identity agreement supports using the estimator online to
+anticipate batch completion time and to guide SLO-aware admission and batching decisions.
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+55:22
+
+Li et al.
+
+Table 7. Latency model performance metrics
+Metric
+
+𝑅2
+Adjusted 𝑅 2
+RMSE (ms)
+MAE (ms)
+MAPE (%)
+Max Error (ms)
+
+Perfect prediction
+±10% error
+
+Frequency
+
+Actual Latency (ms)
+
+500
+
+400
+
+300
+
+Distribution of Relative Errors
+Train
+Test
+
+10
+
+20
+
+8
+
+15
+
+6
+
+Train
+Test
+
+10
+
+4
+
+200
+
+5
+
+2
+
+100
+
+0
+
+0.992
+0.991
+4.49
+3.38
+4.93
+14.59
+
+Frequency
+
+Train
+Test
+
+Test Set
+
+0.986
+0.985
+5.35
+3.85
+8.91
+22.31
+
+Distribution of Residuals
+
+12
+
+Additive Cost Model: Actual vs Predicted
+600
+
+Training Set
+
+0
+0
+
+100
+
+200
+
+300
+
+Predicted Latency (ms)
+
+400
+
+500
+
+(a) Actual vs. predicted
+
+10
+
+0
+
+10
+
+Residual (ms)
+
+20
+
+0
+
+60
+
+40
+
+20
+
+Relative Error (%)
+
+0
+
+20
+
+(b) Residual diagnostics
+
+Fig. 11. Additive verification-latency predictor: end-to-end fit and residual diagnostics.
+
+Beyond average accuracy, a scheduler requires the estimator to be well-calibrated—i.e., free of
+systematic bias that would consistently under-predict latency and cause deadline misses. Figure. 11b
+therefore reports the residual and relative-error distributions. Residuals and relative errors are
+tightly centered around zero for both train and test splits, implying no consistent under- or
+over-estimation across the evaluated settings. Taken together, these diagnostics indicate that the
+estimator is reliable for mean behavior, while motivating the use of a small guard time (or slack
+factor) when enforcing hard deadlines so that rare tail deviations do not translate into SLO violations
+in production.
+6
+
+Conclusion and Future Work
+
+WISP rethinks distributed speculative decoding as an end-to-end serving system and, for the first
+time, pinpoints two scaling limits: WDT on edge devices and Verification Interference inside GPU
+micro-batches. It mitigates both via co-designed control and scheduling: a lightweight rejection
+predictor stops drafting near the first likely rejection to curb over-drafting, while the server
+enforces token-speed SLO time budgets with interference-aware batching (an urgent fast path plus
+utility-based filling) under online feasibility checks enabled by a simple verification-time estimator
+that captures linear, attention, and cache effects. Combined with PageAttention and prefix-cache
+KV reuse across consecutive verifications, WISP increases system capacity and goodput under
+heterogeneous workloads.
+Acknowledgments
+This material is based on work supported by the National Science Foundation under Grants No.
+2315851 and Major Grants Initiative Program, Virginia Tech College of Engineering.
+References
+[1] Keivan Alizadeh, Seyed Iman Mirzadeh, Dmitry Belenko, S Khatamifard, Minsik Cho, Carlo C Del Mundo, Mohammad
+Rastegari, and Mehrdad Farajtabar. 2024. Llm in a flash: Efficient large language model inference with limited memory.
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+WISP : Waste- and Interference-Suppressed Distributed Speculative LLM Serving at the Edge via Dynamic Drafting and
+SLO-Aware Batching
+55:23
+In Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers).
+12562–12584.
+[2] Alphabet Inc. 2025. Alphabet Q2 2025 Earnings Call Transcript. https://abc.xyz/investor/earnings/2025/Q2_alphabet_
+earnings_call.pdf Reported that AI Overviews in Search serve 2 billion monthly users globally.
+[3] Alphabet Inc. 2025. Alphabet Q3 2025 Earnings Call Transcript. https://abc.xyz/investor/earnings/2025/Q3_alphabet_
+earnings_call.pdf CEO Sundar Pichai announced the Gemini app reached 650 million monthly active users.
+[4] Apple Inc. 2024. Apple Events: WWDC24 Keynote. Apple Newsroom. https://www.apple.com/newsroom/2024/06/
+apple-intelligence-personal-intelligence-system/ Revealed that Siri processes 1.5 billion requests daily.
+[5] Agrim Bari, Parikshit Hegde, and Gustavo de Veciana. 2025. Optimal Scheduling Algorithms for LLM Inference:
+Theory and Practice. Proceedings of the ACM on Measurement and Analysis of Computing Systems 9, 3 (2025), Article 59.
+doi:10.1145/3771574
+[6] Vitaliy Bibaev, Alexey Kalina, Vadim Lomshakov, Yaroslav Golubev, Alexander Bezzubov, Nikita Povarov, and Timofey
+Bryksin. 2022. All you need is logs: improving code completion by learning from anonymous IDE usage logs. In
+Proceedings of the 30th ACM Joint European Software Engineering Conference and Symposium on the Foundations of
+Software Engineering. 1269–1279.
+[7] Marc Brysbaert. 2019. How many words do we read per minute? A review and meta-analysis of reading rate. Journal
+of Memory and Language 109 (2019), 104047. doi:10.1016/j.jml.2019.104047
+[8] Sahil Chaudhary. 2023. Code Alpaca: An Instruction-following LLaMA Model for Code Generation. https://github.
+com/sahil280114/codealpaca. GitHub repository.
+[9] Yuxuan Chen, Rongpeng Li, Xiaoxue Yu, Zhifeng Zhao, and Honggang Zhang. 2024. Adaptive layer splitting for wireless
+llm inference in edge computing: A model-based reinforcement learning approach. arXiv preprint arXiv:2406.02616
+(2024).
+[10] Peter Clark, Isaac Cowhey, Oren Etzioni, Tushar Khot, Ashish Sabharwal, Carissa Schoenick, and Oyvind Tafjord. 2018.
+Think you have Solved Question Answering? Try ARC, the AI2 Reasoning Challenge. arXiv preprint arXiv:1803.05457
+(2018).
+[11] Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry
+Tworek, Jacob Hilton, Reiichiro Nakano, Christopher Hesse, and John Schulman. 2021. Training Verifiers to Solve
+Math Word Problems. arXiv preprint arXiv:2110.14168 (2021).
+[12] Mike Conover, Matt Hayes, Ankit Mathur, Jianwei Xie, Jun Wan, Sam Shah, Ali Ghodsi, Patrick Wendell, Matei
+Zaharia, and Reynold Xin. 2023. Free Dolly: Introducing the World’s First Truly Open Instruction-Tuned LLM.
+https://www.databricks.com/blog/2023/04/12/dolly-first-open-commercially-viable-instruction-tuned-llm. Databricks
+blog; associated with the databricks-dolly-15k dataset.
+[13] Tri Dao, Daniel Y. Fu, Stefano Ermon, Atri Rudra, and Christopher Ré. 2022. FlashAttention: Fast and Memory-Efficient
+Exact Attention with IO-Awareness. In Advances in Neural Information Processing Systems 35: Annual Conference on
+Neural Information Processing Systems 2022, NeurIPS 2022, New Orleans, LA, USA, November 28 - December 9, 2022,
+Sanmi Koyejo, S. Mohamed, A. Agarwal, Danielle Belgrave, K. Cho, and A. Oh (Eds.). http://papers.nips.cc/paper_
+files/paper/2022/hash/67d57c32e20fd0a7a302cb81d36e40d5-Abstract-Conference.html
+[14] Jiakun Fan, Yanglin Zhang, Xiangchen Li, and Dimitrios S Nikolopoulos. 2025. Parallel CPU-GPU Execution for LLM
+Inference on Constrained GPUs. arXiv preprint arXiv:2506.03296 (2025).
+[15] Ina Fried. 2025. OpenAI’s ChatGPT Now Handles 2.5 Billion Prompts Daily. Axios (22 July 2025). https://www.
+axios.com/2025/07/22/chatgpt-daily-prompts-openai-sam-altman Reported exclusively by Axios based on data from
+OpenAI.
+[16] Georgi Gerganov. 2023. llama.cpp: Port of Facebook’s LLaMA model in C/C++. https://github.com/ggerganov/llama.cpp.
+[17] In Gim, Guojun Chen, Seung-seob Lee, Nikhil Sarda, Anurag Khandelwal, and Lin Zhong. 2024. Prompt Cache:
+Modular Attention Reuse for Low-Latency Inference. In Proceedings of the 5th Conference on Machine Learning and Systems (MLSys 2024). Santa Clara, CA, USA. https://proceedings.mlsys.org/paper_files/paper/2024/file/
+a66caa1703fe34705a4368c3014c1966-Paper-Conference.pdf
+[18] gRPC Authors. [n. d.]. grpc/grpc: An RPC library and framework (source code repository). https://github.com/grpc/grpc.
+https://github.com/grpc/grpc Accessed January 9, 2026..
+[19] Dan Hendrycks, Collin Burns, Steven Basart, Andy Zou, Mantas Mazeika, Dawn Song, and Jacob Steinhardt. 2021.
+Measuring Massive Multitask Language Understanding. Proceedings of the International Conference on Learning
+Representations (ICLR) (2021).
+[20] Han Huang, Jeonghyeon Cho, Jisung Hwang, Yuhan Qiu, Hyesu Jeong, Ji Won Choi, and Youngsok Kim. 2025.
+Scheduling Under Multiple Service Level Objectives for LLM Inference. arXiv preprint arXiv:2504.14966 (2025).
+[21] Kaiyu Huang, Hao Wu, Zhubo Shi, Han Zou, Minchen Yu, and Qingjiang Shi. 2025. SpecServe: Efficient and SLO-Aware
+Large Language Model Serving with Adaptive Speculative Decoding. arXiv preprint arXiv:2503.05096 (2025).
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+55:24
+
+Li et al.
+
+[22] Yibo Jin, Yixu Xu, Yue Chen, Chengbin Wang, Tao Wang, Jiaqi Huang, Rongfei Zhang, Yiming Dong, Yuting Yan, Ke
+Cheng, et al. 2025. P/D-Device: Disaggregated Large Language Model between Cloud and Devices. arXiv preprint
+arXiv:2508.09035 (2025).
+[23] Samuel Kernan Freire, Mina Foosherian, Chaofan Wang, and Evangelos Niforatos. 2023. Harnessing Large Language
+Models for Cognitive Assistants in Factories. In Proceedings of the ACM Conference on Conversational User Interfaces
+(CUI ’23). doi:10.1145/3571884.3604313
+[24] Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying Sheng, Lianmin Zheng, Cody Hao Yu, Joseph E. Gonzalez, Hao
+Zhang, and Ion Stoica. 2023. Efficient Memory Management for Large Language Model Serving with PagedAttention.
+arXiv preprint arXiv:2309.06180 (2023). arXiv:2309.06180 [cs.OS] https://arxiv.org/abs/2309.06180
+[25] Yaniv Leviathan, Matan Kalman, and Yossi Matias. 2023. Fast inference from transformers via speculative decoding. In
+International Conference on Machine Learning. PMLR, 19274–19286.
+[26] Xiangchen Li, Dimitrios Spatharakis, Saeid Ghafouri, Jiakun Fan, Hans Vandierendonck, Deepu John, Bo Ji, and
+Dimitrios S Nikolopoulos. 2025. Sled: A speculative llm decoding framework for efficient edge serving. In Proceedings
+of the Tenth ACM/IEEE Symposium on Edge Computing. 1–8.
+[27] C. L. Liu and James W. Layland. 1973. Scheduling Algorithms for Multiprogramming in a Hard-Real-Time Environment.
+J. ACM 20, 1 (1973), 46–61.
+[28] Zechun Liu, Changsheng Zhao, Forrest Iandola, Chen Lai, Yuandong Tian, Igor Fedorov, Yunyang Xiong, Ernie Chang,
+Yangyang Shi, Raghuraman Krishnamoorthi, et al. 2024. Mobilellm: Optimizing sub-billion parameter language models
+for on-device use cases. In Forty-first International Conference on Machine Learning.
+[29] MLC team. 2023. MLC-LLM. https://github.com/mlc-ai/mlc-llm
+[30] Akrit Mudvari, Yuang Jiang, and Leandros Tassiulas. 2024. Splitllm: Collaborative inference of llms for model placement
+and throughput optimization. arXiv preprint arXiv:2410.10759 (2024).
+[31] Jiahong Ning, Ce Zheng, and Tingting Yang. 2025. DSSD: Efficient Edge-Device LLM Deployment and Collaborative
+Inference via Distributed Split Speculative Decoding. arXiv preprint arXiv:2507.12000 (2025).
+[32] Pratyush Patel, Esha Choukse, Chaojie Zhang, Aashaka Shah, Íñigo Goiri, Saeed Maleki, and Ricardo Bianchini.
+2024. Splitwise: Efficient generative llm inference using phase splitting. In 2024 ACM/IEEE 51st Annual International
+Symposium on Computer Architecture (ISCA). IEEE, 118–132.
+[33] Wonik Seo, Sanghoon Cha, Yeonjae Kim, Jaehyuk Huh, and Jongse Park. 2021. SLO-Aware Inference Scheduler for
+Heterogeneous Processors in Edge Platforms. ACM Transactions on Architecture and Code Optimization 18, 4 (2021),
+Article 43. doi:10.1145/3460352
+[34] Yixin Song, Zeyu Mi, Haotong Xie, and Haibo Chen. 2024. Powerinfer: Fast large language model serving with a
+consumer-grade gpu. In Proceedings of the ACM SIGOPS 30th Symposium on Operating Systems Principles. 590–606.
+[35] Rohan Taori, Ishaan Gulrajani, Tianyi Zhang, Yann Dubois, Xuechen Li, Carlos Guestrin, Percy Liang, and Tatsunori B.
+Hashimoto. 2023. Stanford Alpaca: An Instruction-following LLaMA Model. https://github.com/tatsu-lab/stanford_
+alpaca. GitHub repository.
+[36] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia
+Polosukhin. 2017. Attention is all you need. Advances in neural information processing systems 30 (2017).
+[37] Yeshwanth Venkatesha, Souvik Kundu, and Priyadarshini Panda. 2025. Fast and Cost-effective Speculative Edge-Cloud
+Decoding with Early Exits. arXiv preprint arXiv:2505.21594 (2025).
+[38] Zhenliang Xue, Yixin Song, Zeyu Mi, Xinrui Zheng, Yubin Xia, and Haibo Chen. 2024. Powerinfer-2: Fast large language
+model inference on a smartphone. arXiv preprint arXiv:2406.06282 (2024).
+[39] Shengyuan Ye, Jiangsu Du, Liekang Zeng, Wenzhong Ou, Xiaowen Chu, Yutong Lu, and Xu Chen. 2024. Galaxy: A
+resource-efficient collaborative edge ai system for in-situ transformer inference. In IEEE INFOCOM 2024-IEEE Conference
+on Computer Communications. IEEE, 1001–1010.
+[40] Fengze Yu, Leshu Li, Brad McDanel, and Saiqian Zhang. 2025. DSD: A Distributed Speculative Decoding Solution for
+Edge-Cloud Agile Large Model Serving. arXiv preprint arXiv:2511.21669 (2025).
+[41] Gyeong-In Yu, Joo Seong Jeong, Geon-Woo Kim, Soojeong Kim, and Byung-Gon Chun. 2022. Orca: A Distributed
+Serving System for Transformer-Based Generative Models. In 16th USENIX Symposium on Operating Systems Design
+and Implementation (OSDI 22). USENIX Association, Carlsbad, CA, 521–538. https://www.usenix.org/conference/
+osdi22/presentation/yu
+[42] Zhongzhi Yu, Zheng Wang, Yuhan Li, Ruijie Gao, Xiaoya Zhou, Sreenidhi Reddy Bommu, Yang Zhao, and Yingyan
+Lin. 2024. Edge-llm: Enabling efficient large language model adaptation on edge devices via unified compression and
+adaptive layer voting. In Proceedings of the 61st ACM/IEEE Design Automation Conference. 1–6.
+[43] Mingjin Zhang, Xiaoming Shen, Jiannong Cao, Zeyang Cui, and Shan Jiang. 2024. Edgeshard: Efficient llm inference
+via collaborative edge computing. IEEE Internet of Things Journal (2024).
+[44] Shunying Zhang, Weijian Feng, Qing Li, and Ming Zhou. 2023. BCEdge: A Deadline-Aware Real-Time Inference
+Framework for Heterogeneous Edge Devices. arXiv preprint arXiv:2312.06341 (2023).
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+WISP : Waste- and Interference-Suppressed Distributed Speculative LLM Serving at the Edge via Dynamic Drafting and
+SLO-Aware Batching
+55:25
+
+A
+
+Proof of Theorem 1
+
+Proof. Consider one speculate–verify iteration with a maximum speculative window 𝐾max . The
+draft model proposes tokens (𝑦1, . . . , 𝑦𝐾max ), and the verifier (target model) checks them individually.
+Let
+𝐴𝑖 ∈ {0, 1},
+𝐴𝑖 = 1 iff token 𝑦𝑖 is accepted by the target model.
+(24)
+Define the first rejection index 𝑅 and the acceptance length 𝐿 as
+𝑅 ≜ min{𝑖 ∈ {1, . . . , 𝐾max } : 𝐴𝑖 = 0},
+
+𝐿 ≜ 𝑅 − 1,
+
+(25)
+
+with the convention 𝑅 = 𝐾max + 1 (hence 𝐿 = 𝐾max ) if no rejection occurs.
+Now introduce a binary predictor 𝑔𝜃 that, for each step 𝑖, outputs
+𝑍ˆ𝑖 ≜ 𝑔𝜃 (features𝑖 ) ∈ {0, 1},
+
+(26)
+
+where 𝑍ˆ𝑖 = 1 means “predict accepted” and 𝑍ˆ𝑖 = 0 means “predict rejected”. Under the stop-at-firstpredicted-rejection launch rule, the device drafts until the first predicted reject:
+
+𝐾𝜃 ≜ max 𝑘 ∈ {0, . . . , 𝐾max } : 𝑍ˆ1 = · · · = 𝑍ˆ𝑘 = 1 .
+(27)
+The number of wasted draft tokens (over-drafted tokens beyond the true accepted prefix) is
+𝑊𝜃 ≜ (𝐾𝜃 − 𝐿) + = max{0, 𝐾𝜃 − 𝐿}.
+
+(28)
+
+Step 1: Waste can only occur after the first true rejection. If 𝑅 = 𝐾max + 1, then 𝐿 = 𝐾max and, since
+𝐾𝜃 ≤ 𝐾max by construction, we have 𝑊𝜃 = (𝐾𝜃 − 𝐿) + = 0. Hence, it suffices to consider the event
+{𝑅 = 𝑟 } for some 𝑟 ∈ {1, . . . , 𝐾max }. On {𝑅 = 𝑟 }, we have 𝐴𝑟 = 0 and 𝐴1 = · · · = 𝐴𝑟 −1 = 1, so
+𝐿 = 𝑟 − 1. Moreover, if the predictor outputs 𝑍ˆ𝑟 = 0 at the first true rejection, then by the stop rule
+the device cannot draft beyond 𝑟 − 1 tokens, i.e., 𝐾𝜃 ≤ 𝑟 − 1 = 𝐿, which implies 𝑊𝜃 = 0. Therefore,
+a necessary condition for having 𝑊𝜃 > 0 is
+𝑍ˆ𝑅 = 1 and 𝐴𝑅 = 0,
+(29)
+namely, the predictor makes a false positive (false alarm) at the first rejection index.
+Step 2: An upper bound on the conditional expected waste. Fix any 𝑟 ∈ {1, . . . , 𝐾max } and condition
+on {𝑅 = 𝑟 }. Since 𝐿 = 𝑟 − 1 on this event and 𝐾𝜃 ≤ 𝐾max always holds, we obtain the deterministic
+bound
+𝑊𝜃 = (𝐾𝜃 − 𝐿) + ≤ (𝐾max − (𝑟 − 1)) 1{𝑍ˆ𝑟 = 1} = (𝐾max − 𝑟 + 1) 1{𝑍ˆ𝑟 = 1}.
+(30)
+Taking conditional expectation given 𝑅 = 𝑟 yields
+E[𝑊𝜃 | 𝑅 = 𝑟 ] ≤ (𝐾max − 𝑟 + 1) Pr(𝑍ˆ𝑟 = 1 | 𝑅 = 𝑟 ).
+(31)
+Define the (position-dependent) false-positive probability at the first rejection as
+FP𝜃 (𝑟 ) ≜ Pr(𝑍ˆ𝑟 = 1 | 𝑅 = 𝑟 ).
+
+(32)
+
+Step 3: Unconditioning and monotonicity. Unconditioning over 𝑅 and using 𝑊𝜃 = 0 when 𝑅 =
+𝐾max + 1 gives
+E[𝑊𝜃 ] =
+
+𝐾
+max
+∑︁
+
+Pr(𝑅 = 𝑟 ) E[𝑊𝜃 | 𝑅 = 𝑟 ] ≤
+
+𝑟 =1
+
+𝐾
+max
+∑︁
+
+(𝐾max − 𝑟 + 1) Pr(𝑅 = 𝑟 ) FP𝜃 (𝑟 ).
+
+(33)
+
+𝑟 =1
+
+Consider two predictors 𝜃 and 𝜃 ′ evaluated under the same launch rule and the same underlying
+data-generating process for (𝐴1, . . . , 𝐴𝐾max ) (hence the same distribution of 𝑅). Assume that 𝜃 ′ has
+a lower false alarm rate than 𝜃 at the first rejection, in the sense that
+FP𝜃 ′ (𝑟 ) ≤ FP𝜃 (𝑟 ),
+
+∀𝑟 ∈ {1, . . . , 𝐾max }.
+
+(34)
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+55:26
+
+Li et al.
+
+Applying (33) to both predictors and comparing term by term yields
+E[𝑊𝜃 ′ ] ≤ E[𝑊𝜃 ],
+
+(35)
+
+which proves the theorem statement.
+Finally, if the per-token drafting time is 𝜏𝑑 , then the WDT satisfies 𝑇wdt,𝜃 = 𝜏𝑑 𝑊𝜃 and thus
+E[𝑇wdt,𝜃 ′ ] = 𝜏𝑑 E[𝑊𝜃 ′ ] ≤ 𝜏𝑑 E[𝑊𝜃 ] = E[𝑇wdt,𝜃 ],
+so the same monotonicity holds for expected WDT.
+B
+
+(36)
+□
+
+Performance Analysis of Rejection Predictor
+
+Training dataset generation. We generate a token-level supervised dataset by logging speculative
+decoding traces. Each sample corresponds to a drafted token position and is labeled by the verification outcome: a token is labeled 1 if it is accepted and 0 if it is the first rejected token in that
+speculative window. Tokens after the first rejection are excluded because the verifier terminates
+at the first mismatch, and those suffix tokens do not affect 𝐿 or 𝑊 . This matches the predictor’s
+operational role: detecting the first imminent rejection. The resulting dataset contains 17,510 samples with 4 features, with a class imbalance toward the positive (accepted) class. Table 8 reports the
+summary statistics.
+Table 8. Training dataset statistics (token-level samples).
+Item
+
+Count
+
+Fraction
+
+Total samples
+Positive (accepted)
+Negative (rejected)
+Feature dimension
+
+17,510
+12,820
+4,690
+5
+
+100.00%
+73.22%
+26.78%
+–
+
+Model candidates and selection rationale. We evaluate four lightweight classifier families that can
+run efficiently on edge CPUs: (i) gradient-boosted trees (XGBoost), (ii) histogram-based gradient
+boosting (LightGBM), (iii) random forests, and (iv) a compact multi-layer perceptron (MLP). All
+models consume the same 5-D feature vector to ensure a fair accuracy–overhead comparison.
+Training protocol and hyperparameter scanning. We split the dataset into training/validation
+partitions and use the validation split to select hyperparameters. For tree-based models, we train
+with standard cross-entropy objectives and early stopping (when supported) to prevent overfitting;
+for the MLP, we train with binary cross-entropy loss and Adam, and employ mini-batch training
+with learning-rate and dropout tuning. We perform systematic hyperparameter tuning for each
+model family, and Table 9 summarizes representative tuning dimensions for reproducibility. In
+particular, the MLP scan enumerates multiple hidden-layer shapes, learning rates, batch sizes, and
+regularization options (dropout, batch normalization), while for tree ensembles we scan estimator
+count, depth, learning rate, and subsampling knobs. The best configuration per family is selected
+by validation performance and then exported as the deployment artifact.
+B.1
+
+Additional Predictor Results
+
+Detailed confusion-matrix interpretation. Table 10 highlights a consistent operating-point contrast.
+For the Rejected (0) class, the tree ensembles misclassify most rejected tokens as Accepted (1): their
+false-positive rates on Rejected tokens are 79.78–85.96%, meaning that the predictor would often
+fail to stop at the true first rejection and thus extend the speculative window into wasted suffix
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+WISP : Waste- and Interference-Suppressed Distributed Speculative LLM Serving at the Edge via Dynamic Drafting and
+SLO-Aware Batching
+55:27
+
+Table 9. Representative hyperparameter search space for predictor tuning.
+Model
+
+Scanned hyperparameters (examples)
+
+XGBoost
+LightGBM
+Random Forest
+MLP
+
+n_estimators, max_depth, learning_rate, subsample, colsample_bytree,
+min_child_weight, gamma, reg_lambda, reg_alpha
+num_leaves, max_depth, learning_rate, n_estimators, subsample,
+colsample_bytree, min_child_samples, reg_lambda, reg_alpha
+n_estimators, max_depth, min_samples_split, min_samples_leaf, max_features
+Hidden sizes (e.g., [512, 128, 64]), learning rate (10−5 –10−3 ), batch size (e.g., 32–256),
+dropout (0–0.3), batch normalization (on/off), max epochs and early stopping
+
+True Rejected (0)
+
+True Accepted (1)
+
+Class Support
+
+Predictor
+
+MLP (3-layer)
+LightGBM
+Random Forest
+XGBoost
+
+Pred 0 (TN)
+
+Pred 1 (FP)
+
+Pred 0 (FN)
+
+Pred 1 (TP)
+
+#Rejected
+
+#Accepted
+
+92 (57.50%)
+25 (14.04%)
+27 (15.17%)
+36 (20.22%)
+
+68 (42.50%)
+153 (85.96%)
+151 (84.83%)
+142 (79.78%)
+
+112 (19.89%)
+33 ( 6.04%)
+33 ( 6.04%)
+37 ( 6.78%)
+
+451 (80.11%)
+513 (93.96%)
+513 (93.96%)
+509 (93.22%)
+
+160
+178
+178
+178
+
+563
+546
+546
+546
+
+Table 10. Row-normalized confusion matrices for draft-token accept/reject prediction. Percentages are
+normalized within each true class (Rejected or Accepted).
+
+(a) MLP
+
+(b) LightGBM
+
+(c) RF
+
+(d) XGBoost
+
+Fig. 12. Row-normalized confusion matrices of four predictors.
+
+tokens. The MLP substantially improves separability on this minority class: it correctly flags 57.50%
+of rejected tokens (TN), reducing the Rejected-class false positives to 42.50%. For the Accepted (1)
+class, the tree-based models keep false negatives low (6.04–6.78%), implying stronger speculative
+coverage when rejections are rare, whereas the MLP incurs a higher Accepted-class FN rate (19.89%).
+These per-class patterns explain the waste-vs-coverage trade-off discussed in the main text: low
+FPR/high specificity controls WDT, while high Rec1 favors longer speculative coverage.
+This operating-point difference has direct implications for our stop-at-first-predicted-rejection
+drafting policy. Under this policy, false positives (predicting Accepted when the token would be
+Rejected) are the primary cause of over-drafting and WDT, because they allow the device to
+continue drafting past the first true rejection. As shown in Figure.12, the tree-based predictors
+incur very high false-positive rates on rejected tokens (FPR = 0.80–0.86), meaning that most truly
+rejected tokens are incorrectly labeled as accepted (Table 10), which would translate into frequent
+over-drafting whenever a rejection occurs early. Conversely, the MLP reduces FPR to 0.425 (a ∼2×
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+55:28
+
+Li et al.
+
+Table 11. Single-sample inference latency (ms) for predictor models on edge devices.
+Latency statistics (ms)
+
+Device / Model
+Mean
+
+Median
+
+Std
+
+Min
+
+Max
+
+P95
+
+P99
+
+0.3484
+0.6827
+42.6230
+0.4590
+
+0.3405
+0.6756
+44.4504
+0.4552
+
+0.0502
+0.0647
+4.3045
+0.0556
+
+0.3302
+0.6675
+32.5311
+0.4462
+
+1.3713
+2.5907
+46.4203
+2.1973
+
+0.3595
+0.6933
+45.4629
+0.4733
+
+0.6226
+0.7866
+45.7573
+0.4831
+
+Raspberry Pi 4B
+XGBoost
+1.6221
+LightGBM
+2.6048
+RandomForest
+114.4152
+MLP
+2.0381
+
+1.3876
+2.5467
+102.6887
+2.0352
+
+0.5883
+0.2668
+24.6844
+0.1863
+
+1.3376
+2.4819
+96.8155
+1.9750
+
+3.9257
+6.9231
+183.0372
+7.8550
+
+3.1273
+3.2125
+169.2718
+2.0735
+
+3.1645
+3.3916
+174.3341
+2.0945
+
+Raspberry Pi 5
+XGBoost
+LightGBM
+RandomForest
+MLP
+
+reduction versus the tree-based baselines), thus better aligning with the objective of minimizing
+wasted drafting. Meanwhile, the tree-based models yield low false negatives on accepted tokens
+(FNR = 0.06–0.07 implied by Rec1 ), which favors longer speculative windows and higher raw
+drafting utilization when rejections are rare. Therefore, the choice of predictor is fundamentally a
+waste-vs-coverage trade-off: minimizing WDT calls for low FPR/high specificity (favoring the MLP),
+whereas maximizing speculative coverage prioritizes high Rec1 (favoring the tree-based models).
+In our case, we pick MLP model for lower WDT, as we motivate in Section.3.2.
+Computation overhead on edge devices. The predictor is invoked once per drafted token; thus its
+per-inference latency is critical. We benchmark the four predictor candidates on two representative
+edge devices (Raspberry Pi 5 and Raspberry Pi 4B) and report both single-sample latency (1,000
+trials). Table 11 reports single-sample statistics. The results show that XGBoost and the MLP achieve
+sub-millisecond decisions on RPi 5 and only a few milliseconds on RPi 4B, while random forests
+incur tens to over one hundred milliseconds, making them unsuitable for per-token control loops
+despite strong accuracy.
+Takeaway for deployment. Considering the overall accuracy, especially false alarm rate, and the
+inference overhead, we adopt MLP as the predictor in the paper.
+C
+
+Profiling and Validation of the Verification Time Estimator
+
+To obtain the coefficients in our latency model, we design a systematic profiling methodology that
+captures the diverse workload characteristics encountered in batch verification. The profiling process consists of three phases: experimental data collection, model fitting with statistical validation,
+and generalization testing on unseen configurations.
+Experimental Design. We construct a comprehensive dataset of 173 configurations spanning five
+categories to ensure coverage of both compute-bound and memory-bound regimes. The training
+set comprises 123 configurations: (1) 25 compute-bound deterministic configurations with total
+tokens ranging from 1200 to 2000 and varying batch patterns (single, split-2, split-4, varied), all with
+𝐿cached = 0; (2) 48 memory-bound deterministic configurations with 𝐿new ∈ {1, 5, 10, 20, 50, 100},
+𝐿total ∈ {500, 1000, 1500, 2000}, and batch sizes of 1 and 4, featuring high caching ratios where
+𝐿cached = 𝐿total − 𝐿new ; (3) 15 compute-bound random configurations with high 𝐿new ≥ 1200;
+(4) 15 memory-bound random configurations with small 𝐿new and large 𝐿total ; and (5) 20 mixed
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+WISP : Waste- and Interference-Suppressed Distributed Speculative LLM Serving at the Edge via Dynamic Drafting and
+SLO-Aware Batching
+55:29
+
+Table 12. Fitted latency model parameters with 95% confidence intervals
+
+Parameter
+𝑎
+𝑏 compute
+𝑏 read
+𝑐
+
+Value
+
+95% CI
+
+3.314 × 10−5
+3.450 × 10−8
+4.620 × 10−6
+1.486 × 10−2
+
+[3.12, 3.49] × 10−5
+[3.35, 3.67] × 10−8
+[3.95, 5.27] × 10−6
+[1.30, 1.69] × 10−2
+
+Unit
+sec/token
+sec/interaction
+sec/cached_token
+sec
+
+configurations containing both cached and uncached requests within the same batch. The test set
+contains 50 completely unseen configurations generated with different random seeds to ensure
+true generalization testing.
+Data Collection. We deploy Qwen3-32B on an NVIDIA A100 GPU with prefix caching enabled
+via vLLM. For each configuration, we perform 10 warmup iterations (discarded) followed by
+3 independent measurement runs. To prevent cache pollution across runs—a critical issue we
+identified where prompt reuse caused over 60% artificial speedup—we generate unique prompts for
+each run using timestamp-based seeding:
+unique_prefix = f"[RUN_{run_idx}_REQ_{req_idx}_{time.time()}]"
+We verify prompt uniqueness before each measurement and raise an exception if duplicates are
+detected. For each configuration, we record the mean, standard deviation, minimum, maximum,
+and median latency across the 3 runs, targeting a coefficient of variation below 5% for measurement
+quality.
+Model Fitting. We employ OLS linear regression via sklearn.linear_model.LinearRegression
+to fit the model parameters. The feature matrix X ∈ R𝑛×3 contains the columns [𝑁 linear, 𝑁 interactions, 𝑁 cached ],
+and the target vector y ∈ R𝑛 contains the measured latencies. We fit exclusively on the 123 training
+samples and evaluate on the 50 held-out test samples. To quantify parameter uncertainty, we
+perform 1000 bootstrap iterations, resampling the training set with replacement and refitting the
+model each time. The 95% confidence intervals are computed as the 2.5th and 97.5th percentiles of
+the bootstrap parameter distributions.
+Validation Metrics. We evaluate model quality using multiple metrics: coefficient of determination
+(𝑅 2 ), adjusted 𝑅 2 , Root Mean Squared Error (RMSE), MAE, and MAPE. Additionally, we perform
+5-fold cross-validation on the training set to assess model stability. The generalization quality is
+measured by the 𝑅 2 difference between training and test sets, with a threshold of < 0.05 indicating
+excellent generalization.
+Results. Table 12 presents the fitted parameters with their 95% confidence intervals. The linear
+operation coefficient 𝑎 = 3.314 × 10−5 sec/token (33.14 𝜇s/token) reflects the per-token cost for
+embeddings, projections, and FFN layers. The attention compute coefficient 𝑏 compute = 3.450 × 10−8
+sec/interaction (0.0345 𝜇s/interaction) captures the cost per query-key dot product. The memory
+read coefficient 𝑏 read = 4.620×10−6 sec/cached_token (4.62 𝜇s/token) represents the HBM bandwidth
+cost for loading cached KV states. The constant overhead 𝑐 = 14.86 ms accounts for kernel launch
+and scheduling latency.
+Error stratification and workload coverage (Figure. 13). Figure. 13 further decomposes estimator
+behavior by workload regime. The left panel shows absolute-error distributions stratified into
+compute-bound, memory-bound, and mixed settings; errors remain consistently small across
+regimes, with only a modest widening in the more memory-sensitive cases. This pattern is expected
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+55:30
+
+Li et al.
+
+Error by Regime
+
+Component Contribution
+Dataset
+train
+test
+
+20
+15
+10
+
+Dataset
+test
+train
+
+30
+25
+
+Count
+
+20
+15
+10
+
+5
+
+5
+
+lin
+ea
+
+ne
+
+(m
+
+ixe
+
+d,
+
+d,
+li
+em
+ory
+-bo
+un
+(m
+
+(co
+
+r)
+
+ar)
+
+0
+
+mp
+ute
+
+Regime
+
+nd
+
+te-bou
+
+compu
+
+r)
+
+mixed
+
+ea
+
+nd
+
+ry-bou
+
+memo
+
+lin
+
+0
+
+-bo
+un
+d,
+
+Absolute Error (ms)
+
+25
+
+(Actual Regime, Dominant Component)
+
+Fig. 13. Error breakdown of the additive latency predictor across workload regimes
+
+because memory-bound batches are more exposed to cache-read variability and kernel-level effects
+that are harder to model with a single linear coefficient. The right panel summarizes how the
+evaluated configurations distribute across (regime, dominant component), confirming that both
+training and test sets cover diverse operating regions rather than concentrating on a single regime.
+Together, these results indicate the estimator is not only accurate on average, but also robust across
+the heterogeneous verification workloads that arise in speculative serving.
+Component Analysis. To understand the relative importance of each latency component, we
+analyze their contributions across different workload types. For compute-bound configurations
+(high 𝐿new , low 𝐿cached ), the 𝑁 interactions term dominates, contributing over 70% of the predicted
+latency. For memory-bound configurations (low 𝐿new , high 𝐿cached ), the 𝑁 cached term becomes
+significant, contributing 30–50% of the total latency. The linear term 𝑁 linear provides a consistent
+baseline contribution proportional to batch complexity, while the constant overhead 𝑐 is most
+significant for small batches with short sequences. This decomposition validates our additive model
+structure and confirms that the three workload metrics capture orthogonal resource costs.
+
+D Output quality comparison between WISP and traditional auto-regressive decoding
+Table 13 compares the output quality of WISP and traditional autoregressive (AR) decoding across
+three datasets: GSM8K [11], MMLU [19], and ARC-Challenge [10]. From the results in Table 13,
+we observe that WISP achieves nearly identical quality and accuracy to AR decoding on all three
+benchmarks. This is expected, since WISP adopts a lossless speculative decoding verification scheme
+that preserves the target model’s output distribution, ensuring that the final predictions remain
+consistent with those of standard AR decoding.
+Received 14 January 2026; revised 27 March 2026; accepted 6 April 2026
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+WISP : Waste- and Interference-Suppressed Distributed Speculative LLM Serving at the Edge via Dynamic Drafting and
+SLO-Aware Batching
+55:31
+
+Table 13. Output quality (accuracy %) of target models across three benchmark datasets. Each model is
+evaluated three times with 200 samples per run (temperature = 0.6).
+
+Model
+
+System
+
+GSM8K
+
+MMLU
+
+ARC-C
+
+Qwen3-14B
+
+WISP
+AR
+
+91.50
+92.50
+
+75.00
+77.00
+
+92.50
+94.00
+
+Qwen3-32B
+
+WISP
+AR
+
+93.00
+94.00
+
+79.50
+77.00
+
+94.50
+95.00
+
+Llama-3.1-70B
+
+WISP
+AR
+
+96.00
+95.50
+
+80.50
+80.00
+
+90.00
+89.50
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 10, No. 2, Article 55. Publication date: June 2026.
+
+

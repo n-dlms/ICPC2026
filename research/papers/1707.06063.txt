@@ -1,0 +1,1774 @@
+Online Bipartite Matching with Amortized O(log2 n) Replacements
+Aaron Bernstein1 , Jacob Holm∗2 , and Eva Rotenberg†3
+1
+
+Technical University of Berlin, bernstei@gmail.com
+University of Copenhagen (DIKU), jaho@di.ku.dk
+3
+Technical University of Denmark, erot@dtu.dk
+
+arXiv:1707.06063v4 [cs.DS] 4 May 2018
+
+2
+
+May 7, 2018
+
+Abstract
+In the online bipartite matching problem with replacements, all the vertices on one side of
+the bipartition are given, and the vertices on the other side arrive one by one with all their
+incident edges. The goal is to maintain a maximum matching while minimizing the number
+of changes (replacements) to the matching. We show that the greedy algorithm that always
+takes the shortest augmenting path from the newly inserted vertex (denoted the SAP protocol)
+uses at most amortized O(log2 n) replacements per insertion, where n is the total number of
+vertices inserted. This is the first analysis to achieve a polylogarithmic number of replacements
+for any replacement strategy, almost matching
+the Ω(log n) lower bound. The previous best
+√
+strategy known achieved amortized O( n) replacements [Bosek, Leniowski, Sankowski, Zych,
+FOCS 2014]. For the SAP protocol in particular, nothing better than then trivial O(n) bound
+was known except in special cases. Our analysis immediately implies the same upper bound of
+O(log2 n) reassignments for the capacitated assignment problem, where each vertex on the static
+side of the bipartition is initialized with the capacity to serve a number of vertices.
+We also analyze the problem of minimizing the maximum server load. We show that
+if the final graph
+√ has maximum server load L, then the SAP protocol makes amortized
+2
+O(min{L log
+n,
+n log n}) reassignments. We also show that this is close to tight because
+√
+Ω(min{L, n}) reassignments can be necessary.
+
+∗
+This research is supported by Mikkel Thorup’s Advanced Grant DFF-0602-02499B from the Danish Council for
+Independent Research under the Sapere Aude research career programme.
+†
+This research was partly conducted during the third author’s time as a PhD student at University of Copenhagen.
+
+1
+
+Introduction
+
+In the online bipartite matching problem, the vertices on one side are given in advance (we call
+these the servers S), while the vertices on the other side (the clients C) arrive one at a time with
+all their incident edges. In the standard online model the arriving client can only be matched
+immediately upon arrival, and the matching cannot be changed later. Because of this irreversibility,
+the final matching might not be maximum; no algorithm can guarantee better than a (1 − 1/e)approximation [22]. But in many settings the irreversibility assumption is too strict: rematching a
+client is expensive but not impossible. This motivates the online bipartite matching problem with
+replacements, where the goal is to at all times match as many clients as possible, while minimizing
+the number of changes to the matching. Applications include hashing, job scheduling, web hosting,
+streaming content delivery, and data storage; see [8] for more details.
+In several of the applications above, a server can serve multiple clients, which raises the question
+of online bipartite assignment with reassignments. There are two ways of modeling this:
+Capacitated assignments. Each server s comes with the capacity to serve some number of clients
+u(s), where each u(s) is given in advance. Clients should be assigned to a server, and at no
+times should the capacity of a server be exceeded. There exists an easy reduction showing
+that this problem is equivalent to online matching with replacements [2]. A more formal
+description is given in Section 6.1.
+Minimize max load. There is no limit on the number of clients a server can serve, but we want
+to (at all times) distribute the clients as “fairly” as possible, while still serving all the clients.
+Defining the load on a server as the number of clients assigned to it, the task is to, at all times,
+minimize the maximum server load — with as few reassignments as possible. A more formal
+description is given in Section 6.2
+While the primary goal is to minimize the number of replacements, special emphasis has been
+placed on analyzing the SAP protocol in particular, which always augments down a shortest
+augmenting path from the newly arrived client to a free server (breaking ties arbitrarily). This is
+the most natural replacement strategy, and shortest augmenting paths are already of great interest
+in graph algorithms: they occur in for example in Dinitz’ and Edmonds and Karp’s algorithm for
+maximum flow [9, 10], and in Hopcroft and Karp’s algorithm for maximum matching in bipartite
+graphs [19].
+Throughout the rest of the paper, we let n be the number of clients in the final graph, and
+we consider the total number of replacements during the entire sequence of insertions; this is
+exactly n times the amortized number of replacements. The reason for studying the vertex-arrival
+model (where each client arrives with all its incident edges) instead of the (perhaps more natural)
+edge-arrival model is the existence of a trivial lower bound of Ω(n2 ) total replacements in this model:
+Start with a single edge, and maintaining at all times that the current graph is a path, add edges
+to alternating sides of the path. Every pair of insertions cause the entire path to be augmented,
+Pn/2
+leading to a total of i=1 i ∈ Ω(n2 ) replacements.
+
+1.1
+
+Previous work
+
+The problem of online bipartite matchings with replacements was introduced in 1995 by Grove, Kao,
+Krishnan, and Vitter [13], who showed matching upper and lower bounds of Θ(n log n) replacements
+1
+
+for the case where each client has degree two. In 2009, Chadhuri, Daskalakis, Kleinberg, and Lin [8]
+showed that for any arbitrary underlying bipartite graph, if the client vertices arrive in a random
+order, the expected number of replacements (in their terminology, the switching cost) is Θ(n log n)
+using SAP, which they also show is tight. They also show that if the bipartite graph remains a
+forest, there exists an algorithm (not SAP) with O(n log n) replacements, and a matching lower
+bound. Bosek, Leniowski, Sankowski and Zych later analyzed the SAP protocol for forests, giving
+an upper bound of O(n log2 n) replacements [6], later improved to the optimal O(n log n) total
+replacements [7]. For general bipartite graphs, no analysis of SAP is known that shows better than
+the trivial O(n2 ) total replacements. Bosek et al. [5] showed a different algorithm that achieves
+√
+a total of O(n n) replacements. They also show how to implement this algorithm in total time
+√
+O(m n), which matches the best performing combinatorial algorithm for computing a maximum
+matching in a static bipartite graph (Hopcroft and Karp [19]).
+The lower bound of Ω(log n) by Grove et al. [13] has not been improved since, and is conjectured
+by Chadhuri et al. [8] to be tight, even for SAP, in the general case. We take a giant leap towards
+closing that conjecture.
+For the problem of minimizing maximum load, [15] and [2] showed an approximation solution:
+with only O(1) amortized changes per client insertion they maintain an assignment A such that at
+all times the maximum load is within a factor of 8 of optimum.
+The model of online algorithms with replacements – alternatively referred to as online algorithms
+with recourse – has also been studied for a variety of problems other than matching. The model
+is similar to that of online algorithms, except that instead of trying to maintain the best possible
+approximation without making any changes, the goal is to maintain an optimal solution while
+making as few changes to the solution as possible. This model encapsulates settings in which
+changes to the solution are possible but expensive. The model originally goes back to online
+Steiner trees [20], and there have been several recent improvements for online Steiner tree with
+recourse [14, 17, 24, 25]. There are many papers on online scheduling that try to minimize the
+number of job reassignments [1, 11, 26, 27, 29, 31]. The model has also been studied in the context of
+flows [15, 31], and there is a very recent result on online set cover with recourse [16].
+
+1.2
+
+Our results
+
+Theorem 1. SAP makes at most O(n log2 n) total replacements when n clients are added.
+√
+This is a huge improvement of the O(n n) bound by [5], and is only a log factor from the lower
+bound of Ω(n log n) by [13]. It is also a huge improvement of the analysis of SAP; previously no
+better upper bound than O(n2 ) replacements for SAP was known. To attain the result we develop a
+new tool for analyzing matching-related properties of graphs (the balanced flow in Sections 3 and 4)
+that is quite general, and that we believe may be of independent interest.
+Although SAP is an obvious way of serving the clients as they come, it does not immediately
+allow for an efficient implementation. Finding an augmenting path may take up to O(m) time,
+where m denotes the total number of edges in the final graph. Thus, the naive implementation takes
+O(mn) total time. However, short augmenting paths can be found substantially faster, and using
+the new analytical tools developed in this paper, we are able to exploit this in a data structure that
+finds the augmenting paths efficiently:
+√ √
+Theorem 2. There is an implementation of the SAP protocol that runs in total time O(m n log n).
+
+2
+
+√
+Note that this is only an O( log n) factor from the offline algorithm of Hopcroft and Karp [19].
+This offline algorithm had previously been matched in the online setting by the algorithm of Bosek et
+√
+al. [5], which has total running time O(m n). Our result has the advantage of combining multiple
+desired properties in a single
+algorithm: few replacements (O(n log2 (n)) vs. O(n1.5 ) in [5]), fast
+√ √
+√
+implementation (O(m n log n) vs. O(m n) in [5]), and the most natural augmentation protocol
+(shortest augmenting path).
+Extending our result to the case where each server can have multiple clients, we use that the
+capacitated assignment problem is equivalent to that of matching (see Section 6.1 to obtain:
+Theorem 3. SAP uses at most O(n log2 n) reassignments for the capacitated assignment problem,
+where n is the number of clients.
+In the case where we wish to minimize the maximum load, such a small number of total
+reassignments is not possible. Let opt(G) denote the minimum possible maximum load in graph
+G. We present a lower bound showing that when opt(G) = L we may need as many as Ω(nL)
+reassignments, as well as a nearly matching upper bound.
+p
+
+Theorem 4. For any positive integers n and L ≤ n/2 divisible by 4 there exists a graph G =
+(C ∪ S, E) with |C| = n and opt(G) = L, along with an ordering in which the clients in C are
+inserted, such that any algorithm for the exact online assignment problem requires a total of Ω(nL)
+changes. This lower bound holds even if the algorithm knows the entire graph G in advance, as well
+as the order in which the clients are inserted.
+Theorem 5. Let C be the set of all clients inserted, let n = |C|, and let L = opt(G) be the
+minimum possible maximum load in the final graph G = (C ∪ S, E). SAP at all times maintains an
+√
+optimal assignment while making a total of O(n min {L log2 n, n log n}) reassignments.
+
+1.3
+
+High level overview of techniques
+
+Consider the standard setting in which we are given the entire graph from the beginning and want
+to compute a maximum matching. The classic shortest-augmenting paths algorithm constructs
+a matching by at every step picking a shortest augmenting path in the graph. We now show a
+very simple argument that the total length of all these augmenting paths is O(n log n). Recall the
+well-known fact that if all augmenting paths in the matching have length ≥ h, then the current
+matching is at most 2n/h edges from optimal [19]. Thus the algorithm augments down at most
+2n/h augmenting paths of length ≥ h. Let P1 , P2 , ..., Pk denote all the paths augmented down by
+the algorithm in decreasing order of |Pi |; then k ≤ n, and |Pi | = h implies i ≤ 2n/h. But then
+P
+P
+|Pi | ≤ 2n/i, so 1≤i≤k |Pi | ≤ 2n 1≤i≤k 1i = 2n(ln(k) + O(1)) = O(n log k) = O(n log n).
+In the online setting, the algorithm does not have access to the entire graph. It can only choose
+the shortest augmenting path from the arriving client c. We are nonetheless able to show a similar
+bound for this setting:
+Lemma 6. Consider the following protocol for constructing a matching: For each client c in
+arbitrary order, augment along the shortest augmenting path from c (if one exists). Given any h,
+this protocol augments down a total of at most 4n ln(n)/h augmenting paths of length > h.
+The proof of our main theorem then follows directly from the lemma.
+3
+
+Proof of Theorem 1. Note that the SAP protocol exactly follows the condition of Lemma 6.
+Now, Given any 0 ≤ i ≤ log2 (n) + 1, we say that an augmenting path is at level i if its length is in
+the interval [2i , 2i+1 ). By Lemma 6, the SAP protocol augments down at most 4n ln(n)/2i paths of
+level i. Since each of those paths contains at most 2i+1 edges, the total length of augmenting paths
+of level i is at most 8n ln(n). Summing over all levels yields the desired O(n log2 n) bound.
+The entirety of Sections 3 and 4 is devoted to proving Lemma 6. Previous algorithms attempted
+to bound the total number of reassignments by tracking how some property of the matching M
+changes over time. For example, the analysis of Gupta et al. [15] keeps track of changes to the
+√
+”height” of vertices in M , while the algorithm with O(n n) reassignments [5] takes a more direct
+approach, and uses a non-SAP protocol whose changes to M depend on how often each particular
+client has already been reassigned.
+Unfortunately such arguments have had limited success because the matching M can change
+quite erratically. This is especially true under the SAP protocol, which is why it has only been
+analyzed in very restrictive settings [6, 8, 13]. We overcome this difficulty by showing that it is
+enough to analyze how new clients change the structure of the graph G = (C ∪ S, E), without
+reference to any particular matching.
+Intuitively, our analysis keeps track of how ”necessary” each server s is (denoted α(s) below).
+So for example, if there is a complete bipartite graph with 10 servers and 10 clients, then all servers
+are completely necessary. But if the complete graph has 20 servers and 10 clients, then while
+any matching has 10 matched servers and 10 unmatched ones, it is clear that if we abstract away
+from the particular matching every server is 1/2-necessary. Of course in more complicated graphs
+different servers might have different necessities, and some necessities might be very close to 1 (say
+1 − 1/n2/3 ). Note that server necessities depend only on the graph, not on any particular matching.
+Note also that our algorithm never computes the server necessities, as they are merely an analytical
+tool.
+We relate necessities to the number of reassignments with 2 crucial arguments. 1. Server
+necessities only increase as clients are inserted, and once a server has α(s) = 1, then regardless
+of the current matching, no future augmenting path will go through s. 2. If, in any matching,
+the shortest augmenting path from a new client c is long, then the insertion of c will increase the
+necessity of servers that already had high necessity. We then argue that this cannot happen too
+many times before the servers involved have necessity 1, and thus do not partake in any future
+augmenting paths.
+
+1.4
+
+Paper outline
+
+In Section 2, we introduce the terminology necessary to understand the paper. In Section 3, we
+introduce and reason about the abstraction of a balanced server flow, a number that reflects the
+necessity of each server. In Section 4, we use the balanced server flow to prove Lemma 6, which
+proves our main theorem that SAP makes a total of O(n log2 n) replacements. In Section 5, we
+give an efficient implementation of SAP. Finally, in Section 6, we present our results on capacitated
+online assignment, and for minimizing maximum server load in the online assignment problem.
+
+4
+
+2
+
+Preliminaries and notation
+
+Let (C, S) be the vertices, and E be the edges of a bipartite graph. We call C the clients, and S
+the servers. Clients arrive, one at a time, and we must maintain an explicit maximum matching of
+the clients. For simplicity of notation, we assume for the rest of the paper that C 6= ∅. For any
+S
+vertex v, let N (v) denote the neighborhood of v, and for any V ⊆ C ∪ S let N (V ) = v∈V N (v).
+Theorem 7 (Halls Marriage Theorem [18]). There is a matching of size |C| if and only if |K| ≤
+|N (K)| for all K ⊆ C.
+Definition 8. Given any matching in a graph G = (C ∪ S, E), an alternating path is one which
+alternates between unmatched and matched edges. An augmenting path is an alternating path that
+starts and ends with an unmatched vertex. Given any augmenting path P , “flipping” the matched
+status of every edge on P gives a new larger matching. We call this process augmenting down P .
+Denote by SAP the algorithm that upon the arrival of a new client c augments down the shortest
+augmenting path from c; ties can be broken arbitrarily, and if no augmenting path from c exists
+the algorithm does nothing. Chaudhuri et al. [8] showed that if the final graph contains a perfect
+matching, then the SAP protocol also returns a perfect matching. We now generalize this as follows
+Observation 9. Because of the nature of augmenting paths, once a client c or a server s is matched
+by the SAP protocol, it will remain matched during all future client insertions. On the other hand,
+if a client c arrives and there is no augmenting path from c to a free server, then during the entire
+sequence of client insertions c will never be matched by the SAP protocol; no alternating path can go
+through c because it is not incident to any matched edges.
+Lemma 10. The SAP protocol always maintains a maximum matching in the current graph
+G = (C ∪ S, E).
+Proof. Consider for contradiction the first client c such that after the insertion of c, the matching
+M maintained by the SAP protocol is not a maximum matching. Let C be the set of clients before
+c was inserted. Since M is maximum in the graph G = (C ∪ S, E) but not in G0 = (C ∪ S ∪ {c} , E),
+it is clear that c is matched in the maximum matching M 0 of G0 but not in M . But this contradicts
+the well known property of augmenting paths that the symmetric difference M ⊕ M 0 contains an
+augmenting path in M from c to a free server.
+
+3
+
+The server flow abstraction
+
+3.1
+
+Defining the Server Flow
+
+We now formalize the notion of server necessities from Section 1.3 by using a flow-based notation.
+The necessity of a server s will be the value α(s) ∈ [0, 1] of a balanced server flow α: We will now
+go on to define a server flow, define what it means for a server flow to be balanced, and then, show
+that the balanced server flow is unique.
+Definition 11. Given any graph G = (C ∪ S, E), define a server flow α as any map from S to the
+nonnegative reals such that there exist nonnegative (xe )e∈E with:
+∀c ∈ C :
+
+X
+
+∀s ∈ S :
+
+xcs = 1
+
+s∈N (c)
+
+X
+c∈N (s)
+
+We say that such a set of x-values realize the server flow.
+5
+
+xcs = α(s)
+
+A server flow can be thought of as a fractional assignment from C to S; note, however, that is is
+not necessarily a fractional matching, since servers may have a load greater than 1. Note also that
+the same server flow may be realized in more than one way. Furthermore, if |N (c)| = 0 for some
+P
+c ∈ C then s∈N (c) xcs = 0 6= 1, so no server flow is possible. So suppose (unless otherwise noted)
+that |N (c)| ≥ 1 for all c ∈ C.
+The following theorem can be seen as a generalization of Hall’s Marriage Theorem:
+p
+Lemma 12. If max∅⊂K⊆C |N|K|
+(K)| = q , then there exists a server flow where every server s ∈ S has
+α(s) ≤ pq .
+
+Proof. Let C ∗ be the original set C but with q copies of each client. Similarly let S ∗ contain p
+copies of each server, and let E ∗ consist of all pq edges between copies of the endpoints of each edge
+in E.
+Now let K ∗ ⊆ C ∗ , and let K ⊆ C be the originals that the vertices in K ∗ are copies of. Then
+∗
+|K | ≤ q |K| ≤ p |N (K)| = |N (K ∗ )|, so the graph (C ∗ ∪ S ∗ , E ∗ ) satisfies Hall’s theorem and thus it
+has some matching M in which every client in C ∗ is matched. Now, for cs ∈ E let
+xcs = 1q
+
+o
+
+n
+
+c∗ s∗ ∈ M c∗ is a copy of c and s∗ is a copy of s
+
+Since for each c ∈ C all q copies of c are matched, s∈N (c) xcs = qq = 1 for all c ∈ C. Similarly,
+P
+since for each s ∈ S at most p copies of s are matched, c∈N (s) xcs ≤ pq . Thus, (xe )e∈E realizes the
+desired server flow.
+P
+
+Definition 13. We say that a server flow α is balanced, if additionally:
+∀c ∈ C, s ∈ N (c) \ A(c) : xcs = 0
+
+where A(c) = arg min α(s)
+s∈N (c)
+
+That is, if each client only sends flow to its least loaded neighbours.
+We call the set A(c) the active neighbors of c, and we call an edge cs active when s ∈ A(c). We
+S
+extend the definition to sets of clients in the natural way, so for K ⊆ C, A(K) = c∈K A(c).
+
+3.2
+
+Uniqueness of Loads in a Balanced Server Flow
+
+Note that while there may be more than one server flow, we will show that the balanced server flow
+α is unique, although there may be many possible x-values xcs that realize α.
+Lemma 14. A unique balanced server flow exists if and only if |N (c)| ≥ 1 for all c ∈ C.
+Clearly, it is necessary for all clients to have at least one neighbor for a server flow to exist, so
+the “only if” part is obvious. We dedicate the rest of this section to proving that this condition is
+sufficient. In fact, we provide two different proofs of uniqueness, the first of which is simpler but
+provides less intuition for what the unique α(s) values signify about the structure of the graph.
+3.2.1
+
+Short proof of Lemma 14 via convex optimization
+
+It is not hard to prove uniqueness by showing that a balanced server flow corresponds to the solution
+to a convex program1 . Consider the convex optimization problem where the constraints are those
+1
+
+The authors thank Seffi Naor for pointing this out to us.
+
+6
+
+of a not necessarily balanced server flow (Definition 11), and the objective function we seek to
+minimize is the sum of the squares of the server loads.
+To be precise, the convex program contains a variable αs for each server s ∈ S, and a variable
+P
+xcs for each edge (c, s) in the graph. Its objective is to minimize the function s∈S αs2 subject to
+the constraints:
+0 ≤ xcs ≤ 1
+
+X
+
+∀c ∈ C :
+
+X
+
+∀s ∈ S :
+
+xcs = 1
+
+s∈N (c)
+
+xcs = αs
+
+c∈N (s)
+
+It is easy to check that because we introduce a separate variable αs for each server load, the
+objective function is strictly convex, so the convex program has a unique minimum with respect to
+the server loads αs (but not the edge flows).
+We now observe that this unique solution is a balanced server flow: the constraints of the convex
+program ensure that it is a server flow, and were it not balanced, there would be some client c that
+sends non-zero flow to both s and s0 where α(s) < α(s0 ), which would be a contradiction because
+we can decrease the objective function by increasing xcs and decreasing xcs0 . We have thus proved
+the existence of a balanced server flow.
+We must now prove uniqueness, i.e. that all balanced server flows have the same server loads.
+We will do this by showing that any balanced server flow optimizes the objective function of the
+convex function. There are many standard approaches for proving this claim, but the simplest one
+we know of is based on existing literature on load balancing with selfish agents. In particular, we
+rely on the following simple auxiliary lemma, which is a simplified version of Lemma 2.2 in [30].
+P
+
+Lemma 15. Consider any balanced server flow xcs , let αs = c∈C xcs be the server flow of s. Let
+P
+x0cs be any feasible server flow, and let αs0 = c∈C x0cs be the resulting server loads. Then, we always
+have:
+X
+
+αs2 ≤
+
+s∈S
+
+X
+
+αs αs0
+
+s∈S
+
+Proof. For any client c, let µ(c) (µ for minimum) be the minimum server load neighboring c in the
+balanced solution xcs . That is, µ(c) = mins∈N (c) αs . We then have
+X
+
+αs2 =
+
+s∈S
+
+XX
+
+xcs αs =
+
+s∈S c∈C
+
+XX
+
+xcs αs =
+
+c∈C s∈S
+
+XX
+
+xcs µ(c) =
+
+c∈C s∈S
+
+X
+
+µ(c),
+
+c∈C
+
+where the last inequality follows from the fact that each client sends one unit of flow, and the
+before-last inequality follows from the fact that the flow is balanced, so for any edge (c, s) ∈ E with
+xcs 6= 0 we have αs = µ(c).
+From the definition of µ(c) it follows that for any edge (c, s) ∈ E, we have αs ≥ µ(c). This
+yields:
+X
+
+αs0 αs =
+
+s∈S
+
+We thus have
+
+XX
+s∈S c∈C
+
+x0cs αs =
+
+XX
+
+x0cs αs ≥
+
+c∈C s∈S
+
+XX
+c∈C s∈S
+
+x0cs µ(c) =
+
+X
+
+µ(c).
+
+c∈C
+
+P
+P
+P
+2
+0
+s∈S αs =
+c∈C µ(c) and
+s∈S αs αs ≥
+c∈C µ(c), which yields the lemma.
+
+P
+
+We now argue that any balanced flow is an optimal solution to the convex program, and is
+thus unique. Consider any balanced flow with loads αs . To show that αs is optimum, we need to
+7
+
+show that for any feasible solution αs0 we have s∈S αs2 ≤ s∈S (α0 )2s . Equivalently, let α and α0 be
+the vectors of server loads in the two solutions. We want to show that kαk ≤ kα0 k. This follows
+trivially from Lemma 15, which is equivalent to kαk2 ≤ α · α0 .
+P
+
+3.2.2
+
+P
+
+Longer combinatorial proof of uniqueness
+
+Although the reduction to convex programming is the most direct proof of uniqueness, it has the
+disadvantage of not providing any insight into what the unique α(s) values actually correspond to.
+We thus provide a more complicated combinatorial proof which shows that the α(s) correspond to a
+certain hierarchical decomposition of the graph.
+The following lemma will help us upper and lower bound the sum of flow to a subset of servers.
+Lemma 16. If α is a balanced server flow, then
+∀T ⊆ S : {c ∈ C | A(c) ⊆ T } ≤
+
+X
+
+α(s) ≤ {c ∈ C | A(c) ∩ T 6= ∅}
+
+s∈T
+
+Proof. The first inequality is true because each client in the first set contributes exactly one to
+the sum (but there may be other contributions). The second inequality is true because every
+P
+client contributes exactly one to s∈S α(s), and the inequality counts every client that contributes
+P
+anything to s∈T α(s) as contributing one.
+The first step to proving that every graph has a unique server flow α is to show that the
+b = maxs∈S α(s) is uniquely defined. We start by showing that the generalization
+maximum value α
+of Hall’s Marriage Theorem from Lemma 12 is “tight” for a balanced server flow in the sense that
+there does indeed exist a set of p clients with neighbourhood of size q realizing the maximum α-value
+p
+q . In fact, the maximally necessary servers and their active neighbours (defined below) form such a
+pair of sets:
+b = maxs∈S α(s) be the maximal necessity, let
+Lemma 17. Let α be a balanced server flow, let α
+b = {c ∈ C | A(c) ∩ Sb 6= ∅} be
+b be the maximally necessary servers, and let K
+Sb = {s ∈ S | α(s) = α}
+b = Sb and |K|
+b =α
+b
+b |S|.
+their active neighbours. Then N (K)
+b and note that K ⊆ K.
+b However, we also have K
+b ⊆ K: By
+Proof. Let K = {c ∈ C | A(c) ⊆ S},
+b
+b and since we assume the server flow is balanced, K
+b 6= ∅, and for every c ∈ K,
+definition of S,
+b
+b
+b
+b
+N (c) = A(c) ⊆ S. Thus, K = K and N (K) = S. Now, note that by Lemma 16
+b = |K| ≤ α
+b ≤ |K|
+b .
+|K|
+b |S|
+|K|
+b exactly equals the maximal quotient |N (K)| over subsets K of clients.
+We can thus show that α
+
+b = maxs∈S α(s). Then
+Lemma 18. Let α be a balanced server flow, and let α
+
+α
+b = max
+
+|K|
+
+∅⊂K⊆C |N (K)|
+
+b |N (K)|, then α(s) = α
+b for all s ∈ N (K).
+Furthermore, for any K ⊆ C, if |K| = α
+
+8
+
+Proof. By definition of server flow, for K ⊆ C, |K| ≤
+
+b |N (K)|, so |K| ≤ α
+b |N (K)|.
+s∈N (K) α(s) ≤ α
+b
+|K |
+b be defined as in Lemma 17. Then α
+b
+b =
+≤ max∅⊂K⊆C |N|K|
+Let K
+(K)| ≤ α. Finally, if
+b|
+N (K)
+|
+P
+b |N (K)| then α(s) ≤ α
+b for all s ∈ S implies α(s) = α
+b for s ∈ N (K).
+|K| = s∈N (K) α(s) = α
+P
+
+|C|
+Corollary 19. If max∅⊂K⊆C |N|K|
+(K)| = |S| there is a unique balanced server flow.
+
+Proof. By Lemma 12 there exists a server flow with α(s) ≤ |C|
+|S| for all s ∈ S. Since
+
+s∈S α(s) = |C|,
+|C|
+any such flow must actually have α(s) = |S| for all s ∈ S, and be balanced. Uniqueness follows from
+
+P
+
+Lemma 18.
+We are now ready to give a combinatorial proof of uniqueness. We will do so by showing that
+the α(s) in fact express a very nice structural property of the graph, which can be thought of as a
+b
+hierarchy of ”tightness” for the Hall constraint. As shown in Lemma 18, the maximum α value α
+corresponds to the tightest Hall constraint, i.e. the maximum possible value of |K| / |N (K)|. Now,
+b be a maximal such set; we will show
+b so let C
+there may be many sets K with |K| / |N (K)| = α,
+b Now, by Lemma 18, every server
+that Cb is in fact the union of all sets K with |K| / |N (K)| = α.
+b
+b
+b We will show that in fact, because C captured all sets with tightness α,
+b
+s ∈ N (C) has α(s) = α.
+b have α(s) < α.
+b Thus, because the flow is balanced, all active edges incident
+all servers s ∈
+/ N (C)
+b there will be no active edges coming from the outside. For
+to Cb or Sb will be between Cb and S;
+this reason, any balanced server flow α on G = (C ∪ S) can be the thought of as the union of two
+b / |N (C)|
+b to all
+b = |C|
+completely independent server flows: the first (unique) flow assigns α(s) = α
+b
+b
+b
+s ∈ S, while the second is a balanced server flow on the remaining graph G \ (C ∪ S). Since this
+remaining graph is smaller, we can use induction on the size of the graph to claim that this second
+balanced server flow has unique α-values, which completes the proof of uniqueness. If we follow
+through the entire inductive chain, we end up with a hierarchy of α-values, which can be viewed as
+the result of the following peeling procedure: first find the (maximally large) set C1 that maximizes
+α1 = |C1 | / |N (C1 | and assign every server s ∈ N (C1 ) a value of α1 ; then peel off C1 and N (C1 ),
+find the (maximally large) set C2 in the remaining graph that maximizes α2 = |C2 | / |N (C2 |, and
+assign every server s ∈ N (C2 ) value α2 ; peel off C2 and N (C2 ) and continue in this fashion, until
+every server has some value αi . These values αi assigned to each server are precisely the unique
+α(s) in a balanced server flow.
+Remark 20. We were unaware of this when submitting the extended abstract, but a similar
+hierarchical decomposition was used earlier to compute an approximate matching in the semistreaming setting: see [12], [21]. Note that unlike those papers, we do not end up relying on this
+decomposition for our main arguments. We only present it here to give a combinatorial alternative
+to the convex optimization proof above: regardless of which proof we use, once uniqueness is
+established, the rest of our analysis is expressed purely in terms of balanced server flows.
+Proof of Lemma 14. As already noted, |N (c)| ≥ 1 for all c ∈ C is a necessary condition. We will
+prove that it is sufficient by induction on i = |S|. If |S| = 1, the flow α(s) = |C| for s ∈ S is trivially
+the unique balanced server flow. Suppose now that i > 1 and that it holds for all |S| < i. Now let
+|K|
+b = max∅⊂K⊆C |N (K)| and let
+α
+Cb =
+
+[
+
+K
+
+n
+
+where K = K ⊆ C |K| = α
+b |N (K)|
+
+K∈K
+
+9
+
+o
+
+Note that for any K1 , K2 ∈ K we have
+α
+b |N (K1 ∪ K2 )| ≥ |K1 ∪ K2 |
+
+b
+(by definition of α)
+
+= |K1 | + |K2 | − |K1 ∩ K2 |
+=α
+b |N (K1 )| + α
+b |N (K2 )| − |K1 ∩ K2 |
+
+(since K1 , K2 ∈ K)
+
+≥α
+b |N (K1 )| + α
+b |N (K2 )| − α
+b |N (K1 ∩ K2 )|
+
+b
+(by definition of α)
+
+≥α
+b |N (K1 ∪ K2 )|
+
+(since |N (·)| is submodular)
+
+b = α
+b
+b = S then C
+b = C (otherwise
+b |N (C)|.
+so K1 ∪ K2 ∈ K and thus Cb ∈ K and |C|
+If N (C)
+|Cb|
+b
+b
+< |C|
+|S| ≤ α) and by Corollary 19 we are done, so suppose ∅ ⊂ N (C) ⊂ S. Consider the
+b
+N
+(
+C)
+|
+|
+b and the subgraph G2 induced by (C \ C)
+b ∪ (S \ N (C)).
+b
+subgraph G1 induced by Cb ∪ N (C)
+b
+b for all s ∈ N (C).
+By Corollary 19, G1 has a unique balanced server flow α1 with α1 (s) = α
+By our induction hypothesis, G2 also has a unique balanced server flow α2 .
+We proceed to show that the combination of α1 with α2 constitutes a unique balanced flow α of
+the entire graph G, defined as follows:
+(
+
+α(s) =
+
+b
+α1 (s) if s ∈ N (C)
+α2 (s) otherwise
+
+Note first that α is a balanced server flow for G, because both G1 and G2 have a set of x-values
+that realize them, and by construction these values (together with zeroes for each edge between
+b realize a balanced server flow for G.
+C \ Cb and N (C))
+For uniqueness, note that by Lemma 18 any balanced server flow α0 for G must have α0 (s) =
+b We now show that for any s ∈ S \ N (C),
+b any balanced server flow α0 must
+b = α1 (s) for s ∈ N (C).
+α
+also have α0 (s) = α2 (s); then, the uniqueness of α will follow from the uniqueness of α1 and α2 .
+b = {c ∈ C |
+b be the set of maximally necessary servers, and let K
+Let Sb = {s ∈ S | α0 (s) = α}
+A(c) ∩ Sb =
+6 ∅} be the set of clients with a maximally necessary server in their active neighborhood.
+b = C.
+b
+We will show that K
+b =α
+b so by definition of C,
+b K
+b ⊆ C.
+b
+b |N (K)|
+“⊆” By Lemma 17, |K|
+b =α
+b ⊆ Sb and in particular
+b so by Lemma 18 we have N (C)
+b |N (C)|
+“⊇” On the other hand, |C|
+b
+A(c) ⊆ Sb for c in Cb and thus Cb ⊆ K.
+b A(c) ∩ Sb = ∅ for all c ∈ C \ C.
+b And there are clearly no edges between
+Thus, by definition of K,
+0
+b But then, for any (xe )e∈E realizing α , the subset (xcs )
+Cb and S \ N (C).
+b
+b realizes a
+c∈C\C,s∈S\N
+(C)
+balanced server flow in G2 , so since α2 is the unique balanced server flow in G2 we have α0 (s) = α2 (s)
+b
+for s ∈ S \ N (C).
+
+3.3
+
+How Server Loads Change as New Clients are Inserted
+
+From now on, let α denote the unique balanced server flow. We want to understand how the
+balanced server flow changes as new clients are added. For any server s, let αold (s) be the flow in s
+before the insertion of c, and let αnew (s) be the flow after. Also, let ∆α(s) = αnew (s) − αold (s).
+Intuitively, as more clients are added to the graph, the flow on the servers only increases, so no
+α(s) ever decreases. We now prove this formally.
+10
+
+Lemma 21. When a new client c is added, ∆α(s) ≥ 0 for all s ∈ S.
+Proof. Let S ∗ = {s ∈ S | αnew (s) < αold (s)}. We want to show that S ∗ = ∅. Say for contradiction
+that S ∗ 6= ∅, and let α∗ = mins∈S ∗ αnew (s). We will now partition S into three sets.
+S − = {s ∈ S | αold (s) ≤ α∗ }
+S ∆ = {s ∈ S | αold (s) > α∗ ∧ αnew (s) = α∗ }
+S + = {s ∈ S | αold (s) > α∗ ∧ αnew (s) > α∗ }
+It is easy to see that these sets form a partition of S, and that ∅ =
+6 S∆ ⊆ S∗.
+∆
+∆
+Now, let C contain all clients with an active neighbor in S before the insertion of c. Since
+P
+each client sends one unit of flow, s∈S ∆ αold (s) ≤ C ∆ . Now, because we had a balanced flow
+before the insertion of c there cannot be any edges in G from C ∆ to S − (any such edge would be
+from a client u ∈ C ∆ to a server v ∈ S − with αold (v) ≤ α∗ < αold (s) for s ∈ S ∆ contradicting that
+u had an active neighbor in S ∆ ). Moreover, in the balanced flow after the insertion of c, there are
+no active edges from C ∆ to S + (any such edge would be from a client u ∈ C ∆ to a server v ∈ S +
+with αnew (v) > α∗ = αnew (s) for all s ∈ S ∆ so is not active). Thus, all active edges incident to C ∆
+P
+P
+go to S ∆ , so s∈S ∆ αnew (s) ≥ C ∆ . This contradicts the earlier fact that s∈S ∆ αold (s) ≤ C ∆ ,
+since by definition of S ∆ we have
+
+P
+
+s∈S ∆ α
+
+new (s) < P
+old (s).
+s∈S ∆ α
+
+The next lemma formalizes the following argument: Say that we insert a new client c, and for
+simplicity say that c is only incident to server s. Now, c will have no choice but to send all of its
+flow to s, but that does not imply that ∆α(s) = 1, since other clients will balance by retracting
+their flow from s and sending it elsewhere. But by the assumption that the flow was balanced before
+the insertion of c, all this new flow can only flow “upward” from s: it cannot end up increasing the
+flow on some s− with αold (s− ) < αold (s). Along the same lines of intuition, even if c has several
+neighbors, inserting c cannot affect the flow of servers whose original flow was less than the lowest
+original flow among the neighbors of s.
+Lemma 22. When a new client c is added , ∆α(s) = 0 for all s where αold (s) < minv∈N (c) αold (v).
+Proof. Let us first
+consider the balanced flow beforeo the insertion of c.
+n
+Let S + = s ∈ S αold (s) ≥ minv∈N (c) αold (v) and define S − = S \ S + . We want to show
+that ∆α(s) = 0 for all servers s in S − .
+Define C + to be the set of client vertices whose neighbors are all in S + ; that is, C + =
+
+c ∈ C N (c) ⊆ S + . Note that the following holds before the insertion of c: by definition of C +
+there are no edges in G from C + to S − , and because the flow is balanced, there are no active edges
+P
+from C − to S + . Thus, s∈S − αold (s) = |C − |.
+Now consider the insertion of c. By definition of S − the new client c has no neighbors in S − ,
+so it is still the case that only clients in C − have neighbors in S − . Thus, in the new balanced
+P
+P
+flow we still have have that s∈S − αnew (s) ≤ |C − |. But this means that s∈S − ∆α(s) ≤ 0, so if
+∆α(s1 ) > 0 for some s1 ∈ S − then ∆α(s2 ) < 0 for some s2 ∈ S − , which contradicts Lemma 21.
+
+4
+
+Analyzing replacements in maximum matching
+
+We now consider how server flows relate to the length of augmenting paths.
+11
+
+Lemma 23. The graph (C ∪ S, E) contains a matching of size |C|, if and only if α(s) ≤ 1 for all
+s ∈ S.
+b = maxs∈S α(s). It follows directly from Lemma 18 that |K| ≤ |N (K)| for all K ⊆ C
+Proof. Let α
+b ≤ 1. The corollary then follows from Hall’s Theorem (Theorem 7)
+if and only if α
+
+It is possible that in the original graph G = (C ∪ S, E), there are many clients that cannot be
+matched. But recall that by Observation 9, if a client cannot be matched when it is inserted, then
+it can be effectively ignored for the rest of the algorithm. This motivates the following definition:
+Definition 24. We define the set CM ⊆ C as follows. When a client c is inserted, consider the set
+of clients C 0 before c is inserted: then c ∈ CM if the maximum matching in (C 0 ∪ {c} ∪ S, E) is
+greater than the maximum matching in (C 0 ∪ S, E). Define GM = (CM ∪ S, E).
+Observation 25. When a client c ∈ CM is inserted the SAP algorithm finds an augmenting path
+from c to a free server; this follows from the fact that SAP always maintains a maximum matching
+(Lemma 10). By Observation 9, if c ∈
+/ CM then no augmenting path goes through c during the
+entire sequence of insertions. By the same observation, once a vertex c ∈ CM is inserted it remains
+matched through the entire sequence of insertions.
+Definition 26. Given any s ∈ S, let αM (s) be the flow into s in some balanced server flow in GM ;
+by Lemma 14 αM (s) is uniquely defined.
+Observation 27. By construction GM contains a matching of size |CM |, so by Lemma 23 αM (s) ≤ 1
+for all s ∈ S. Finally, note that since CM ⊆ C, we clearly have αM (s) ≤ α(s)
+Definition 28. Define an augmenting tail from a vertex v to be an alternating path that starts
+in v and ends in an unmatched server. We call an augmenting tail active if all the edges on the
+alternating path that are not in the matching are active.
+Note that augmenting tails as defined above are an obvious extension of the concept of augmenting
+paths: Every augmenting path for a newly arrived client c consists of an edge (c, s), plus an
+augmenting tail from some server s ∈ N (c).
+We are now ready to prove our main lemma connecting the balanced server flow to augmenting
+paths. We show that if some server s has small α(s), then regardless of the particular matching at
+hand, there is guaranteed to be a short active augmenting tail from s. Since every active augmenting
+tail is by definition an augmenting tail, this implies that any newly newly inserted client c that is
+incident to s has a short augmenting path to an unmatched server.
+Lemma 29 (Expansion Lemma). Let s ∈ S, and suppose αM (s) = 1 −  for some  > 0. Then
+there is an active augmenting tail for s of length at most 2 ln(|CM |).
+Proof. By our definition of active edges, it is not hard to see that any server s0 reachable from s by
+an active augmenting tail has αM (s0 ) ≤ 1 − .
+For i ≥ 1, let Ki be the set of clients c such that there is an active augmenting tail s0 , c0 , . . . , ck−1 , sk
+from s with c = cj for some j < i. Let ki = |Ki |. Note that k1 = 1, K1 ⊆ K2 ⊆ . . . ⊆ Ki , and
+ki = |Ki | ≤
+
+X
+s0 ∈A(Ki )
+
+αM (s0 ) ≤
+
+X
+
+(1 − ) = |A(Ki )| (1 − )
+
+s0 ∈A(Ki )
+
+12
+
+Thus
+|A(Ki )| ≥
+
+ki
+1−
+
+Suppose there is no active augmenting tail from s of length ≤ 2(i − 1), then every server in
+A(Ki ) is matched, and the clients they are matched to are exactly Ki+1 . There is a bijection
+between A(Ki ) and Ki+1 given by the perfect matching, so we have ki+1 = |A(Ki )| and thus
+1 i
+1 i
+1
+M|
+|CM | ≥ ki+1 ≥ 1−
+) k1 = ( 1−
+) . It follows that i ≤ ln|C
+ki ≥ ( 1−
+≤ 1 ln |CM |, where the last
+ln 1
+1−
+
+inequality follows from 1 −  ≤ e− . Thus for any i > 1 ln |CM | there exists an active augmenting
+tail of length at most 2(i − 1), and the result follows.
+We are now able to prove the key lemma of our paper, which we showed in Section 1.3 implies
+Theorem 1.
+Lemma 6. Consider the following protocol for constructing a matching: For each client c in
+arbitrary order, augment along the shortest augmenting path from c (if one exists). Given any h,
+this protocol augments down a total of at most 4n ln(n)/h augmenting paths of length > h.
+Proof. Recall that n = |C| ≥ |CM |. The lemma clearly holds for h ≤ 4 ln(n) because there at most
+n augmenting paths in total. We can thus assume for the rest of the proof that h > 4 ln(n). Recall
+by Observation 25 that any augmenting path is contained entirely in GM . Now, let C ∗ ⊆ CM be
+the set of clients whose shortest augmenting path have length at least h + 1 when they are added.
+Our goal is to show that |C ∗ | ≤ 4n ln(n)/h. For each c ∈ C ∗ the shortest augmenting tail from each
+server s ∈ N (c) has length at least h and so by the Expansion Lemma 29, each server s ∈ N (c) has
+αM (s) ≥ 1−2 ln(n)/h. Let S ∗ be the set of all servers that at some point have αM (s) ≥ 1−2 ln(n)/h;
+by Lemma 21, this is exactly the set of servers s such that αM (s) ≥ 1 − 2 ln(n)/h after all clients
+have been inserted. By Lemma 22, if c ∈ C ∗ , the insertion of c only increases the flow on servers in
+S ∗ that already had flow at least 1 − 2 ln(n)/h. Since by Observation 27 αM (s) ≤ 1 for all s ∈ S,
+the flow of each server in S ∗ can only increase by at most 2 ln(n)/h. But then, since the client c
+contributes with exactly one unit of flow, the total number of such clients is |C ∗ | ≤ (2 log(n)/h) |S ∗ |.
+We complete the proof by showing that |S ∗ | < 2n. This follows from the fact that each client c ∈ CM
+sends one unit of flow, so n ≥ |CM | ≥ (1 − 2 ln(n)/h) |S ∗ | > |S ∗ | /2, where the last inequality follows
+from the assumption that h > 4 ln(n).
+
+5
+
+Implementation
+
+In the previous section we proved that augmenting along a shortest augmenting path yields a total
+of O(n log2 n) replacements. But the naive implementation would spend O(m) time per inserted
+vertex, leading to total time O(mn) for actually maintaining the matching. In this section, we show
+how to find the augmenting
+paths more quickly, and thus maintain
+the optimal matching at all
+√
+√ √
+times in O(m n log n) total time, differing only by an O( log n) factor from the classic offline
+algorithm of Hopcroft and Karp algorithm for static graphs [19].
+Definition 30. Define the height of a vertex v (server or client) to be the length of the shortest
+augmenting tail (Definition 28) from v. If no augmenting tail exists, we set the height to 2n.
+
+13
+
+√
+At a high level, our algorithm is very similar to the standard O(m n) blocking flow√algorithm.
+√
+We will keep track of heights to find shortest augmenting paths of length at most n log n. We
+will find longer augmenting paths using the trivial O(m) algorithm, and use Lemma 6 to bound the
+number of such paths. Our analysis will also require the following lemma:
+Lemma 31. For any server s ∈ S, there is an augmenting tail from s to an unmatched server if
+and only if αM (s) < 1.
+Proof. If αM (s) < 1, then the existence of some tail follows directly from the Expansion Lemma 29.
+Now let us consider αM (s) = 1. Let S1 = {s ∈ S | αM (s) = 1}. Since 1 is the maximum possible
+value of αM (s) (Observation 27), Lemma 17 implies that there is a set of clients C1 ∈ CM such that
+N (C1 ) = S1 and |C1 | = |S1 |. Now since every client in C1 is matched, every server S1 is matched to
+some client in C1 . Every augmenting tail from some s ∈ S1 must start with a matched edge, so it
+must go through C1 , so it never reaches a server outside of N (C1 ) = S1 , so it can never reach a free
+server.
+We now turn to our implementation of the SAP protocol. We will use a dynamic single-source
+shortest paths algorithm as a building block. We start by defining a directed graph D such that
+maintaining distances in D will allow us to easily find shortest augmenting paths as new clients are
+inserted.
+Let D be the directed graph obtained from G = (C ∪ S, E) by directing all unmatched edges
+from C to S, and all matched edges from S to C, and finally adding a sink t with an edge from all
+unmatched vertices, as well as edge from all clients in C that have not yet arrived. Any alternating
+path in G corresponds to a directed path in D \ {t} and vice-versa. In particular, it is easy to see
+that if P is a shortest path in D from a matched server s to the sink t, then P \ {t} is a shortest
+augmenting tail from s to a free server. Similarly, for any client c that has arrived (so edge (c, t) is
+deleted) but is not yet matched, if P is the shortest path from c to t in D, then P \ {t} is a shortest
+augmenting path for c in G. Furthermore, augmenting down this path in G corresponds (in D) to
+changing the direction of all edges on P \ {t} and deleting the edge on P incident to t.
+We can thus keep track of shortest augmenting paths by using a simple dynamic shortest path
+algorithm to maintain shortest paths to t in the changing graph D. We will use a modification of
+Even and Shiloach
+(See [28]) to maintain a shortest path tree in D to t from all vertices of height at
+√ √
+most h = n log n. The original version by Even and Shiloach worked only for undirected graphs,
+and only in the decremental setting where the graph only undergoes edge deletions, never edge
+insertions. This was later extended by King [23] to work for directed graphs. The only-deletions
+setting is too constrained for our purposes because we will need to insert edges into D; augmenting
+down a path P corresponds to deleting the edges on P and inserting the reverse edges. Fortunately,
+it is well known that the Even and Shiloach tree can be extended to the setting where there are
+both deletions and insertions, as long as the latter are guaranteed not to decrease distances; we will
+show that this in fact applies to our setting.
+Lemma 32 (Folklore. See e.g. [3, 4]). Let G = (V, E) be a dynamic directed or undirected graph
+with positive integer weights, let t be a fixed sink, and say that for every vertex v we are guaranteed
+that the distance dist(v, t) never decreases due to an edge insertion. Then we can maintain a tree of
+shortest paths to t up to distance d in total time O(m · d + ∆), where m is the total number of edges
+(u, v) such that (u, v) is in the graph at any point during the update sequence, and ∆ is the total
+number of edge changes.
+14
+
+√ √
+Theorem 2. There is an implementation of the SAP protocol that runs in total time O(m n log n).
+Proof. We will explicitly maintain the graph D, and use the extended Even-Shiloach√
+tree structure
+√
+from Lemma 32 to maintain a tree T of shortest paths to t up to distance h = n log n. Every
+vertex will either be in this tree (and hence have height less than h), or be marked as a high vertex.
+When a new client c arrives, we update D (and T ) by first adding edges to N (c) from c, and then
+deleting the dummy edge from c to t. Note that because the deletion of edge (c, t) comes last, the
+inserted edges do not change any distances to t. We then use D and T to find a shortest augmenting
+path. We consider two cases.
+The first case is when c is not high. Then T contains a shortest path P from c to t.
+The second case is when c is high. In this case we can just brute-force search for a shortest path
+P from c to t in time O(m). If we do not find a path from c to t, then we remove all servers and
+clients encountered during the search, and continue the algorithm in the graph with these vertices
+removed.
+In either case, if a shortest path P from c to t is found, we augment down P and then make
+the corresponding changes to D: we first reverse the edges on P \ {t} in order starting with the
+edge closest to c, and then we delete the edge (s, t) on P incident to t (because the server s is now
+matched). Each edge reversal is done by first inserting the reversed edge, and then deleting the
+original. Note that since P is a shortest path, none of these edge insertions change the distances to
+t.
+Correctness: We want to show that our implementation chooses a shortest augmenting path at
+every step. This is clearly true if we always find an augmenting path, but otherwise becomes a bit
+more subtle as we delete vertices from the graph after a failed brute-force search. We must thus
+show that any vertex deleted in this way cannot have participated in any future augmenting path.
+To see this, note that when our implementation deletes a server s ∈ S, there must have been
+no augmenting path through s at the time that s was deleted. By Lemma 31, this implies that
+αM (s) = 1. But then by Lemma 21 we have αM (s) = 1 for all future client insertions as well.
+(Recall that by Observation 27 we never have αM (s) > 1.) Thus by Lemma 31 there is never an
+augmenting path through s after this point, so s can safely be deleted from the graph. Similarly, if
+a client c is deleted from the graph, then all of its neighboring servers had no augmenting tails at
+that time, so they all have αM (s) = 1, so there will never be an augmenting path through c.
+Running time:
+
+There are three factors to consider.
+
+1. the time to follow the augmenting paths and maintain D.
+2. the time to maintain T .
+3. the time to brute-force search for augmenting paths.
+Item 1 takes O(m + n log2 n) time because we need O(1) time to add each of the m edges and
+to follow and reverse each edge in the augmenting paths, and by Theorem 1 the total length of
+augmenting paths is O(n log2 n).
+For Item 2, it is easy to see that the total number of edges ever to appear in D is m = O(|E|);
+D consists only of dummy edges to the sink t, and edges in the original graph oriented in one of
+
+15
+
+two directions. By Item 1, the number of changes to D is O(m + n log2 n). Thus by Lemma 32 the
+total time to maintain T is O(mh + n log2 n) .
+For Item 3 we consider two cases. The first is brute-force searches which result in finding an
+augmenting path. These take a total of O(mn log(n)/h) time because by Lemma 6 during the
+course of the entire algorithm there are at most O(n log(n)/h) augmenting paths of length ≥ h, and
+each such path requires O(m) time to find. The second case to consider is brute-force searches that
+do not result in an augmenting path. These take total time O(m) because once a vertex participates
+in such a search, it is deleted from the graph with all its incident edges.
+Summing
+up, the total time
+used is O(mh + n log2 n + mn log(n)/h + m), which for our choice
+√ √
+√ √
+of h = n log n is O(m n log n).
+
+6
+
+Extensions
+
+In many applications of online bipartite assignments, it is natural to consider the extension in which
+each server can serve multiple clients. Recall from the introduction that we examine two variants:
+capacitated assignment, where each server comes with a fixed capacity which we are not allowed
+to exceed, and minimizing maximum server load, in which there is no upper limit to the server
+capacity, but we wish to minimize the maximum number of clients served by any server. We show
+that there is a substantial difference between the number of reassignments: Capacitated assignment
+is equivalent to uncapacitated online matching with replacements, but for minimizing maximum
+load, we show a significantly higher lower bound.
+
+6.1
+
+Capacitated assignment
+
+We first consider the version of the problem where each server can be matched to multiple clients.
+Each server comes with a positive integer capacity u(s), which denotes how many clients can be
+matched to that server. The greedy algorithm is the same as before: when a new client is inserted,
+find the shortest augmenting path to a server s that currently has less than u(s) clients assigned.
+Theorem 3. SAP uses at most O(n log2 n) reassignments for the capacitated assignment problem,
+where n is the number of clients.
+Proof. There is a trivial reduction from any instance of capacitated assignment to one of uncapacitated matching where each server can only be matched to one client: simple create u(s) copies
+of each server s. This reduction was previously used in [2]. When a client c is inserted, if there
+is an edge (c, s) in the original graph, then add edges from c to every copy of s. It is easy to see
+that the number of flips made by the greedy algorithm in the capacitated graph is exactly equal
+to the number made in the uncapacitated graph, which by Theorem 1 is O(n log2 n). (Note that
+although the constructed uncapacitated graph has more servers than the original capacitated graph,
+the number of clients n is exactly the same in both graphs.)
+
+6.2
+
+Minimizing maximum server load
+
+In this section, we analyze the online assignment problem. Here, servers may have an unlimited
+load, but we wish to minimize maximum server load.
+
+16
+
+Definition 33. Given a bipartite graph G = (C ∪ S, E), an assignment A : C → S assigns each
+client c to a server A(c) ∈ S. Given some assignment A, for any s ∈ S let the load of s, denoted
+`A (s), be the number of clients assigned to s; when the assignment A is clear from context we
+just write `(s). Let `(A) = maxs∈S `A (s). Let opt(G) be the minimum load among all possible
+assignments from C to S.
+In the online assignment problem, clients are again inserted one by one with all their incident
+edges, and the goal is to maintain an assignment with minimum possible load. More formally, define
+Gt = (Ct ∪ S, Et ) to be the graph after exactly t clients have arrived, and let At be the assignment
+at time t. Then we must have that for all t, `(At ) = opt(Gt ). The goal is to make as few changes
+to the assignment as possible.
+[15] and [2] showed how to solve this problem with approximation: namely, with only O(1)
+amortized changes per client insertion they can maintain an assignment A such that for all
+t, `(At ) ≤ 8opt(Gt ). Maintaining an approximate assignment is thus not much harder than
+maintaining an approximate maximum matching, so one might have hoped that the same analogy
+holds for the exact case, and that it is possible to maintain an optimal assignment with amortized
+O(log2 n) changes per client insertion. We now present a lower bound disproving the existence of
+such an upper bound. The lower bound is not specific to the greedy algorithm, and applies to any
+algorithm for maintaining an assignment A of minimal load. In fact, the lower bound applies even
+if the algorithm knows the entire graph G in advance; by contrast, if the goal is only to maintain a
+maximum matching, then knowing G in advance trivially leads to an online matching algorithm
+that never has to rematch any vertex.
+p
+
+Theorem 4. For any positive integers n and L ≤ n/2 divisible by 4 there exists a graph G =
+(C ∪ S, E) with |C| = n and opt(G) = L, along with an ordering in which the clients in C are
+inserted, such that any algorithm for the exact online assignment problem requires a total of Ω(nL)
+changes. This lower bound holds even if the algorithm knows the entire graph G in advance, as well
+as the order in which the clients are inserted.
+The main ingredient of the proof is the following lemma:
+Lemma 34. For any positive integer L divisible by 4, there exists a graph G = (C ∪ S, E) along
+with an ordering in which clients in C are inserted, such that |C| = L2 , |S| = L, opt(G) = L, and
+any algorithm for maintaining an optimal assignment A requires Ω(L3 ) changes to A.
+Proof. Let S = {s1 , s2 , ..., sL }. We partition the clients in C into L blocks C1 , C2 , ..., CL , where all
+the clients in a block have the same neighborhood. In particular, clients in CL only have a single
+edge to server sL , and clients in Ci for i < L have an edge to si and si+1 .
+The online sequence of client insertions begins by adding L/2 clients to each block Ci . The
+online sequence then proceeds to alternate between down-heavy epochs and up-heavy epochs, where
+a down-heavy epoch inserts 2 clients into blocks C1 , C2 , ..., CL/2 (in any order), while an up-heavy
+epoch inserts 2 clients into blocks CL/2+1 , ..., CL . The sequence then terminates after L/2 such
+epochs: L/4 up-heavy ones and L/4 down-heavy ones in alternation. Note that a down-heavy
+epoch followed by an up-heavy one simply adds two clients to each block. Thus the final graph has
+|Ci | = L for each i, so the graph G = (C ∪ S, E) satisfies the desired conditions that |C| = L2 and
+opt(G) = L.
+We complete the proof by showing that all the client insertions during a single down-heavy
+epoch cause the algorithm to make at least Ω(L2 ) changes to the assignment; the same analysis
+17
+
+C2
+
+CL/2
+
+sL
+
+CL/2+1
+
+CL−3
+
+β
+
+CL−2
+
+0
+
+0
+
+0
+
+0
+
+C3
+
+sL−1
+
+···
+
+0
+
+0
+
+0
+
+···
+
+C1
+
+sL−2
+
+β
+
+sL/2+2
+
+β
+
+sL/2+1
+
+0
+
+β
+
+sL/2
+
+β
+
+s4
+
+β
+
+s3
+
+β
+
+s2
+
+β
+
+s1
+
+CL−1
+
+CL
+
+Figure 1: Number of assignments of each type after first L/2 clients added to each block, and after
+each up-heavy phase. Each Ci has β clients. Each server has β clients assigned.
+
+sL−2
+
+sL−1
+
+sL
+
+β
+
+sL/2+2
+
+···
+
+C1
+
+C2
+
+C3
+
+CL/2
+
+CL/2+1
+
+CL−3
+
+CL−2
+
+1
+
+2
+
+3
+
+L/
+2−
+
+L/
+2
+
+3
+
+2
+
+1
+
+1
+
+sL/2+1
+
+β−1
+
+β
+
+···
+
+sL/2
+
+β−2
+
+s4
+
+β+1−L/2
+
+s3
+
+β−1
+
+s2
+
+β+1
+
+s1
+
+β+2−L/2
+
+applies to the up-heavy epochs as well. Consider the kth down-heavy epoch of client insertions. Let
+β = L/2 + 2(k − 1) and consider the graph Gold = (C old ∪ S, E old ) before the down-heavy epoch:
+it is easy to see that every block Ci has exactly β clients, that opt(Gold ) = β, and that there is
+exactly one assignment Aold that adheres to this maximum load: Aold assigns all clients in block
+Ci to server si (see Figure 1).
+Now, consider the graph Gnew = (C new ∪ S, E new ) after the down-heavy epoch. Blocks
+C1 , C2 , ..., CL/2 now have β + 2 clients, while blocks CL/2+1 , ..., CL still only have β. We now show
+that opt(Gnew ) = β + 1. In particular, recall that β ≥ L/2 and consider the following assignment
+Anew : for i ≤ L/2, Anew assigns β + 2 − i ≥ 2 clients from Ci to si and i clients in Ci to si+1 ; for
+L/2 < i ≤ L, Anew assigns β + i − L ≥ 0 clients in Ci to si , and L − i clients from Ci to si+1 . (In
+particular, all β clients in CL are assigned to sL , which is necessary as there is no server sL+1 ). It is
+easy to check that for every s ∈ S, `Anew (s) = β + 1 (see Figure 2).
+
+CL−1
+
+CL
+
+Figure 2: Number of assignments of each type after each down-heavy phase. Each Ci has β + 2
+clients for 1 ≤ i ≤ L/2 and β clients for L/2 + 1 ≤ i ≤ L. Each server has β + 1 clients assigned.
+We now argue that Anew is in fact the only assignment in Gnew with `(Anew ) = β + 1. Consider
+any assignment A for C new with `(A) = β + 1. Observe that since the total number of clients in
+C new is exactly (β + 1)L, we must have that every server s ∈ S has `(s) = β + 1 in A. We now
+argue by induction that for i ≤ β/2, A assigns assigns β + 2 − i clients from Ci to si and i clients
+in Ci to si+1 (exactly as Anew does). The claim holds for i = 1 because the only way s1 can end
+up with load β + 1 is if β + 1 clients from C1 are assigned to it. Now say the claim is true for
+some i < β/2. By the induction hypothesis, si+1 has i clients from Ci assigned to it. Since si+1
+18
+
+must have total load β + 1, and all clients assigned to it come from Ci or Ci+1 , si+1 must have
+β + 1 − i = β + 2 − (i + 1) clients assigned to it from Ci+1 .
+We now prove by induction that for all L/2 < i ≤ L, A assigns β + i − L clients in Ci to si , and
+L − i clients from Ci to si+1 , which proves that A = Anew . The claim holds for i = L/2 + 1 because
+we have already shown that in the above paragraph that L/2 clients assigned to si = sL/2+1 come
+from CL/2 , so since `(si ) = β + 1, it must have β + 1 − L/2 = β + i − L clients from Ci assigned to
+it. Now, say that the claim is true for some i > L/2. Then by the induction step si+1 has L − i
+clients assigned to it from Ci , so since `(si+1 ) = β + 1, it has β + (i + 1) − L clients assigned to it
+from Ci+1 , as desired. The remaining L − (i + 1) clients in Ci+1 must then be assigned to si+2 .
+We have thus shown that the online assignment algorithm is forced to have assignment Aold
+before the down-heavy epoch, and assignment Anew afterwards. We now consider how many changes
+the algorithm must make to go from one to another. Consider block Ci for some L/2 < i ≤ L.
+Note that because the epoch of client insertions was down-heavy, |Ci | = β before and after the
+epoch. Now, in Aold all of the clients in Ci are matched to si . But in Anew , L − i of them
+are matched to si+i . Thus, the total number of reassignments to get from Aold to Anew is at
+P
+least L/2<i≤L (L − i) = Ω(L2 ). Since there are L/4 down-heavy epochs, the total number of
+reassignments over the entire sequence of client insertions is Ω(L3 ).
+Proof of Theorem
+4.
+Recall the assumption of the Theorem that n/2 ≥ L2 . Simply let the graph
+
+
+G consist of n/L2 separate instances of the graph in Lemma 34, together with sufficient copies of
+K1,1 to make the total number of clients
+n. The algorithm will have to make Ω(L3 ) changes in each
+
+such instance, leading to Ω(L3 n/L2 ) = Ω(nL) changes in total.
+We now show a nearly matching upper bound which is off by a log2 n factor. As with the case
+of matching, this upper bound is achieved by the most natural SAP algorithm, which we now define
+in this setting. Since opt(G) may change as clients are inserted into C, whenever a new client is
+inserted, the greedy algorithm must first compute opt(G) for the next client set. Note that the
+algorithm does not do any reassignments at this stage, it simply figures out what the max load
+should be. opt(G) can easily be computed in polynomial time: for example we could just compute
+the maximum matching when every server has capacity b for every b = 1, 2, ..., |C|, and then opt(G)
+is the minimum b for which every client in C is matched; for a more efficient approach see [2]. Now,
+when a new client c is inserted, the algorithm first checks if opt(G) increases. If yes, the maximum
+allowable load on each server increases by 1 so c can just be matched to an arbitrary neighbor.
+Otherwise, SAP finds the shortest alternating path from c to a server s with `(s) < opt(G): an
+augmenting path is defined exactly the same way as in Definition 8, though there may now be
+multiple matching edges incident to every server. The proof of the upper bound will rely on the
+following very simple observation:
+Observation 35. For the uncapacitated problem of online maximum matching with replacements,
+let us say that instead of starting with C = ∅, the algorithm starts with some initial set of clients
+C0 ⊂ C already inserted, and an initial matching between C0 and S. Then the total number of
+replacement made during all future client insertions is still upper bounded by the same O(n log2 n)
+as in Theorem 1, where n is the number of clients in the final graph (so n is |C0 | plus the number
+of clients inserted).
+Proof. Intuitively, we could simply let our protocol start by unmatching all the clients in C0 , and
+then rematching them according the SAP protocol, which would lead to O(n log2 n) replacements.
+19
+
+In fact this initial unmatching is not actually necessary. Recall that the proof of Theorem 1 follows
+directly from the key Lemma 6, which in term follows from the expansion argument in Lemma 29.
+The expansion argument only refers to server necessities, not to the particular matching maintained
+by the algorithm, so it will hold no matter what initial matching we start with.
+Theorem 5. Let C be the set of all clients inserted, let n = |C|, and let L = opt(G) be the
+minimum possible maximum load in the final graph G = (C ∪ S, E). SAP at all times maintains an
+√
+optimal assignment while making a total of O(n min {L log2 n, n log n}) reassignments.
+Proof. Let us define epoch i to contain all clients c such that after the insertion of c we have
+opt(G) = i. We now define ni as the total number of clients added by the end of epoch i (so
+ni counts clients from previous epochs as well). Extend the reduction in the proof of Theorem 3
+from [2] as follows: between any two epochs, add a new copy of each server, along with all of its
+edges. For the following epoch, say, the ith epoch, Observation 35 tells us that regardless of what
+matching we had at the beginning of the epoch, the total number of reassignments performed by SAP
+during the epoch will not exceed O(ni log2 ni ) ⊆ O(n log2 n). We thus make at most O(nL log2 n)
+√
+√
+reassignments in total, which completes the proof if L < n/ log n. If L ≥ n/ log n, we make
+√
+√
+O(n n log n) reassignments during the first n/ log n epochs. In all future epochs, note that a
+√
+server at its maximum allowable load has at least n/ log n clients assigned to it, so there are at
+√
+most n log n such servers, and whenever a client is inserted the shortest augmenting path to a
+√
+server below maximum load will have length O( n log n). This completes the proof because there
+are only n augmenting paths in total.
+
+6.3
+
+Approximate semi-matching
+
+Though our result on minimizing maximum load exactly is tight, we conclude this section on
+extensions with a short and cute improvement for approximate load balancing, which follows from
+the Expansion Lemma (Lemma 29).
+We study a setting similar to that of [2], in which one wishes to minimize not only the maximum
+1
+P
+load, but the p-norm |X|p = ( s∈S l(s)p ) p , where l(s) is the load of the server s in the assignment
+X, for every p ≥ 1.
+First, observe that a lower bound on the p-norm comes from our necessity values α from Section 3.
+1
+P
+That is, ( s∈S α(s)p ) p ≤ |X|p , for any assignment X. For p = 1, we even have equality, as we
+simply count the number of clients. For p > 1, the proof is almost identical to that of uniqueness in
+Section 3.2.1.
+In Section 6.2, we saw that even for the ∞-norm, we cannot obtain dα(s)e with logarithmic
+recourse. This motivates the use of approximation, and motivates the following definition:
+Definition 36 ((1 + ε)-approximate semi-matching). For each server s in the current graph, let
+L(s) = d(1 + ε)α(s)e. We say that a semi-matching is (1 + ε)-approximate, if each server s is assigned
+at most L(s) clients.
+Assigning (1 + ε)α(s) clients to server s would indeed give a (1 + ε)-approximation for every
+p-norm. Unfortunately, (1 + ε)α(s) may not be an integer, which is why we apply the natural ceiling
+operation. Under the further assumption that α(s) ≥ 1ε for all s, we have
+d(1 + ε)α(s)e
+(1 + ε)α(s) + 1
+1
+<
+=1+ε+
+≤ 1 + 2ε
+α(s)
+α(s)
+α(s)
+20
+
+And thus, under the assumption that all necessities are ≥ 1ε , then for any (1 + ε)-approximate
+assignment X, where we let l(s) denote the number of clients assigned to server s ∈ S, we have:
+!1
+
+!1
+
+p
+
+X
+
+l(s)p
+
+X
+
+≤
+
+p
+
+d(1 + ε)α(s)e
+
+!1
+
+p
+
+<
+
+(1 + 2ε)p
+
+s∈S
+
+s∈S
+
+!1
+
+p
+
+X
+
+α(s)p
+
+p
+
+= (1 + 2ε)
+
+s∈S
+
+X
+
+α(s)p
+
+s∈S
+
+But as already noted, the p-norm of the α-vector is a lower bound on any assignment, including the
+optimal assignment Xopt , so |X|p ≤ (1 + 2ε) |Xopt |.
+In the following, let n denote the number of clients that have arrived thus far.
+Theorem 37. (1 + ε)-approximate semi-matching has worst-case O( 1ε log n) reassignments with
+SAP.
+The proof of this theorem relies again on the Expansion Lemma. In this case, however, we do
+not use the α-values as part of an amortization argument, but only to bound the lengths of the
+shortest augmenting paths.
+Proof. Given our graph G, let G0 denote a similar graph with L(s) copies of each server. Then any
+maximum matching in G0 corresponds to an (1 + ε)-approximate semi-matching in G. Now, note
+that each client-set K in G0 has a neighborhood of at least (1 + ε) times its own size:
+|NG0 (K)|
+
+=
+
+X
+
+L(s)
+
+≥
+
+(1 + ε)
+
+s∈NG (K)
+
+X
+
+αG (s)
+
+≥
+
+(1 + ε) |K|
+
+s∈NG (K)
+
+Where the last inequality follows from the fact that the neighborhood of K receives at least all
+the flow from K, and thus, at least K flow. Thus, by Lemma 18 we can upper bound the highest
+b in G0 by
+alpha-value α
+|K|
+1
+ε
+≤
+=1−
+1+ε
+1+ε
+∅⊂K⊆C |NG0 (K)|
+
+α
+b = max
+
+ε
+By setting ε0 = 1+ε
+, all servers of G0 has necessity ≤ 1 − ε0 . The Expansion Lemma (Lemma 29) then
+1
+gives that any active augmenting tail has length at most ε20 ln(n) = 2 1+ε
+ε ln n, which is O( ε log n).
+
+7
+
+Conclusion
+
+We showed that in the online matching problem with replacements, where vertices on one side
+of the bipartition are fixed (the servers), while those the other side arrive one at a time with all
+their incoming edges (the n clients), the shortest augmenting path protocol maintains a maximum
+matching while only making amortized O(log2 n) changes to the matching per client insertion. This
+almost matches the Ω(log n) lower bound of Grove et al. [13]. Ours is the first paper to achieve
+√
+polylogarithmic changes per client; the previous best of Bosek et al. required O( n) changes, and
+used a non-SAP strategy [5]. The SAP protocol is especially interesting to analyze because it is
+the most natural greedy approach to maintaining the matching. However, despite the conjecture
+of Chaudhuri et al. [8] that the SAP protocol only requires O(log n) amortized changes per client,
+our analysis is the first to go beyond the trivial O(n) bound for general bipartite graphs; previous
+results were only able to analyze SAP in restricted settings. Using our new analysis technique,
+21
+
+we were √
+also able to show an implementation of the SAP protocol that requires total update time
+√
+√
+O(m n log n), which almost matches the classic offline O(m n) running time of Hopcroft and
+Karp [19].
+The main open problem that remains is to close the gap between our O(log2 n) upper bound and
+the Ω(log n) lower bound. This would be interesting for any replacement strategy, but it would also
+be interesting to know what
+√ the right bound is for the SAP protocol in particular. Another open
+question is to remove the log n factor in our implementation of the SAP protocol. Note that both
+of these open questions would be resolved if we managed to improve the bound in Lemma 6 from
+√
+O(n ln(n)/h)
+to
+O(n/h).
+(In
+the
+implementation
+of
+Section
+5
+we
+would
+then
+set
+h
+=
+n instead of
+√ √
+h = n log n.)
+
+8
+
+Acknowledgements
+
+The first author would like to thank Cliff Stein for introducing him to the problem. The authors
+would like to thank Seffi Naor for pointing out to us that uniqueness of server loads can be proved
+via convex optimization (Section 3.2.1), and to thank Martin Skutella and Guilamme Sagnol for
+very helpful pointers regarding the details of this proof.
+
+References
+[1] M. Andrews, M. X. Goemans, and L. Zhang. Improved bounds for on-line load balancing.
+Algorithmica, 23(4):278–301, Apr 1999.
+[2] A. Bernstein, T. Kopelowitz, S. Pettie, E. Porat, and C. Stein. Simultaneously load balancing
+for every p-norm, with reassignments. In Proceedings of the 8th Conference on Innovations in
+Theoretical Computer Science (ITCS), 2017.
+[3] Aaron Bernstein and Shiri Chechik. Deterministic decremental single source shortest paths:
+beyond the O(mn) bound. In Proceedings of the 48th Annual ACM SIGACT Symposium on
+Theory of Computing, STOC 2016, Cambridge, MA, USA, June 18-21, 2016, pages 389–397,
+2016.
+[4] Aaron Bernstein and Liam Roditty. Improved dynamic algorithms for maintaining approximate
+shortest paths under deletions. In Proceedings of the Twenty-Second Annual ACM-SIAM
+Symposium on Discrete Algorithms, SODA 2011, San Francisco, California, USA, January
+23-25, 2011, pages 1355–1365, 2011.
+[5] B. Bosek, D. Leniowski, P. Sankowski, and A. Zych. Online bipartite matching in offline time.
+In 55th Annual IEEE Symposium on Foundations of Computer Science (FOCS), pages 384–393.
+IEEE Computer Society, 2014.
+[6] B. Bosek, D. Leniowski, P. Sankowski, and A. Zych. Shortest augmenting paths for online
+matchings on trees. In Approximation and Online Algorithms: 13th International Workshop,
+WAOA 2015, Patras, Greece, September 17-18, 2015. Revised Selected Papers, pages 59–71,
+Cham, 2015. Springer International Publishing.
+
+22
+
+[7] B. Bosek, D. Leniowski, A. Zych, and P. Sankowski. The shortest augmenting paths for online
+matchings on trees. CoRR, abs/1704.02093, 2017.
+[8] K. Chaudhuri, C. Daskalakis, R. D. Kleinberg, and H. Lin. Online bipartite perfect matching with augmentations. In The 31st Annual IEEE International Conference on Computer
+Communications (INFOCOM), pages 1044–1052. IEEE, 2009.
+[9] E. A. Dinic. Algorithm for Solution of a Problem of Maximum Flow in a Network with Power
+Estimation. Soviet Math Doklady, 11:1277–1280, 1970.
+[10] J. Edmonds and R. M. Karp. Theoretical improvements in algorithmic efficiency for network
+flow problems. J. ACM, 19(2):248–264, April 1972.
+[11] Leah Epstein and Asaf Levin. Robust Algorithms for Preemptive Scheduling, pages 567–578.
+Springer Berlin Heidelberg, Berlin, Heidelberg, 2011.
+[12] Ashish Goel, Michael Kapralov, and Sanjeev Khanna. On the communication and streaming
+complexity of maximum bipartite matching. In Proceedings of the Twenty-Third Annual ACMSIAM Symposium on Discrete Algorithms, SODA 2012, Kyoto, Japan, January 17-19, 2012,
+pages 468–485, 2012.
+[13] E. F. Grove, M.-Y. Kao, P. Krishnan, and J. S. Vitter. Online perfect matching and mobile
+computing. In S. G. Akl, F. Dehne, J.-R. Sack, and N. Santoro, editors, Algorithms and Data
+Structures, pages 194–205. Springer, Berlin„ 1995.
+[14] Albert Gu, Anupam Gupta, and Amit Kumar. The power of deferral: Maintaining a constantcompetitive steiner tree online. In Proceedings of the Forty-fifth Annual ACM Symposium on
+Theory of Computing, STOC ’13, pages 525–534, New York, NY, USA, 2013. ACM.
+[15] A. Gupta, A. Kumar, and C. Stein. Maintaining assignments online: Matching, scheduling,
+and flows. In Proceedings of the Twenty-fifth Annual ACM-SIAM Symposium on Discrete
+Algorithms, SODA ’14, pages 468–479, Philadelphia, PA, USA, 2014. Society for Industrial and
+Applied Mathematics.
+[16] Anupam Gupta, Ravishankar Krishnaswamy, Amit Kumar, and Debmalya Panigrahi. Online
+and dynamic algorithms for set cover. In Proceedings of the 49th Annual ACM SIGACT
+Symposium on Theory of Computing, STOC 2017, pages 537–550, New York, NY, USA, 2017.
+ACM.
+[17] Anupam Gupta and Amit Kumar. Online steiner tree with deletions. In Proceedings of the
+Twenty-fifth Annual ACM-SIAM Symposium on Discrete Algorithms, SODA ’14, pages 455–467,
+Philadelphia, PA, USA, 2014. Society for Industrial and Applied Mathematics.
+[18] P. Hall. On representatives of subsets. Journal of the London Mathematical Society, s1-10(1):26–
+30, 1935.
+[19] J. E. Hopcroft and R. M. Karp. An n5/2 algorithm for maximum matchings in bipartite graphs.
+SIAM Journal on Computing, 2(4):225–231, 1973.
+[20] Makoto Imase and Bernard M. Waxman. Dynamic steiner tree problem. SIAM Journal on
+Discrete Mathematics, 4(3):369–384, 1991.
+23
+
+[21] Michael Kapralov. Better bounds for matchings in the streaming model. In Proceedings of
+the Twenty-Fourth Annual ACM-SIAM Symposium on Discrete Algorithms, SODA 2013, New
+Orleans, Louisiana, USA, January 6-8, 2013, pages 1679–1697, 2013.
+[22] R. M. Karp, U. V. Vazirani, and V. V. Vazirani. An optimal algorithm for on-line bipartite matching. In Proceedings of the Twenty-second Annual ACM Symposium on Theory of
+Computing, STOC ’90, pages 352–358, New York, NY, USA, 1990. ACM.
+[23] Valerie King. Fully dynamic algorithms for maintaining all-pairs shortest paths and transitive
+closure in digraphs. In 40th Annual Symposium on Foundations of Computer Science, FOCS
+’99, 17-18 October, 1999, New York, NY, USA, pages 81–91. IEEE Computer Society, 1999.
+[24] Jakub La̧cki, Jakub Ocwieja, Marcin Pilipczuk, Piotr Sankowski, and Anna Zych. The power
+of dynamic distance oracles: Efficient dynamic algorithms for the steiner tree. In Proceedings of
+the Forty-Seventh Annual ACM on Symposium on Theory of Computing, STOC 2015, Portland,
+OR, USA, June 14-17, 2015, pages 11–20, 2015.
+[25] Nicole Megow, Martin Skutella, José Verschae, and Andreas Wiese. The power of recourse for
+online mst and tsp. SIAM Journal on Computing, 45(3):859–880, 2016.
+[26] S. Phillips and J. Westbrook. On-line load balancing and network flow. Algorithmica, 21(3):245–
+261, Jul 1998.
+[27] Peter Sanders, Naveen Sivadasan, and Martin Skutella. Online scheduling with bounded
+migration. Math. Oper. Res., 34(2):481–498, 2009.
+[28] Yossi Shiloach and Shimon Even. An on-line edge-deletion problem. J. ACM, 28(1):1–4, January
+1981.
+[29] Martin Skutella and José Verschae. A robust PTAS for machine covering and packing. In Mark
+de Berg and Ulrich Meyer, editors, Algorithms - ESA 2010, 18th Annual European Symposium,
+Liverpool, UK, September 6-8, 2010. Proceedings, Part I, volume 6346 of Lecture Notes in
+Computer Science, pages 36–47. Springer, 2010.
+[30] Subhash Suri, Csaba D. Tóth, and Yunhong Zhou. Selfish load balancing and atomic congestion
+games. Algorithmica, 47(1):79–96, 2007.
+[31] Jeffery Westbrook. Load balancing for response time. Journal of Algorithms, 35(1):1 – 16, 2000.
+Announced at ESA’95.
+
+24
+
+

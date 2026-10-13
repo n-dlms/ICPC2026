@@ -1,0 +1,638 @@
+MANAGEMENT SCIENCE
+Vol. 32, No. 3, March 1986
+Printed in U.S.A.
+
+PREEMPTIVE SCHEDULING OF UNIFORM MACHINES
+BY ORDINARY NETWORK FLOW TECHNIQUES*
+A. FEDERGRUENAND H. GROENEVELT
+GraduateSchool of Business, Columbia University,New York, New York 10027
+GraduateSchool of Management, Universityof Rochester,
+Rochester, New York 14627
+We consider the problem of scheduling n jobs, each with a specific processing requirement,
+release time and due date on m uniform parallel machines. It is shown that a feasible schedule
+can be obtained by determining the maximum flow in a network, thus permitting the use of
+standard network flow codes. Using a specialized maximum flow procedure, the complexity
+reduces to O(tn3) operations when t is the number of distinct machine types. Previous
+algorithms solve the feasibility problem in O((m + log n)(m2n3 + n4)) operations. In addition
+to the feasibility problem, we describe algorithms for the maximum lateness criterion. Here we
+develop a bound which compares even more favorably to the best previous bound. We also
+show how other criteria with respect to the amount of work completed on each job prior to its
+due date or the amount of work scheduled in each of a sequence of periods can be optimized
+by similar path augmenting techniques.
+(PREEMPTIVE SCHEDULING; POLYMATROIDAL NETWORK FLOW; NETWORK
+FLOW)
+
+1. Introductionand Summary
+We consider the problem of scheduling n jobs, each with a specific processing
+requirement, release time and due date on m parallel machines. The machines are
+assumed to be uniform in the sense that they merely differ in processing speed.
+Machines can work on only one job at a time and each job can be processed by at
+most one machine at a time; however preemptions are allowed. The feasibility problem
+consists of determining a feasible schedule (if one exists). In this paper we show that
+the feasibility problem can be solved as a classical maximal flow problem. A specialized maximal flow algorithm by Gusfield et al. (1985) allows for a complexity bound of
+O(tn3) where t is the number of different machine types (speeds).
+We also show how various performance measures may be optimized by similar path
+augmenting algorithms applied to an appropriately chosen network. These include:
+(a) the maximum lateness problem: minimize the maximum lateness (= completion
+time - due date) over all jobs, in case no feasible schedule exists. This problem may be
+solved by verifying the existence of a feasible schedule for at most O(logn +
+log Pmax+ logs1) lateness values where Pmaxdenotes the maximum integer processing
+time and s1 the largest integer machine speed. This results in an O(tn3(logn +
+log Pmax+ logs,)) algorithm.
+(b) the (weighted) minimumcompletionproblem: For each job, define the completion
+rate as the fraction of work completed prior to its due date. Find a schedule which
+maximizes the (weighted) minimum completion rate. Preemptive scheduling models
+apply e.g. to batch production systems where each batch consists of a large number of
+units. The minimum completion criterion is particularly relevant for such applications
+especially when due dates are unextendable. If a feasible schedule completing all jobs
+fails to exist, a fair rationing scheme is sought by allocating the scarce productive
+capacity so as to fill as large a (weighted) percentage of as many jobs (orders) as
+*Accepted by Alexander H. G. Rinnooy Kan; received May 1984. This paper has been with the authors 4
+months for 2 revisions.
+341
+0025-1909/86/3203/0341$I1.25
+Copyright ? 1986, The Institute of Management Sciences
+
+342
+
+A. FEDERGRUEN AND H. GROENEVELT
+
+possible. A path augmenting algorithm applied to an appropriately chosen network
+solves the problem in 0(tnl3pmax) operations.
+(c) the (weighted) maximum utilization problem: For a given collection of disjoint
+time-intervals, find a feasible schedule which minimizes the (weighted) maximum
+amount of work assigned to each of these intervals. This criterion is particularly
+relevant when attempting to create a maximum amount of slack capacity in each of
+the considered time-intervals, e.g. as a buffer against underestimated processing times
+or unanticipated "last-minute" jobs. (See ?4 for additional applications.) A path
+augmenting algorithm (again applied to a slightly modified network) solves the
+problem in O(tn3Pmax) operations.
+For the special case of identical machines, our feasibility algorithm reduces to the
+network flow procedure of Horn (1974) which determines a feasible schedule in O(n3)
+operations. Labetoulle et al. (1979) have shown that this feasibility algorithm can be
+used in a 0(n3mintn2, logn + log Pmax}) procedure to resolve the lateness problem
+using binary search on the optimal value of the maximum lateness. Gonzalez and
+Johnson (1980) derived an 0(mn) procedure for the lateness problem with arbitrary
+release times but identical machines and due dates. Sahni and Cho (1980) deal with the
+special case of common due dates (but uniform machines); their feasibility algorithm
+requires 0(n log n + mn) operations. Sahni and Cho (1979) and Labetoulle et al. (1979)
+propose an 0(n logn + mn) procedure for the lateness problem with identical release
+and due dates. Gonzalez and Sahni (1978) have an 0(n + m log m) procedure for the
+feasibility problem with identical release and due dates. Bruno and Gonzalez (1976)
+and Labetoulle et al. (1979) also deal with the two-machine model.
+For the general problem with arbitrary machine speeds, processing requirements,
+due and release dates, the first polynomial algorithm is due to Martel (1982a, b) who
+showed that a feasible schedule may be determined by solving a polymatroidal
+network flow problem, cf. Lawler and Martel (1982), an extension of the classical
+maximal flow problem in which the flows are constrained by capacities of sets of arcs
+in addition to capacities on individual arcs. The resulting algorithm solves the
+feasibility problem in 0((m + log n)(m2n3 + n4)) operations. The same feasibility algorithm can also be used for the maximum lateness problem, performing a binary search
+over possible lateness values. The resulting maximum lateness algorithm terminates in
+0((m + logn)(m2n5 + n6)) operations. The complexity bounds of our algorithms compare favorably with Martel's. The fact that our formulation permits the use of standard
+network flow codes is, of course, an additional practical advantage.
+The minimum completion and the maximum utilization criteria have, to our
+knoWledge, not been studied in the scheduling literature. We refer to Lawler et al.
+(1982) for an excellent survey of the literature on alternative criteria (such as the
+makespan, weighted sum of completion times and due date violation penalties) as well
+as the complications that arise due to precedence constraints among the jobs.
+?2 describes our feasibility algorithm and ?3 discusses the maximum lateness
+problem. Alternative criteria are discussed in ?4.
+2.
+
+Solution of the Feasibility Problem
+
+We first introduce some notation. Each job j = 1, . .. , n is specified by a processing
+requirementpj, a release time r1and a due date d4.There are t types of machines with
+speeds sI > s2 > ... > s, and cardinalities ml,... , mi; thus m =
+mi. (A job
+requiringp units of work can be processed on machine i in p/se units of time.) All
+parameters are assumed to be integer.
+Rank the release and due dates in ascending order and determine the (at most
+2n - 1) intervals between consecutive milestones. Let Tr be the starting time of the ith
+interval (i.e. -r1is the ith smallest value of the release and due dates). A job]j is
+
+PREEMPTIVE SCHEDULING OF UNIFORM MACHINES
+
+343
+
+available for processing (at time t) if rj < t and dj > t. Note that within each interval
+the set of available jobs does not change. A feasible schedule can now be constructed
+with the following two-stage procedure: first determine the amount of work to be
+performed on each job in each interval; next, construct a feasible schedule for each
+interval separately given the amount of work to be processed on each of the available
+jobs. Observe that scheduling the jobs within an interval is an instance of the special
+case of our problem where all release and due dates are identical and the GonzalezSahni algorithm (1979) solves this problem in O(m log m + n) operations.
+Determination of the amount of work to be performed on each job in each interval
+is facilitated by the following result in Horvath, Lam and Sethi (1977): Let S, represent
+the cumulative speed of the 1 fastest machines:
+1 < ml,
+
+isl,
+r
+
+Si
+
+r
+
+r
+
+Emisi +
+Sm,
+
+I-
+
+r+1
+
+Emi<
+
+Mi Sr+I,
+
+1<
+
+mi;
+
+r= 1, . .,t1t
+
+I>m
+
+Lety1 denote the amount of work to be processed on job j in a given interval of length
+T. A feasible schedule exists for this interval if and only if the following set of
+constraints is satisfied:
+E y<
+
+TSIAI
+
+A c {1,** ,n}.
+
+(1)
+
+(In other words, the sum of the 1 largesty1 values needs to be less than or equal to TS,.
+The necessity of (1) is immediate; for the sufficiency see Horvath et al. 1977.)
+Consider now the following tripartite network (N, E) with an extra source 0 and
+sink O'. The first level has a node for every job (job nodes), the second level has a
+node for every period and machine type (machine-periodnodes), and the third ' vel has
+a node for every period (period nodes). The source is connected with each job node,
+the arc to the jth node having capacity pj,j = 1, . . . , n. A job node is connected to all
+machine-period nodes for all periods during which the job, is available. All arcs which
+lead to -a machine-period node corresponding to machine type r and an interval of
+length T have capacity (Sr -sr+ ) T, with the convention s, = 0. Every node (r, i)
+
+2.f
+
+52(1,2)6 1(51
+
+52)h
+
+s
+
+(m1+m2+(3) s3Ti
+
+""'_
+
+~(I2)
+
+level
+
+0
+
+source
+
+level
+
+1
+
+Job nodes
+
+level
+
+l,1nUs)T
+
+2
+
+machine period
+nodes
+
+FIGURE1. t=3.
+
+I
+
+level
+
+3
+
+level 4
+
+period
+nodes
+
+sink
+
+344
+
+A. FEDERGRUEN AND H. GROENEVELT
+
+corresponding to machine type r and period i of length Ti is connected with the period
+node i and has capacity (2n=imn)(Sr -sr+ 1)Ti, see Figure 1. Finally, all period nodes
+are connected to the sink with uncapacitated arcs.
+LEMMA.A feasible schedule exists if and only if the maximum flow in the network
+(N, E) equals 1jpj.
+Fix f, a maximal flow in the network and assume the flow value equals
+Let
+,Ejpj.
+x. denote the flow from job node j to period node i. We show
+PROOF.
+
+A C {1, ... ,n};
+
+E xU,? TiSIAI,
+
+alli,
+
+(2)
+
+so that, in view of (1), a feasible schedule exists. Thus, fix i and let J be the set of job
+nodes, and I the set of machine-period nodes corresponding to period i. Consider the
+subnetwork comprised by J U I U { i} as well as the arcs between them. Also reverse
+the direction of the arcs, so that period node i appears as the source and the job nodes
+as sinks (see Figure 2). Since the restriction of f to the subnetwork is feasible, it follows
+for all A c J, that sj E=AXU is bounded by the maximum flow from period node i to the
+job nodes in A. The maximum flow through machine-period node (i, r) is bounded by
+(see Figure 2):
+(mI
+
++
+
+if
+
+* * + mr)(sr-sr+)1T,
+
+IAI(sr -sr+
+
+mi + *
+
++mr < AI,
+
+otherwise.
+
+I)Ti,
+
+Thus,
+r
+
+t
+jEA
+
+x <6 Ti E min tIA |;
+r=1
+
+p=l
+
+mp (srr-sr+ 1) =
+
+TiSIAI
+
+(The last identity can be shown by complete induction on IA1.)This verifies (2) and the
+sufficiency part of the lemma.
+Conversely, for a feasible schedule, let x. denote the amount of work to be
+performed on job j in period i. In view of (1), (2) holds. Similar applications of the max
+flow min cut theorem verify the existence of a feasible flow in the network (N, E) with
+X. the total flow from job node j to period node i (see Lemma 4.1 in Megiddo (1974)
+for details). Q.E.D.
+
+0~F_(m,+m2)(S2-
+
+S3)111,
+
+"3"
+
+FIGURE2.
+Period i.
+
+Reversed Subnetwork for Period i: t = 3; {jl.
+
+ji} C { 1,
+
+n} Set of Jobs Available in
+
+PREEMPTIVE SCHEDULING OF UNIFORM MACHINES
+
+level 0
+
+level
+
+source
+
+job nodes
+
+FIGURE
+
+1
+
+3.
+
+level 2
+
+level
+
+period nodes
+
+sink
+
+345
+
+3
+
+Polymatroidal Network.
+
+Our network flow model is closely related to the one suggested by Martel (1982a, b).
+Martel's network avoids the level of machine-period nodes but imposes the upper
+bounds (2) on the collection of arcs pointing to the same period node, see Figure 3.
+Our expanded network can thus be viewed as a device to avoid the upper bounds on
+sets of arcs as given by (2). General transformations of this type are discussed in
+Federgruen and Groenevelt (1984b). Observe that our network has O(tn) nodes and
+O(tn2) arcs. Classical maximal flow algorithms, e.g. Malhotra et al. (1978) thus solve
+the feasibility problem in O(t3n3) operations, a significant reduction compared to the
+O((m + log n)(m2n3 + n4)) bound in Martel's procedure. (Note also that, in general,
+t ?<m.) A further reduction in the complexity bound to O(tn3) may be achieved by
+applying Gusfield et al.'s (1985) maximal flow procedure for multipartite gr-phs. In
+addition, our procedure allows for the use of standard maximal flow codes or even
+standard primal simplex network codes. (For a discussion of the practical advantages
+of the latter, see Glover et al. 1984a,b.)
+The feasibility algorithm can be used to solve several generalizations of the considered problem. For example, each job may have a list of time intervals within which it
+can be processed (rather than a single such interval) and the machines may be
+available in certain time intervals only. We can divide the time line into a sequence of
+consecutive intervals such that within each interval the jobs and machines which are
+available, do not change. A network flow problem (constructed as above) solves the
+feasibility problem.
+Note that for the special case of unit processing times, the solution generated by any
+maximum flow algorithm avoids preemptions, hence is optimal in a nonpreemptive
+setting as well. (With integer speeds, release and due times, an integer solution is
+optimal.) Our feasibility algorithm solves this case in O(tn3/m) operations. (One easily
+verifies, cf. Lemma 2 in Simons and Sipser 1984 that the total length of all time
+intervals within which a specific job can be run, may be bounded by In/m IS n/rm +
+1. Each job node is thus connected with the machine-period nodes corresponding to at
+most (n/m + 1) periods. As n a m without loss of generality, the number of arcs in
+the network is thus O(tn2/m) and since the maximum flow is bounded by n, the
+follows immediately, see Lawler 1976, p. 116.) Simons
+complexity bound O(tn3/m)
+and Sipser (1984) treated the even more restricted case of identical machines (t = 1).
+Horn's original maximal flow algorithm (to which ours reduces) thus exhibits superior
+performance compared to their 0(n3) matching algorithm. Our algorithm, in addition,
+
+346
+
+A. FEDERGRUEN AND H. GROENEVELT
+
+solves the extension of the Simons and Sipser problem to the case of uniform
+machines.
+3. The Maximum Lateness Problem
+The lateness of a job is defined as the completion time - due date. The maximum
+lateness problem consists of finding a schedule which minimizes the maximum lateness
+over all jobs. As pointed out by Horn (1974), Labetoulle et al. (1979) and Martel
+(1982a, b), to solve this problem, we find the smallest value L, such that adding L to
+all due dates results in a feasible scheduling problem. This smallest value L can be
+found in two stages. First note that there are at most n(n - 1) critical values of L such
+that di + L = rj for some release time and due date. For values of L which lie between
+a pair of consecutive critical values, the same network topology describes the feasibility
+problem. Performing a binary search, first, over the O(n2) critical values of L, thus
+narrows the search to an interval [Lo, LI] such that the same network topology applies
+to the feasibility problem for all lateness values L E [Lo, LI]. This stage requires at
+most O(log n) calls to the feasibility routine. From this point on, several alternatives
+prevail.
+Continued binary search over the interval [Lo, LI] achieves any E-optimalsolution in
+at most O(IlogEl) calls to the feasibility routine. An exact optimal schedule can in fact
+be generated in at most 0(log sI + log n + log Pmax)calls to the feasibility routine, as
+can be shown following an argument in Labetoulle et al. (1984) for the case of
+identical machines. Consider the network prevailing when the lateness L E [Lo, LI]. A
+cut in this network has capacity Cf + (L - LO)CV,where Cf and C, are integers. From
+Figure 1 we find by adding the capacities of all arcs to and from the machine-period
+nodes that ICJI= 0(n2s, + nEmisi) < 0(n2s, + nms,) = O(n2s,), since m < n. Since
+the minimum lateness has the form L* = Lo + (P - Cf)/v, where P = ,pj is the total
+processing requirement, L* can be found by conducting a bisection search until the
+remaining interval of uncertainty (L',L") is no longer than (n4s2)-> which is an
+upperbound on the difference of fractions of the form (P - Cf)Cv, when lCvl < n2s,.
+If C/ + (L' - LO)Cvis the capacity of a minimal cut for lateness L*, then L = Lo +
+(P - Ci)/ Cv. The bisection search can of course be performed in 0(log(Ps2n4))
+= 0(logs, + log n + log pmax) time. This substantially improves Martel's bound of
+O(n2 + n logs, + log(dmax+ P)) for the number of calls to the feasibility routine.
+As an alternative for the second stage, note that a lateness value L E [Lo, LI] affects
+the induced network flow problem only through the capacities on some of the arcs and
+the dependence is linear. Thus, an alternative procedure for determining the maximum
+lateness is to solve a linear program of the form:
+min L
+
+n
+
+s.t.
+{I EE: 0 tail of I}
+
+xl
+Xi
+
+j= I
+
+(P)
+
+pi,
+
+xi = O,
+E
+xilE
+{1e E: t tail of 1}
+{1 eE: t head of 1}
+x, < al +f3,L,
+
+t E N\{O},
+
+Lo < L < LI .
+
+Note that (P) is a minimum cost network flow model with one extra variable. Simple
+network simplex codes solve this problem as efficiently as pure network problems
+using elementary basis partitioning techniques, see e.g. Glover and Klingman (1981).
+The above approaches may again be applied to the case where jobs (machines) have
+a list of time-intervals within which they are available. For the case of unit processing
+
+PREEMPTIVE SCHEDULING OF UNIFORM MACHINES
+
+347
+
+times our procedure has an 0(t(n3/m)(logn + logs,)) complexity bound. (The procedure in Simons and Sipser, applicable for identical machines only, requires 0(n4)
+operations.)
+4.
+
+Alternative Criteria
+
+In this section we show how various performance measures may be optimized by
+path augmenting algorithms applied to an appropriate modification of the network in
+Figure 1. Consider a network (N, E), with a single source s, let T c N and let (Zj)jET
+be the vector of net inflows into the nodes of T. The following algorithm maximizes
+any separable concave objective function in (Zj)jI-T' see Federgruen and Groenevelt
+(1984a). (The same algorithm determines an optimal solution for certain classes of
+"concave""nonseparablefunctions as well, see ibid.)
+This procedure is a generalization of the well-known augmenting path algorithms for
+the maximal flow problem. In each iteration, labels are given to nodes of the form t +
+or t - where t E N. (Only the source s has a special label -.) A label t + [t - ] indicates
+that there exists a unit size augmenting path from the source to node qj in question and
+that (t, 71)[(7q,t)] is the last arc in this path. Let ei be the ith unit basis vector in R T. For
+any given feasible vector z = (Zj)j ET of supplies to the 0-level nodes T, z + e1 is
+feasible if and only if the labeling procedure succeeds in labeling node j, see
+Federgruen and Groenevelt (1984a). For all 1 E E, let xl represent the flow on this arc
+and let ul be the arc's capacity:
+CAPA: (Concave Objective Augmenting Path Algorithm)
+Step 1. Forj=1,. .., ndo zj:=0; forl E doxl:=0;
+Step 2. Give the source a special label-.
+Step 3. If all labeled nodes have been scanned, go to Step 5.
+Step 4. Fix a labeled but unscanned node t and scan it as follows:
+if 1 = (t, 71)E E, xl < ul and qj unlabeled, give qj the label t +
+if 1 = (71,t) E E, xl > 0 and qj unlabeled, give qj the label tlgo to Step 3.
+Step 5. Find a node j with j E T such that j is labeled and f(z + e}) > f(z + ek)
+for all labeled nodes k (1 < k < n).
+Step 6. If (no such node j exists) or f(z + el) < f(z) then stop.
+Step 7. Starting at nodej, backtrack an augmenting path; for a node qj on this path
+with label t + (t - ) increase(decrease)xz7(x,,) by one; set Zj =Zj + 1; erase all labels
+and return to Step 2.
+CompletionCriteria.
+Completion criteria are defined with respect to the vector (zj, j= 1,... , n} where
+the amount of work performed on job j prior to its due date. Consider the
+represents
+zj
+following modification of the network (N,E). At the zeroth level of the network,
+eliminate the source and its outgoing arcs and add a node j' for every j = 1, . .. , n.
+Connect node j' with job node j by an arc with capacity pj, see Figure 4. Reverse the
+direction of all arcs and let (N, E) be the resulting expanded network. This network
+has node O' as its unique source and the set of nodes T = ({':j = 1, . .. , n) as the set
+of sinks. Note that zj represents the inflow into sink j'. Note that CAPA requires no
+more than Ejpj < npmax iterations through Steps 2-7 and each iteration requires
+scanning of JEI = 0(tn2) arcs; hence the complexity bound 0(tn3pmax).
+The function g(z) = minjzj/pj (the minimum completion criterion discussed in the
+introduction) is not separable but an optimal solution may be obtained by optimizing
+the more selective criterion of lexicographic maximization of T(z), the vector of
+
+348
+
+A. FEDERGRUEN AND H. GROENEVELT
+
+<P
+
+FIGURE 4.
+
+Expanded Network (N, E) for Completion Criteria: (t = 3).
+
+completion rates (z1/p1} ranked in ascending order. Fujishige (1980) has shown that
+an optimal solution with respect to the latter criterion may be obtained by maximizing
+f(z3) = 2,Zzf2/p1 which, of course, is separable and concave.
+CAPA applied to the network (N,EF) in Figure 4 thus results in a schedule which
+maximizes the minimum completion criterion. Similarly for given positive weights
+(Wj, j = 1, ... ., n } the minimum weighted completion criterion, gw(z) = min1w1z1/p1
+may be maximized by applying CAPA with the objective function
+fw(z) =
+
+t ( 2wk)Z,,
+
+2-
+
+jj/p
+
+An algorithm in Fujishige (1980) solves the problem in O(t3n4).
+Utilization Criteria
+Let {I1 . ,}'K be a collection of disjoint time intervals and let y, be the amount
+of work scheduled for Ip Utilization criteria are defined with respect to the vector
+(yo,le= 1,.n. ., K}. Consider the following modification of the network (N,E ) in
+Figure 1. First, insert the starting and ending times of the intervals (II, l = 1, . . . , K }
+in the sorted list of release and due dates and determine the (at2Ka-a1)
+most 2n +
+periods between consecutive milestones. Introduce a period node for each such period
+and use the list of period nodes and the corresponding list of machine-period nodes in
+levels 2 and 3 of the network (N, F), see Figure 1. Also replace level 4 by a string of
+interval nodes (one for each II). A period node i is connected with interval node I (by
+an infinite capacity arc) if the period is part of the interval.
+The function g(y) = maxiym(the maximum utilization criterion discussed in the
+introduction) is not separable but its minimum may be obtained by lexicographic
+maximization of T(y), the vector (y,,l=
+1, . . ., K} ranked in ascendingorder, see
+Ichimori et al. (1982). As above, it follows in view of Fujishige (1980) that the
+maximum utilization criterion may be optimized by applying CAPA with f(y)
+=
+= 1, .
+(wn,,
+II((.kPk)Y I)be} (More generally,for given positive weights
+K}, the function g(y) = maxcwiyamay be minimized by applying CAPA with the
+f= ( K)=
+thef,
+(lnpm)(diwc)yifunction
+2 wty7}N)
+-
+
+PREEMPTIVE SCHEDULING OF UNIFORM MACHINES
+
+349
+
+References
+BRUNO,J. AND T. GONZALEZ,"Scheduling Independent Tasks with Release Dates and Due Dates in Parallel
+Machines," Technical Report 213, Computer Science Dept., Pennsylvania State University, 1976.
+FEDERGRUEN,A. AND H. GROENEVELT,"Optimal Flows in Networks with Multiple Sources and Sinks:
+Applications to Oil and Gas Lease Investment Programs," Oper. Res. (to appear).
+, "Optimal Polymatroidal Network Flows with Multiple Sources and Sinks," (1984b) (in
+AND
+preparation).
+FUJISHIGE,
+S., "Lexicographically Optimal Base of a Polymatroid with Respect to a Weight Vector," Math.
+Oper. Res., 5 (1980), 186-196.
+"The Simplex SON Algorithm," Math. Programming Stud., 15 (1981),
+GLOVER, F. AND D. KLINGMAN,
+148-176.
+, ~~, J. MOTEAND D. WHITMAN,"A Primal Simplex Variant for the Maximum Flow Problem,"
+Naval Res. Logist. Quart., 31 (1984a), 41-63.
+, M. MEAD AND J. MoTE, "A Note on Specialized Versus Unspecialized Methods for
+Maximum-Flow Problems," Naval Res. Logist. Quart., 31 (1984b), 63-67.
+T. AND D. JOHNSON,
+"A New Algorithm for Preemptive Scheduling of Trees," J. Assoc. Comput.
+GONZALEZ,
+Mach., 27 (1980), 287-312.
+ANDS. SAHNI,"Preemptive Scheduling of Uniform Processor Systems," J. Assoc. Comput.Mach., 25
+(1978), 92-101.
+ANDD. FERNANDEz-BACA,
+"Fast Algorithms for Bipartite Network Flow," Yale
+GUSFIELD,
+D., C. MARTEL
+University, Department of Computer Science Working Paper, 1985.
+HORN,W., "Some Simple Scheduling Algorithms," Naval Res. Logist. Quart., 21 (1974), 177-185.
+HORVATH,
+E., S. LAMANDR. SETHI,"A Level Algorithm for Preemptive Scheduling," J. Assoc. Comput.
+Mach., 25 (1977), 32-43.
+ICHIMORI,T., H. ISHII AND T. NISHIDA, "Optimal Sharing," Math. Programming,23 (1982), 341-348.
+ANDA. RINNooY KAN, "Preemptive Scheduling of Uniform
+LABETOULLE,
+J., E. LAWLER,J. K. LENSTRA
+Machines Subject to Release Dates," in Proc. Silver Jubilee Conf. on Combinatorics, University of
+Waterloo, Waterloo, Canada, 1984.
+LAWLER,
+E., CombinatorialOptimization:Networks and Algorithms, Holt, Rinehart and Winston, New York,
+1976.
+J. K. LENSTRA
+AND A. RINNooY KAN, "Recent Developments in Deterministic Sequencing and
+Scheduling: A Survey," in M. Dempster et al. (Eds.), Deterministic and Stochastic Scheduling,
+D. Reidel, Dordrecht, 1982, 35-73.
+AND C. MARTEL,
+"Computing Maximal Polymatroidal Network Flows," Math. Oper. Res., 7 (1982),
+334-347.
+MALHOTRA,
+V., M. KUMARAND S. MAHESHIVARI,
+"An ?(| V13)Algorithm for Finding Maximum Flows in
+Networks," Inform. Process. Lett., 7 (1978), 277-278.
+MARTEL,C., "Scheduling Uniform Machines with Release Times, Deadlines and Due Times," in
+M. Dempster et al. (Eds.), Deterministic and Stochastic Scheduling, D. Reidel, Dordrecht, 1982a,
+89-99.
+, "Scheduling Uniform Machines with Release Times, Deadlines and Due Times," J. Assoc. Comput.
+Mach., 29 (1982b), 812-829.
+MEGIDDO, N., "Optimal Flows in Networks with Multiple Sources and Sinks," Math. Programming,7 (1974),
+97-107.
+SAHNI, S. AND Y. CHO, "Nearly on Line Scheduling of a Uniform Processor System with Release Times,"
+SIAM J. Comput., 8 (1979), 275-285.
+AND
+, "Scheduling Independent Tasks with Due Times on a Uniform Processor System,"
+J. Assoc. Comput.Mach., 27 (1980), 550-563.
+SIMONS, B. AND M. SIPSER, "On Scheduling Unit-Length Jobs with Multiple Release Time/Deadline
+Intervals," Oper. Res., 32 (1984), 80-89.
+
+

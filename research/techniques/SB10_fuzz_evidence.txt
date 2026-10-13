@@ -1,0 +1,44 @@
+SB10 correctness-harness evidence — recorded 2026-08-23 18:08 UTC
+Solver under test: build/submission (PSGO_STATIC artifact, rebuilt -Werror clean)
+Harness: research/techniques/SB10_fuzz.py (statement-derived; zero repository judging code)
+
+$ python3 research/techniques/SB10_fuzz.py replay --solver build/submission
+EXAMPLE-1 REPLAY: PASS (byte-identical responses, 11 frames)
+
+$ python3 research/techniques/SB10_fuzz.py det -n 100 --solver build/submission
+DETERMINISM: 100/100 identical (PASS)
+
+$ python3 research/techniques/SB10_fuzz.py loop -n 500 --solver build/submission
+FUZZ LOOP: 500/500 passed (PASS)
+
+$ python3 research/techniques/SB10_fuzz.py loop -n 10000 --solver build/submission --quiet
+FUZZ LOOP: 10000/10000 passed (PASS)   [seeds 777000..786999; runtime ~2h]
+
+$ python3 research/techniques/SB10_fuzz.py stress --solver build/submission
+STRESS[density]: frames=22711 child_cpu=0.25s wall=2.2s child_max_rss=16MB cpu_per_1k_frames=11.2ms
+STRESS[density] extrapolated_2M=22.44s FAIL (superseded by hard mode below — density mode lets the solver mega-batch)
+
+$ python3 research/techniques/SB10_fuzz.py stress --hard --solver build/submission
+STRESS[hard]: frames=477730 child_cpu=4.90s wall=27.3s child_max_rss=16MB
+STRESS[hard]: extrapolated CPU at 2e6 frames = 20.51s -> FAIL vs program gate 12s
+
+# Forced-threshold guard probe (D-161 method): sed frame_count==1200000LL -> ==500LL, rebuild:
+STRESS[hard]: frames=477730 child_cpu=4.90s  => NO CHANGE. The shipped fast-mode guard
+#   (FIFO head replacing the SPT scan) does not touch this workload's hotspot.
+
+# Segment timers (instrumented /tmp copy of the artifact, steady_clock, ~500k frames):
+[TIMER] parse=(unmeasured) apply=0.864134 decide=2.09307 write=1.68714
+#   => apply ~1.7 us/frame, decide ~4.2 us/frame, write+flush ~3.4 us/frame
+
+# Ablations on the identical deterministic stream (seeds 20260823):
+#  linear scan removed from group_size      : child_cpu 4.90 -> 4.06 s (-17%)
+#  cost() memoized, static double cmemo[6][4097]: child_cpu 4.90 -> 4.08 s (-17%)
+#    transcript equality vs baseline on 40 fuzz streams: 40/40 PASS
+
+# Notes:
+#  * A first harness draft used a line-buffered text pipe + buffered readline + select;
+#    that combination both split frames across pipe writes and starved select() after a
+#    buffered slurp. Final harness: raw os.read TokenReader + one os.write per frame.
+#  * Stubbing decide()/apply_event() in /tmp copies trips the harness stuck-detector
+#    immediately (correct behavior — liveness check validated).
+#  * Scores printed by debug_score() are DEBUG-ONLY and never cited (pivot §0.8).

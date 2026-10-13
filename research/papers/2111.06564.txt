@@ -1,0 +1,906 @@
+arXiv:2111.06564v2 [cs.DS] 23 Aug 2024
+
+A Competitive Algorithm for Throughput
+Maximization on Identical Machines
+Benjamin Moseley⋆1 , Kirk Pruhs⋆⋆2[0000−0001−5680−1753] , Clifford Stein⋆ ⋆ ⋆3 ,
+and Rudy Zhou1
+1
+
+Tepper School of Business, Carnegie Mellon University
+{moseleyb,rbz}@andrew.cmu.edu https://www.andrew.cmu.edu/user/moseleyb/
+https://rudyzhou.github.io/
+2
+Computer Science Department, University of Pittsburgh kirk@cs.pitt.edu
+https://people.cs.pitt.edu/~ kirk/
+3
+Industrial Engineering and Operations Research, Columbia University
+cliff@ieor.columbia.edu
+
+Abstract. This paper considers the basic problem of scheduling jobs
+online with preemption to maximize the number of jobs completed by
+their deadline on m identical machines. The main result is an O(1) competitive deterministic algorithm for any number of machines m > 1.
+Keywords: Scheduling · Competitive Analysis· Online Algorithm
+
+1
+
+Introduction
+
+We consider the basic problem of preemptively scheduling jobs that arrive online
+with sizes and deadlines on m identical machines to maximize the number of jobs
+that complete by their deadline.
+Definition 1 (Throughput Maximization). Let J be a collection of jobs
+such that each j ∈ J has a release time rj , a processing time (or size) xj , and a
+deadline dj . The jobs arrive online at their release times, at which the scheduler
+becomes aware of job j and its xj and dj .
+At each moment of time, the scheduler can specify up to m released jobs to
+run at this time, and the remaining processing time of the jobs that are run is
+decreased at a unit rate (so we assume that the online scheduler is allowed to
+produce a migratory schedule.) A job is completed if its remaining processing
+time drops to zero by the deadline of that job. The objective is to maximize the
+number completed jobs.
+B. Moseley and R. Zhou were supported in part by NSF grants CCF-1824303, CCF1845146, CCF-1733873 and CMMI-1938909. Benjamin Moseley was additionally
+supported in part by a Google Research Award, an Infor Research Award, and a
+Carnegie Bosch Junior Faculty Chair.
+⋆⋆
+Supported in part by NSF grants CCF-1907673, CCF-2036077 and an IBM Faculty
+Award.
+⋆⋆⋆
+Research partly supported by NSF Grants CCF-1714818 and CCF-1822809.
+⋆
+
+2
+
+B. Moseley et al.
+
+A key concept in designing algorithms for this problem is the laxity of a job.
+The laxity of a job j is ℓj = (dj − rj ) − xj , which is the maximum amount of
+time we can not run j and still possibly complete it.
+We measure the performance of our algorithm by the competitive ratio, which
+is the maximum over all instances of the ratio of the objective value of our
+algorithm to the objective value of the optimal offline schedule that is aware of
+all jobs in advance.
+This problem is well understood for the m = 1 machine case. No O(1)competitive deterministic algorithm is possible [BKM+ 92], but there is a randomized algorithm that is O(1)-competitive against an oblivious adversary [KP03],
+and there is a scalable (O(1 + ǫ)-speed O(1/ǫ)-competitive) deterministic algorithm [KP00]. The scalability result in [KP00] was extended to the case of m > 1
+machines in [LMNY13].
+Whether an O(1)-competitive algorithm exists for m > 1 machines has
+been open for twenty years. Previous results for the multiple machines setting require resource augmentation or assume that all jobs have high laxity
+[LMNY13,EMS20].
+The main issue issue in removing these assumptions is how to determine
+which machine to assign a job to. If an online algorithm could determine which
+machine each job was assigned to in Opt, we could obtain an O(1)-competitive
+algorithm for m > 1 machines by a relatively straight-forward adaptation of the
+results from [KP03]. However, if the online algorithm ends up assigning some
+jobs to different machines than Opt, then comparing the number of completed
+jobs is challenging. Further, if jobs have small laxity, then the algorithm can be
+severely penalized for small mistakes in this assignment. One way to view the
+speed augmentation (or high laxity assumption) analyses in [LMNY13,EMS20]
+is that the speed augmentation assumption allows one to avoid having to address
+this issue in the analyses.
+1.1
+
+Our Results
+
+Our main result is an O(1)-competitive deterministic algorithm for Throughput
+Maximization on m > 1 machines.
+Theorem 11. For all m > 1, there exists a deterministic O(1)-competitive
+algorithm for Throughput Maximization on m machines.
+We summarize our results and prior work in Table 1. Interestingly, notice that
+on a single machine there is no constant competitive deterministic algorithm, yet
+a randomized algorithm exists with constant competitive ratio. Our work shows
+that once more than one machine is considered, then determinism is sufficient
+to get a O(1)-competitive online algorithm.
+1.2
+
+Scheduling Policies
+
+We give some basic definitions and notations about scheduling policies.
+
+Throughput Maximization on Identical Machines
+
+3
+
+Speed
+Augmentation
+m = 1 ω(1)
+O(1)
+O(1 + ǫ)-speed O(1/ǫ)-competitive
+[BKM+ 92]
+[KP03]
+[KP00]
+m > 1 O(1)
+O(1)
+O(1 + ǫ)-speed O(1/ǫ)-competitive
+[This paper] [This paper] [LMNY13]
+Deterministic Randomized
+
+Table 1. Competitiveness Results
+
+A job j is feasible at time t (with respect to some schedule) if it can still be
+feasibly completed, so xj (t) > 0 and t + xj (t) ≤ dj , where xj (t) is the remaining
+processing time of job j at time t (with respect to the same schedule.)
+Then a schedule S of jobs J is defined by a map from time/machine pairs
+(t, i) to a feasible job j that is run on machine i at time t, with the constraint
+that no job can be run one two different machines at the same time. . We conflate
+S with the scheduling policy as well as the set of jobs completed by the schedule.
+Thus, the objective value achieved by this schedule is |S|.
+A schedule is non-migratory if for every job j there exists a machine i such
+that if j is run at time t then j is run on machine i. Otherwise the schedule is
+migratory.
+If S is a scheduling algorithm, then S(J, m) denotes the schedule that results
+from running S on instance J on m machines. Similarly, Opt(J, m) denotes
+the optimal schedule on instance J on m machines. We will sometimes omit
+the J and/or the m if they are clear from context. Sometimes we will abuse
+notation and let Opt denote a nearly-optimal schedule that additionally has
+some desirable structural property.
+1.3
+
+Algorithms and Technical Overview
+
+A simple consequence of the results in [KP01] and [KP03] is an O(1)-competitive
+algorithm in the case that m = O(1). Thus we concentrate on the case that
+m is large. Also note that since there is an O(1)-approximate non-migratory
+schedule [KP01], changing the number of machines by an O(1) factor does not
+change the optimal objective value by more than an O(1) factor. This is because
+we can always take an optimal non-migratory schedule on m machines and create
+a new schedule on m/c machines whose objective value decreases by at most a
+factor of c, by keeping the m/c machines that complete the most jobs.
+These observations about the structure of near-optimal schedules allow us
+to design a O(1)-competitive algorithm that is a combination of various deterministic algorithms. In particular, on instance J our algorithm, FinalAlg
+will run a deterministic algorithm LMNY on m/3 machines on the subinstance
+Jhi = {j ∈ J | ℓj > xj } of high laxity jobs, a deterministic algorithm SRPT
+on m/3 machines on the subinstance Jlo = {j ∈ J | ℓj ≤ xj } of low laxity jobs,
+and a deterministic algorithm MLax on m/3 machines on the subinstance Jlo
+
+4
+
+B. Moseley et al.
+
+of low laxity jobs. Note that we run SRPT and MLax on the same jobs. To
+achieve this, if both algorithms decide to run the same job j, then the algorithm
+in which j has shorter remaining processing time actually runs job j, and the
+other simulates running j.
+We will eventually show that for all instances, at least one of these three
+algorithms is O(1)-competitive, from which our main result will follow. Roughly,
+each of the three algorithms is responsible for a different part of Opt.
+Our main theorem about FinalAlg is the following:
+Theorem 12. For any m ≥ 48, FinalAlg is a O(1)-competitive deterministic
+algorithm for Throughput Maximization on m machines.
+We now discuss these three component algorithms of FinalAlg.
+LMNY The algorithm LMNY is the algorithm from [LMNY13] with the following guarantee.
+Lemma 13. [LMNY13] For any number of machines m, and any job instance
+J, LMNY is an O(1)-competitive deterministic algorithm on the instance Jhi .
+SRPT The algorithm SRPT is a variation of the standard shortest remaining
+processing time algorithm:
+Definition 2 (SRPT). At each time, run the m feasible jobs with shortest
+remaining processing time. If there are less than m feasible jobs, then all feasible
+jobs are run.
+We will show that SRPT is competitive with the low laxity jobs in that are
+not preempted in Opt.
+MLax The final, most challenging, component algorithm of FinalAlg is MLax,
+which intuitively we want to be competitive on low-laxity jobs in Opt that are
+preempted.
+To better understand the challenge of achieving this, consider m = 1 and an
+instance of disagreeable jobs, which means that jobs with an earlier release time
+have a later deadline. Further, suppose all jobs but one in Opt is preempted and
+completed at a later time.
+To be competitive, MLax must preempt almost all the jobs that it completes,
+but cannot afford to abandon too many jobs that it preempts. Because the jobs
+have low laxity, this can be challenging as it can only preempt each job for a
+small amount of time, and its hard to know which of the many options is the
+“right” job to preempt for. This issue was resolved in [KP03] for the case of
+m = 1 machine, but the issue gets more challenging when m > 1, because we
+also have to choose the “right” machine to assign a job.
+We now describe the algorithm MLax. Let α = O(1) be a sufficiently large
+constant (chosen later.) MLax maintains m stacks (last-in-first-out data structures) of jobs (one per machine), H1 , . . . , Hm . The stacks are initially empty.
+
+Throughput Maximization on Identical Machines
+
+5
+
+At all times, MLax runs the top job of stack Hi on machine i. We define the
+frontier F to be the set consisting of the top job of each stack (i.e. all currently
+running jobs.) It remains to describe how the Hi ’s are updated.
+There are two types of events that cause MLax to update the Hi ’s: reaching
+a job’s pseudo-release time (defined below) or completing a job.
+Definition 3 (Viable Jobs and Pseudo-Release Time). The pseudo-release
+ℓ
+time (if it exists) r̃j of job j is the earliest time in [rj , rj + 2j ] such that there
+are at least 87 m jobs j ′ on the frontier satisfying αxj ′ ≥ ℓj .
+We say a job j is viable if r̃j exists and non-viable otherwise.
+At job j’s pseudo-release time (note r̃j can be determined online by MLax),
+MLax does the following:
+a) If there exists a stack whose top job j ′ satisfies αxj ≤ ℓj ′ , then push j onto
+any such stack.
+b) Else if there exist at least 34 m stacks whose second-top job j ′′ satisfies αxj ≤
+ℓj ′′ and further some such stack has top job j ′ satisfying ℓj > ℓj ′ , then on
+such a stack with minimum ℓj ′ , replace its top job j ′ by j.
+While the replacement operation in step b) can be implemented as a pop and
+then push, we view it as a separate operation for analysis purposes. To handle
+corner cases in these descriptions, one can assume that there is a job with infinite
+size/laxity on the bottom of each Hi .
+When MLax completes a job j that was on stack Hi , MLax does the following:
+c) Pop j off of stack Hi .
+d) Keep popping Hi until the top job of Hi is feasible.
+Analysis Sketch There are three main steps in proving Theorem 12 to show
+FinalAlg is O(1)-competitive:
+– In Section 2, we show how to modify the optimal schedule to obtain certain
+structural properties that facilitate the comparison with SRPT and MLax.
+– In Section 3, we show that SRPT is competitive with the low-laxity, nonviable jobs. Intuitively, the jobs that MLax is running that prevent a job
+j from becoming viable are so much smaller than job j, and they provide a
+witness that SRPT must also be working on jobs much smaller than j.
+– In Section 4, we show that SRPT and MLax together are competitive with
+the low-laxity, viable jobs. First, we show that SRPT is competitive with
+the number of non-preempted jobs in Opt. We then essentially show that
+MLax is competitive with the number of preempted jobs in Opt. The key
+component is the design of MLax is the condition that a job j won’t replace
+a job on the frontier unless at there are at least 34 m stacks whose secondtop job j ′′ satisfies αxj ≤ ℓj ′′ . This is the condition that intuitively most
+differentiates the MLax from m copies of the Lax algorithm in [KP03].
+
+6
+
+B. Moseley et al.
+
+This also is the condition that allows us to surmount the issue of potentially
+assigning a job to a “wrong” processor. Jobs that satisfy this condition are
+highly flexible about where they can go on the frontier. Morally, our analysis
+shows that a constant fraction of the jobs that Opt preempts and completes
+must be such flexible jobs.
+We combine these results in Section 5 to complete the analysis of FinalAlg.
+1.4
+
+Related Work
+
+There is a line of papers that consider a dual version of the problem, where there
+is a constraint that all jobs must be completed by their deadline, and the objective is to minimize the number of machines used [PSTW02,CMS18,AC18,IMPS17].
+The current best known bound on the competitive ratio for this version is
+O(log log m) from [IMPS17].
+The speed augmentation results in [KP00,LMNY13] for throughput can be
+generalized to weighted throughput, where there a profit for each job, and the
+objective is to maximize the aggregate profit of jobs completed by their deadline. But without speed augmentation, O(1)-approximation is not possible for
+weighted throughput for any m, even allowing randomization [KS94].
+There is also a line of papers that consider variations on online throughput
+scheduling in which the online scheduler has to commit to completing jobs at
+some point in time, with there being different variations of when commitment is
+required [LMNY13,EMS20,CEM+ 20]. For example, [EMS20] showed that there
+is a scalable algorithm for online throughput maximization that commits to
+finishing every job that it begins executing.
+
+2
+
+Structure of Optimal Schedule
+
+The goal of this section is to introduce the key properties of (near-)optimal
+scheduling policies that we will use in our analysis.
+For completeness, we show that by losing a constant factor in the competitive ratio, we can use a constant factor fewer machines than Opt. This justifies
+FinalAlg running each of three algorithms on m
+3 machines.
+Lemma 21. For any collection of jobs J, number of machines m, and c > 1,
+1
+we have |Opt(J, m
+c )| = Ω( c |Opt(J, m)|).
+Proof. It is shown in [KP01] that for any schedule on m machines, there exists a
+non-migratory schedule on at most 6m machines that completes the same jobs.
+Applied to Opt(J, m), we obtain a non-migratory schedule S on 6m machines
+with |S| = |Opt(J, m)|. Keeping the m
+c machines that complete the most jobs in
+1
+S gives a non-migratory schedule on m
+c machines that completes at least 6c |S|
+jobs.
+
+Throughput Maximization on Identical Machines
+
+7
+
+A non-migratory schedule on m machines can be expressed as m schedules,
+each on a single machine and a separate set of jobs. To characterize these single
+machine schedules, we introduce the concept of forest schedules. Let S be any
+schedule. For any job j, we let fj (S) and cj (S) denote the first and last times
+that S runs the job j, respectively. Note that S does not necessarily complete j
+at time cj (S).
+Definition 4 (Forest Schedule). We say a single-machine schedule S is a
+forest schedule if for all jobs j, j ′ such that fj (S) < fj ′ (S), then S does not run
+j during the time interval (fj ′ (S), cj ′ (S)) (so the (fj (S), cj (S))-intervals form a
+laminar family.) Then S naturally defines a forest (in the graph-theoretic sense),
+where the nodes are jobs run by S and the descendants of a job j are the the jobs
+that are first run in the time interval (fj (S), cj (S)).
+Then a non-migratory m-machine schedule is a forest schedule if all of its
+single-machine schedules are forest schedules.
+With these definitions, we are ready to construct the near-optimal policies
+that we will compare SRPT and MLax to:
+Lemma 22. Let J be a set of jobs satisfying ℓj ≤ xj for all j ∈ J. Then for
+ℓ
+any times r̂j ∈ [rj , rj + 2j ] and constant α ≥ 1, there exist non-migratory forest
+′
+schedules S and S on the jobs J such that:
+1. Both S and S ′ complete every job they run.
+2. Let Ji be the set of jobs that S runs on machine i. For every machine i and
+time, if there exists a feasible job in Ji , then S runs such a job.
+3. For all jobs j ∈ S, we have fj (S) = r̂j .
+4. If job j ′ is a descendant of job j in S, then αxj ′ ≤ ℓj
+5. |{leaves of S ′ }| + |S| = Ω(|Opt(J)|).
+Proof. We modify the optimal schedule Opt(J) to obtain the desired properties.
+First, we may assume that Opt(J) is non-migratory by losing a constant factor
+(Lemma 21.) Thus, it suffices to prove the lemma for a single machine schedule,
+because we can apply the lemma to each of the single-machine schedules in the
+non-migratory schedule Opt(J). The proof for the single-machine case follows
+from the modifications given in Lemmas 22 and 23 of [KP03]. We note that
+ℓ
+[KP03] only show how to ensure fj (S) = tj for a particular tj ∈ [rj , rj + 2j ], but it
+ℓ
+is straightforward to verify that the same proof holds for any tj ∈ [rj , rj + 2j ].
+Morally, the schedule S captures the jobs in Opt that are preempted and S ′
+captures the jobs in Opt that are not preempted (i.e. the leaves in the forest
+schedule.)
+
+3
+
+SRPT is Competitive with Non-Viable Jobs
+
+The main result of this section is that SRPT is competitive with the number
+of non-viable, low-laxity jobs of the optimal schedule (Theorem 31.) We recall
+
+8
+
+B. Moseley et al.
+ℓ
+
+that a job j is non-viable if for every time in [rj , rj + 2j ], there are at least 81 m
+jobs j ′ on the frontier of MLax satisfying αxj ′ < ℓj .
+Theorem 31. Let J be a set of jobs satisfying ℓj ≤ xj for all j ∈ J. Then for α =
+O(1) sufficiently large and number of machines m ≥ 16, we have |SRPT(J)| =
+Ω(|Opt(Jnv )|), where Jnv is the set of non-viable jobs with respect to MLax(J).
+In the remainder of this section, we prove Theorem 31. The main idea of
+the proof is that for any non-viable job j, MLax is running many jobs that are
+much smaller than j (by at least an α-factor.) These jobs give a witness that
+SRPT must be working on these jobs or even smaller ones.
+We begin with a lemma stating that SRPT is competitive with the leaves of
+any forest schedule. Intuitively this follows because whenever some schedule is
+running a feasible job, then SRPT either runs the same job or a job with shorter
+remaining processing time. We will use this lemma to handle the non-viable jobs
+that are not preempted.
+Lemma 32. Let J be any set of jobs and S be any forest schedule on m machines
+and jobs J ′ ⊂ J that only runs feasible jobs. Let L be the set of leaves of S. Then
+|SRPT(J)| ≥ 12 |L|
+Proof. It suffices to show that |L \ SRPT(J)| ≤ |SRPT(J)|. The main property
+of SRPT gives:
+Proposition 33. Consider any leaf ℓ ∈ L \ SRPT(J). Suppose S starts running
+ℓ at time t. Then SRPT completes m jobs in the time interval [fℓ (S), fℓ (S)+xℓ ].
+Proof. At time fℓ (S) in SRPT (J), job ℓ has remaining processing time at
+most xℓ and is feasible by assumption. Because ℓ ∈
+/ SRPT(J), there must exist
+a first time t′ ∈ [fℓ (S), fℓ (S) + xℓ ] where ℓ is not run by SRPT(J). At this
+time, SRPT(J) must be running m jobs with remaining processing time at
+most xℓ − (t′ − fℓ (S)). In particular, SRPT(J) must complete m jobs by time
+fℓ (S) + xℓ .
+Using the proposition, we give a charging scheme: Each job ℓ ∈ L \ SRPT(J)
+begins with 1 credit. By the proposition, we can find m jobs that SRPT(J)
+1
+completes in the time interval [fℓ (S), fℓ (S) + xℓ ]. Then ℓ transfers m
+credits
+each to m such jobs in SRPT.
+It remains to show that each j ∈ SRPT(J) gets at most 1 credit. Note that
+j can only get credits from leaves ℓ such that cj (SRPT) ∈ [fℓ (S), fℓ (S) + xℓ ].
+There are at most m such intervals (at most one per machine), because we only
+consider leaves, whose intervals are disjoint if there are on the same machine.
+Now we are ready to prove Theorem 31.
+Proof of Theorem 31. Let S, S ′ be the schedules guaranteed by Lemma 22 on
+the set of jobs Jnv with r̂j = rj for all j ∈ Jnv . We re-state the properties of
+these schedules for convenience:
+
+Throughput Maximization on Identical Machines
+
+9
+
+1. Both S and S ′ complete every job they run.
+2. Let Ji be the set of jobs that S runs on machine i. For every machine i and
+time, if there exists a feasible job in Ji , then S runs such a job.
+3. For all jobs j ∈ S, we have fj (S) = rj .
+4. If job j ′ is a descendant of job j in S, then αxj ′ ≤ ℓj
+5. |{leaves of S ′ }| + |S| = Ω(|Opt(Jnv )|).
+By Lemma 32, we have |SRPT(J)| = Ω(|{leaves of S ′ }|). Thus, it remains to
+show the following:
+Lemma 34. For α = O(1) sufficiently large, |SRPT(J)| = Ω(|S|)
+Proof. We first show that for the majority of jobs j in S’s forest, we run j itself
+ℓ
+on some machine for at least a constant fraction of the time interval [rj , rj + 2j ].
+Proposition 35. For at least half of the nodes j in S’s forest, there exists a
+ℓ
+ℓ
+closed interval Ij ⊂ [rj , rj + 2j ] of length at least 8j such that S runs j on some
+machine during Ij .
+Proof. We say a node j is a non-progenitor if j has less than 2z descendants at
+depth z from j for all z ≥ 1. Because S satisfies (1), at least half of the nodes in
+S’s forest are non-progenitors. This follows from Lemma 7 in [KP03].
+Now consider any non-progenitor node j. Because S is a forest, S is only
+ℓ
+running j or its descendants on some machine in times [rj , rj + 2j ]. Further,
+because j is a non-progenitor and S satisfies (1) and (4), we can partition [rj , rj +
+ℓj
+ℓj
+ℓj
+2 ] = [rj , a] ∪ (a, b) ∪ [b, rj + 2 ] such that [rj , a] and [b, rj + 2 ] are times where S
+is running j, and (a, b) are times where S is running descendants of j. By taking
+ℓ
+α sufficiently large, we have |(a, b)| ≤ 4j . This follows from Lemma 6 in [KP03].
+ℓ
+ℓ
+It follows, at least one of [rj , a] or [b, rj + 2j ] has length at least 8j . This gives
+the desired Ij .
+Let S ′′ ⊂ S be the collection of jobs guaranteed by the proposition, so |S ′′ | ≥
+It suffices to show that |SRPT(J)| = Ω(|S ′′ |). Thus, we argue about
+MLax(J) in the interval Ij (guaranteed by Proposition 35) for some j ∈ S ′′ .
+1
+2 |S|.
+
+Proposition 36. Consider any job j ∈ S ′′ . For sufficiently large α = O(1),
+m
+jobs during Ij such that each such job j ′
+MLax(J) starts running at least 16
+satisfies [fj ′ (MLax(J)), fj ′ (MLax(J)) + xj ′ ] ⊂ Ij .
+|I |
+
+ℓ
+
+Proof. We let I ′ be the prefix of Ij with length exactly 2j ≥ 16j . Recall that
+ℓ
+j ∈ S ′′ is non-viable. Thus, because I ′ ⊂ Ij ⊂ [rj , rj + 2j ], MLax(J) is always
+running at least 18 m jobs j ′ satisfying αxj ′ < ℓj during I ′ .
+We define J ′ to be the set of jobs that MLax(J) runsSduring I ′ satisfying
+αxj ′ < ℓj . We further partition J ′ into size classes, J ′ = z∈N Jz′ such that Jz′
+ℓj
+ℓ
+consists of the jobs in J ′ with size in ( αz+1
+, αjz ].
+i
+For each machine i, we let Tz be the times in I ′ that MLax(J) is running
+a job from Jz′ on machine i. Note that each Tzi is the union of finitely many
+
+10
+
+B. Moseley et al.
+
+intervals. Then because MLax(J) is always running at least 18 m jobs j ′ satisfying
+αxj ′ ≤ ℓj during I ′ , we have:
+X X
+
+|Tzi | ≥
+
+z∈N i∈[m]
+
+m ′
+|I |.
+8
+
+P
+|I ′ |
+By averaging, there exists some z with i∈[m] |Tzi | ≥ m
+8 2z+1 .
+m
+Fix such a z. It suffices to show that there exist at least 16
+jobs in Jz′ that
+ℓ
+Lax starts in I ′ . This is because every job j ′ ∈ Jz′ has size at most αjz and
+ℓ
+|Ij \ I ′ | ≥ 16j . Taking α ≥ 16 gives that fj ′ (Lax) + xj ′ ∈ Ij .
+Note that every job in Jz′ has size within a α-factor of each other, so there
+can be at most one such job per stack at any time. This implies that there are
+at most m jobs in Jz′ that don’t start in I ′ (i.e. the start before I ′ .) These jobs
+P
+ℓ
+contribute at most m αjz to i∈[m] |Tzi |. Choosing α large enough, we can ensure
+P
+m ℓj
+i
+that the jobs in Jz′ that start in I ′ contribute at least 16
+i∈[m] |Tz |. To
+αz to
+ℓ
+
+conclude, we note that each job in Jz′ that starts in I ′ contributes at most αjz
+m
+such jobs.
+to the same sum, so there must exist at least 16
+Using the above proposition, we define a charging scheme to show that
+|SRPT(J)| = Ω(|S ′′ |). Each job j ∈ S ′′ begins with 1 credit. By the propom
+jobs j ′ such that [fj ′ (MLax(J)), fj ′ (MLax(J)) + xj ′ ] is
+sition, we can find 16
+m
+contained in the time when S runs j. There are two cases to consider. If all 16
+16
+jobs we find are contained in SRPT(J), then we transfer m credits from j to
+m
+-many jobs. Note that here we are using m ≥ 16. Otherwise, there
+each of the 16
+exists some such j ′ that is not in SRPT(J). Then SRPT(J) will complete at
+1
+least m jobs in [fj ′ (MLax(J)), fj ′ (MLax(J)) + xj ′ ]. We transfer m
+credits from
+j to each of the m-many jobs. To conclude, we note that each j ′ ∈ SRPT(J)
+1
+) credits from at most O(m) jobs in S ′′ .
+gets O( m
+
+4
+
+SRPT and MLax are Competitive with Viable Jobs
+
+We have shown that SRPT is competitive with the non-viable, low-laxity jobs.
+Thus, it remains to account for the viable, low-laxity jobs. We recall that a job j
+ℓ
+is viable if there exists a time in [rj , rj + 2j ] such that there are at least 78 m jobs
+′
+j on the frontier satisfying αxj ′ ≥ ℓj . The first such time is the pseudo-release
+time, r̃j of job j. For these jobs, we show that SRPT and MLax together are
+competitive with the viable, low-laxity jobs of the optimal schedule.
+Theorem 41. Let J be a set of jobs satisfying ℓj ≤ xj for all j ∈ J. Then for α =
+O(1) sufficiently large and number of machines m ≥ 8, we have |SRPT(J)| +
+|MLax(J)| = Ω(|Opt(Jv )|), where Jv is the set of viable jobs with respect to
+MLax(J).
+
+Throughput Maximization on Identical Machines
+
+11
+
+Proof of Theorem 41. Let S, S ′ be the schedules guaranteed by Lemma 22 on
+the set of jobs Jv with r̂j = r̃j for all j ∈ Jv . We re-state the properties of these
+schedules for convenience:
+1. Both S and S ′ complete every job they run.
+2. Let Ji be the set of jobs that S runs on machine i. For every machine i and
+time, if there exists a feasible job in Ji , then S runs such a job.
+3. For all jobs j ∈ S, we have fj (S) = r̃j .
+4. If job j ′ is a descendant of job j in S, then αxj ′ ≤ ℓj
+5. |{leaves of S ′ }| + |S| = Ω(|Opt(Jv )|).
+By Lemma 32, we have |SRPT(J)| = Ω(|{leaves of S ′ }|). Thus, it suffices to
+show that |SRPT(J)| + |MLax(J)| = Ω(|S|). We do this with two lemmas,
+whose proofs we defer until later. First, we show that MLax pushes (not necessarily completes) many jobs. In particular, we show:
+Lemma 42. |SRPT(J)| + #(pushes of MLax(J)) = Ω(|S|)
+The main idea to prove Lemma 42 is to consider sequences of preemptions in
+Opt. In particular, suppose Opt preempts job a for b and then b for c. Roughly,
+we use viability to show that the only way MLax doesn’t push any of these jobs
+is if in between their pseudo-release times, MLax pushes Ω(m) jobs.
+Second, we show that the pushes of MLax give a witness that SRPT and
+MLax together actually complete many jobs.
+Lemma 43. |SRPT(J)| + |MLax(J)| = Ω(#(pushes of MLax(J))).
+The main idea to prove Lemma 43 is to upper-bound the number of jobs
+that MLax pops because they are infeasible (all other pushes lead to completed
+jobs.) The reason MLax pops a job j for being infeasible is because while j was
+ℓ
+on a stack, MLax spent at least 2j units of time running jobs higher than j on
+j’s stack. Either those jobs are completed by MLax, or MLax must have have
+done many pushes or replacements instead. We show that the replacements give
+a witness that SRPT must complete many jobs.
+Combining these two lemmas completes the proof of Theorem 41.
+Now we go back and prove Lemma 42 and Lemma 43.
+4.1
+
+Proof of Lemma 42
+
+Recall that S is a forest schedule. We say the first child of a job j is the child
+j ′ of j with the earliest starting time fj ′ (S). In other words, if j is not a leaf,
+then its first child is the first job that pre-empts j. We first focus on a sequence
+of first children in S.
+Lemma 44. Let a, b, c ∈ S be jobs such that b is the first child of a and c is
+the first child of b. Then MLax(J) does at least one of the following during the
+time interval [r̃a , r̃c ]:
+
+12
+
+B. Moseley et al.
+
+– Push at least m
+8 jobs
+– Push job b
+– Push a job on top of b when b is on the frontier
+– Push c
+Proof. By the properties of S, we have r̃a < r̃b < r̃c . It suffices to show that if
+during [r̃a , r̃c ], MLax(J) pushes strictly fewer than m
+8 jobs, MLax(J) does not
+push b, and MLax(J) does not push any job on top of b if b is on the frontier,
+then MLax(J) pushes c.
+First, because MLax(J) pushes strictly fewer than m
+8 jobs during [r̃a , r̃c ],
+there exists at least 87 m stacks that receive no push during this interval. We
+call such stacks stable. The key property of stable stacks is that the laxities of
+their top- and second-top jobs never decrease during this interval, because these
+stacks are only changed by replacements and pops.
+Now consider time r̃a . By definition of pseudo-release time, at this time, there
+exist at least 78 m stacks whose top job j ′ satisfies αxj ′ ≥ ℓj . Further, for any
+such stack, let j ′′ be its second-top job. Then because b is a descendant of a in
+S, we have:
+αxb ≤ ℓa ≤ αxj ′ ≤ ℓj ′′ .
+It follows, there exist at least 34 m stable stacks whose second-top job j ′′ satisfies
+αxb ≤ ℓj ′′ for the entirety of [r̃a , r̃c ]. We say such stacks are b-stable.
+Now consider time r̃b . We may assume b is not pushed at this time. However,
+there exist at least 43 m that are b-stable. Thus, if we do not replace the top of
+some stack with b, it must be the case that the top job j ′ of every b-stable stack
+satisfies ℓ′j ≥ ℓb . Because these stacks are stable, their laxities only increase by
+time r̃c , so MLax(J) will push c on some stack at that time.
+Otherwise, suppose we replace the top job of some stack with b. In particular,
+b is on the frontier at r̃b . We may assume that no job is pushed directly on top
+of b. If b remains on the frontier by time r̃c , then MLax(J) will push c, because
+αxc ≤ ℓb . The remaining case is if b leaves the frontier in some time in [r̃b , r̃c ].
+We claim that it cannot be the case that b is popped, because by (2), S could
+not complete b by time r̃c , so MLax(J) cannot as well. Thus, it must be the
+case that b is replaced by some job, say d at time r̃d . At this time, there exist
+at least 34 m stacks whose second-top job j ′′ satisfies αxd ≤ ℓj ′′ . It follows, there
+′′
+′′
+exist at least m
+2 b-stable stacks whose second-top job j satisfies αxd ≤ ℓj at
+time r̃d . Note that because m ≥ 8, there exists at least one such stack, say i,
+that is not b’s stack. In particular, because b’s stack has minimum laxity, it must
+be the case that the top job j ′ of stack i satisfies ℓj ′ ≥ ℓb . Finally, because stack
+i is stable, at time r̃c we will push c.
+Now using the above lemma, we give a charging scheme to prove Lemma 42.
+First note that by Lemma 32, we have |SRPT(J)| = Ω(#(leaves of S)). Thus,
+it suffices to give a charging scheme such that each job a ∈ S begins with 1
+credit, and charges it to leaves of S and completions of MLax(J) so that each
+job is charged at most O(1) credits. Each job a ∈ S distributes its 1 credit as
+follows:
+
+Throughput Maximization on Identical Machines
+
+13
+
+– (Leaf Transfer) If a is a leaf or parent of a leaf of S, say ℓ, then a charges ℓ
+for 1 credit.
+Else let b be the first child of a and c the first child of b in S
+– (Push Transfer) If MLax(J) pushes b or c, then a charges 1 unit to b or c,
+respectively.
+– (Interior Transfer) Else if job b is on the frontier, but another job, say d, is
+pushed on top of b, then a charges 1 unit to d.
+– (m-Push Transfer) Otherwise, by Lemma 44, MLax(J) must push at least
+8
+m
+m
+8 jobs during [r̃a , r̃c ]. In this case, a charges m units to each of these 8
+such jobs.
+This completes the description of the charging scheme. It remains to show that
+each job is charged at most O(1) credits. Each job receives at most 2 credits
+due to Leaf Transfers and at most 2 credits due to Push Transfers and Interior
+Transfers. As each job is in at most 3m intervals of the form [r̃a , r̃c ], each job is
+charged O(1) from m-Push Transfers.
+4.2
+
+Proof of Lemma 43
+
+Recall in MLax, there are two types of pops: a job is popped if it is completed, and then we continue popping until the top job of that stack is feasible. We call the former completion pops and the later infeasible pops. Note
+that it suffices to prove the next lemma, which bounds the infeasible pops.
+This is because #(pushes of MLax(J)) = #(completions pops of MLax(J)) +
+#(infeasible pops of MLax(J)). To see this, note that every stack is empty at
+the beginning and end of the algorithm, and the stack size only changes due to
+pushes and pops.
+Lemma 45. For α = O(1) sufficiently large, we have:
+|SRPT(J)|+|MLax(J)|+#(pushes of MLax(J)) ≥ 2·#(infeasible pops of MLax(J)).
+Proof. We define a charging scheme such that the completions of SRPT(J) and
+MLax(J) and the pushes executed by MLax(J) pay for the infeasible pops.
+Each completion of SRPT(J) is given 2 credits, each completion of MLax(J) is
+given 1 credit, and each job that MLax(J) pushes is given 1 credit. Thus each
+job begins with at most 4 credits. For any z ≥ 0, we say job j ′ is z-below j (at
+time t) if j ′ and j are on the same stack in MLax(J) and j ′ is z positions below
+j on that stack at time t. We define z-above analogously. A job j distributes
+these initial credits as follows:
+– (SRPT-transfer) If SRPT(J) completes job j and MLax also ran j at
+1
+some point, then j gives 2z+1
+credits to the job that is z-below j at time
+fj (MLax(J)) for all z ≥ 0.
+– (m-SRPT-transfer) If SRPT(J) completes job j at time t, then j gives
+1 1
+2z+1 m credits to the job that is z-below the top of each stack in MLax(J)
+at time t for all z ≥ 0.
+
+14
+
+B. Moseley et al.
+
+1
+– (MLax-transfer) If MLax(J) completes a job j, then j gives 2z+1
+credits to
+the job that is z-below j at the time j is completed for all z ≥ 0.
+1
+credits to the
+– (Push-transfer) If MLax(J) pushes a job j, then j gives 2z+1
+job that is z-below j at the time j is pushed for all z ≥ 0.
+
+It remains to show that for α = O(1) sufficiently large, every infeasible
+pop gets at least 4 credits. We consider any job j that is an infeasible pop of
+MLax(J). At time r̃j when j joins some stack in MLax(J), say H, j’s remaining
+ℓ
+laxity was at least 2j . However, as j later became an infeasible pop, it must be
+the case that while j was on stack H, MLax(J) was running jobs that are higher
+ℓ
+than j on stack H for at least 2j units of time.
+Let I be the union of intervals of times that MLax(J) runs a job higher than
+ℓ
+j on stack H (so j is on the stack for the entirety of I.) Then we have |I| ≥ 2j .
+Further, we partition I based on the height of the
+S job on H that MLax(J) is
+currently running. In particular, we partition I = z≥1 Iz , where Iz is the union
+of intervals of times that MLax(J) runs a job on H that is exactly z-above j.
+ℓj
+By averaging, there exists a z ≥ 1 such that |Iz | ≥ 2z+1
+Ss . Fix such a z. We
+can write Iz as the union of disjoint intervals, say Iz = u=1 [au , bu ]. Because
+during each sub-interval, MLax(J) is running jobs on H that are much smaller
+than j itself, these jobs give a witness that SRPT(J) completes many jobs as
+long as these sub-intervals are long enough. We formalize this in the following
+proposition.
+ℓ
+
+Proposition 46. In each sub-interval [au , bu ] of length at least 4 αjz , job j earns
+1 bu −au
+at least 2z+3
+ℓj /αz credits from SRPT-transfers and m-SRPT-transfers.
+ℓ
+
+Proof. Because [au , bu ] has length at least 4 αjz , we can partition [au , bu ] into subsub-intervals such that all but at most one sub-sub-interval has length exactly
+ℓ
+bu −au
+2 αjz . In particular, we have at least 12 2ℓ
+z sub-sub intervals of length exactly
+j /α
+ℓ
+
+2 αjz .
+Now consider any such sub-sub-interval. During this time, MLax(J) only
+runs jobs on H that are z-above j. Let Jz be the set of z-above jobs that
+ℓ
+MLax(J) runs during Iz . For every job j ′ ∈ Jz , we have xj ′ ≤ αjz . It follows
+ℓj
+′
+that j is on stack H for at most xj ′ ≤ αz units of time. In particular, MLax(J)
+must start a new z-above job, say j ′ , in the first half of the sub-sub-interval at
+some time, say t.
+At time t, j ′ is feasible. There are two cases to consider. If SRPT(J) also
+1
+completes j ′ at some time, then j get 2z+1
+credits from j ′ in a SRPT-transfer.
+′
+Otherwise if SRPT(J) never completes j , then because j ′ is feasible at t, it
+must be the case that SRPT(J) completes m jobs during the sub-sub-interval.
+1 1
+Thus, j gets m
+2z+1 credits from m separate m-SRPT-transfers during this subbu −au
+1
+sub-interval. We conclude, job j gets at least 2z+1
+credits from at least 21 2ℓ
+z
+j /α
+sub-sub-intervals.
+
+Throughput Maximization on Identical Machines
+
+15
+
+On the other hand, even if the sub-intervals are too short, the job j still gets
+credits from MLax-transfers and Push-transfers when the height of the stack
+changes. We formalize this in the following proposition.
+1
+credits
+Proposition 47. For every sub-interval [au , bu ], job j earns at least 2z+2
+from MLax-transfers and Push-transfers at time bu .
+
+Proof. Up until time bu , MLax(J) was running a z-above job on stack H.
+At time bu , the height of the stack H must change. If the height decreases,
+then it must be the case that MLax(J) completes the z-above job, so j will
+1
+credits from a MLax(J)-transfer. Otherwise, the height increases, so
+get 2z+1
+1
+credits from
+MLax(J) must push a job that is z + 1-above j, which gives j 2z+2
+a Push-transfer.
+Now we combine the above two propositions to complete the proof of Lemma
+ℓ
+45. We say a sub-interval [au , bu ] is long if it has length at least 4 αjz (i.e. we can
+apply Proposition 46 to it) and short otherwise. First, suppose the aggregate
+ℓ
+length of all long intervals it at least 4 · 2z+3 αjz . Then by Proposition 46, job j
+gets at least 4 credits from the long intervals. Otherwise, the aggregate length
+ℓ
+of all long intervals is less than 4 · 2z+3 αjz . In this case, recall that the long
+ℓj
+. It follows, the
+and short intervals partition Iz , which has length at least 2z+1
+ℓj
+z+3 ℓj
+aggregate length of the short intervals is at least 2z+1 − 4 · 2
+αz . For α = O(1)
+large enough, we may assume the aggregate length of the short intervals is at
+ℓ
+4ℓ
+least 4 · 2z+2 αzj . Because each short interval has length at most 4 αjz , there are
+at least 4 · 2z+2 short intervals. We conclude, by Proposition 47, job j gets at
+least 4 credits from the short intervals. We conclude, in either case job j gets at
+least 4 credits.
+
+5
+
+Putting it all together
+
+In this section, we prove our main result, Theorem 11, which follows from the
+next meta-theorem:
+Theorem 51. Let J be any set of jobs. Then for number of machines m ≥
+16, we have |LMNY(Jhi )| + |SRPT(Jlo )| + |MLax(Jlo )| = Ω(|Opt(J)|), where
+Jhi = {j ∈ J | ℓj > xj } and Jlo = {j ∈ J | ℓj ≤ xj } partition J into high- and
+low-laxity jobs.
+Proof. We have |LMNY(Jhi )| = Ω(|Opt(Jhi )| by Lemma 13. Also, we further
+partition Jlo = Jv ∪ Jnv into the viable and non-viable jobs with respect to
+MLax(Jlo ). Then Theorem 31 and Theorem 41 together give |SRPT(Jlo )| +
+|MLax(Jlo )| = Ω(|Opt(Jv )| + |Opt(Jnv )|). To complete the proof, we observe
+that J = Jhi ∪ Jv ∪ Jnv partitions J, so |Opt(Jhi )| + |Opt(Jv )| + |Opt(Jnv )| =
+Ω(|Opt(J)|).
+The proof of Theorem 12, which gives our performance guarantee for FinalAlg is immediate:
+
+16
+
+B. Moseley et al.
+
+Proof of Theorem 12. By combining Theorem 51 and Lemma 21, the objective
+value achieved by FinalAlg is:
+m
+m
+m
+m
+Ω(|LMNY(Jhi , )| + |SRPT(Jlo , )| + |MLax(Jlo , )|) = Ω(|Opt(J, )|)
+3
+3
+3
+3
+= Ω(|Opt(J, m)|).
+
+Finally, we obtain our O(1)-competitive deterministic algorithm for all m >
+1 (recall FinalAlg is O(1)-competitive only when m ≥ 48) by using a twomachine algorithm when m is too small:
+Proof of Theorem 11. Our algorithm is the following: If 1 < m < 48, then we run
+the deterministic two-machine algorithm from [KP03] which is O(1)-competitive
+with the optimal single-machine schedule. Thus by Lemma 21, this algorithm is
+also O(m) = O(1)-competitive for all m < 48. Otherwise, m ≥ 48, so we run
+FinalAlg.
+
+References
+AC18.
+
+Yossi Azar and Sarel Cohen. An improved algorithm for online machine
+minimization. Operations Research Letters, 46(1):128–133, 2018.
+BKM+ 92. Sanjoy K. Baruah, Gilad Koren, Decao Mao, Bhubaneswar Mishra, Arvind
+Raghunathan, Louis E. Rosier, Dennis E. Shasha, and Fuxing Wang. On the
+competitiveness of on-line real-time task scheduling. Real Time Systems,
+4(2):125–144, 1992.
+CEM+ 20. Lin Chen, Franziska Eberle, Nicole Megow, Kevin Schewior, and Clifford
+Stein. A general framework for handling commitment in online throughput
+maximization. Mathematical Programming, 183(1):215–247, 2020.
+CMS18. Lin Chen, Nicole Megow, and Kevin Schewior. An o(log m)-competitive
+algorithm for online machine minimization. SIAM Journal of Computing,
+47(6):2057–2077, 2018.
+EMS20.
+Franziska Eberle, Nicole Megow, and Kevin Schewior. Optimally handling commitment issues in online throughput maximization. In Fabrizio
+Grandoni, Grzegorz Herman, and Peter Sanders, editors, European Symposium on Algorithms), volume 173 of LIPIcs, pages 41:1–41:15. Schloss
+Dagstuhl - Leibniz-Zentrum für Informatik, 2020.
+IMPS17. Sungjin Im, Benjamin Moseley, Kirk Pruhs, and Clifford Stein. An o(log log
+m)-competitive algorithm for online machine minimization. In 2017 IEEE
+Real-Time Systems Symposium, pages 343–350. IEEE Computer Society,
+2017.
+KP00.
+Bala Kalyanasundaram and Kirk Pruhs. Speed is as powerful as clairvoyance. Journal of the ACM, 47(4):617–643, 2000. Also 1995 Symposium on
+Foundations of Computer Science.
+KP01.
+Bala Kalyanasundaram and Kirk Pruhs. Eliminating migration in multiprocessor scheduling. Journal of Algorithms, 38(1):2–24, 2001.
+KP03.
+Bala Kalyanasundaram and Kirk Pruhs. Maximizing job completions online. Journal of Algorithms, 49(1):63–85, 2003. Also 1998 European Symposium on Algorithms.
+
+Throughput Maximization on Identical Machines
+KS94.
+
+17
+
+Gilad Koren and Dennis E. Shasha. MOCA: A multiprocessor on-line competitive algorithm for real-time system scheduling. Theoretical Computer
+Science, 128(1&2):75–97, 1994.
+LMNY13. Brendan Lucier, Ishai Menache, Joseph Naor, and Jonathan Yaniv. Efficient online scheduling for deadline-sensitive jobs. In Guy E. Blelloch and
+Berthold Vöcking, editors, ACM Symposium on Parallelism in Algorithms
+and Architectures, pages 305–314. ACM, 2013.
+PSTW02. Cynthia A. Phillips, Clifford Stein, Eric Torng, and Joel Wein. Optimal time-critical scheduling via resource augmentation. Algorithmica,
+32(2):163–200, 2002.
+
+

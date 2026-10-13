@@ -1,0 +1,1129 @@
+Appears in the Handbook of Combinatorial Optimization, Springer, 2013
+
+Rollout Algorithms for Discrete Optimization:
+A Survey
+by
+Dimitri P. Bertsekas
+Massachusetts Institute of Technology
+Cambridge, MA 02139
+dimitrib@mit.edu
+August 2010
+
+Abstract
+This chapter discusses rollout algorithms, a sequential approach to optimization problems, whereby the
+optimization variables are optimized one after the other. A rollout algorithm starts from some given heuristic
+and constructs another heuristic with better performance than the original. The method is particularly simple
+to implement, and is often surprisingly effective. This chapter explains the method and its properties for
+discrete deterministic optimization problems.
+
+1.
+
+INTRODUCTION
+Rollout is a form of sequential optimization that originated in dynamic programming (DP for short). It may
+be viewed as a single iteration of the fundamental method of policy iteration. The starting point is a given
+policy (called the base policy), whose performance is evaluated in some way, possibly by simulation. Based
+on the evaluation, an improved policy is obtained by one-step lookahead. When the problem is discrete and
+deterministic, as will be assumed in this chapter, the method is very simple to implement: the base policy
+is just some heuristic, and the rollout policy consists of repeated application of this heuristic. The rollout
+policy is guaranteed to improve the performance of the base policy, often very substantially in practice. In
+this chapter, rather than using the dynamic programming formalism, the method is explained starting from
+first principles.
+Consider the minimization of a function
+g(x1 , . . . , xN )
+of the discrete variables x1 , . . . , xN , assumed to take values in some finite set. This can be done (at least
+conceptually) by minimizing over x1 the result of minimization of g over the remaining variables x2 , . . . , xN ,
+with x1 held fixed, i.e., finding
+x⇥1 ⇧ arg min J1 (x1 )
+x1
+
+where the function J1 is defined by
+J1 (x1 ) =
+
+min g(x1 , x2 , . . . , xN ).
+
+x2 ,...,xN
+
+1
+
+Leaving aside for the moment the di⌅culty of calculating J1 (x1 ), given the optimal value x⇥1 , the optimal
+value of x2 can be found by the minimization
+x⇥2 ⇧ arg min J2 (x⇥1 , x2 ),
+x2
+
+where the function J2 is defined by
+J2 (x1 , x2 ) =
+
+min g(x1 , x2 , x3 , . . . , xN ).
+
+x3 ,...,xN
+
+Similarly, for every k = 1, . . . , n, given the optimal values x⇥1 , . . . , x⇥k 1 , the optimal value of xk can be found
+by the minimization
+x⇥k ⇧ arg min Jk (x⇥1 , . . . , x⇥k 1 , xk ),
+
+k = 1, . . . , N,
+
+(1.1)
+
+g(x1 , . . . , xk , xk+1 , . . . , xN ).
+
+(1.2)
+
+xk
+
+where the function Jk is defined by
+Jk (x1 , . . . , xk ) =
+
+min
+
+xk+1 ,...,xN
+
+This is a calculation that is typical of DP, where the functions Jk are called the optimal cost-to-go functions,
+and are defined by the recursion
+Jk (x1 , . . . , xk ) = min Jk+1 (x1 , . . . , xk , xk+1 ),
+xk+1
+
+starting from the boundary condition
+JN (x1 , . . . , xN ) = g(x1 , . . . , xN ).
+[The validity of this recursion can be seen from the definition (1.2) of Jk .]
+Unfortunately, there is a serious di⌅culty with the preceding approach: calculating numerically and
+storing the functions Jk in tables is impossible in practice (except for very special problems; if each of the
+variables x1 , . . . , xk may take m distinct values, the storage of Jk requires a table of size mk ). In DP this is
+known as the curse of dimensionality.
+In the rollout approach, Jk is approximated by a function that is more easily calculated and does not
+require excessive storage. In particular, for any given x1 , . . . , xk , an easily implementable heuristic (called
+base heuristic) is used to approximate the minimization (1.2). If Hk (x1 , . . . , xk ) denotes the corresponding
+approximately optimal value, the rollout algorithm obtains a suboptimal solution by replacing Jk with Hk
+in Eq. (1.1):
+x̃k ⇧ arg min Hk (x̃1 , . . . , x̃k 1 , xk ),
+xk
+
+k = 1, . . . , N.
+
+(1.3)
+
+These minimizations are carried out in sequence, first obtaining x̃1 ⇧ arg minx1 H1 (x1 ), then obtaining
+x̃2 ⇧ arg minx2 H2 (x̃1 , x2 ), and proceeding with x̃3 , . . . , x̃N in that order.
+With some analysis and algorithmic refinement, it can be shown that rollout results in no performance
+deterioration over just applying the base heuristic once to the original problem. Most importantly, experimentation has shown that rollout typically results in significant and often dramatic improvement over the
+common approach of just applying the base heuristic. This improvement comes at the expense of a substantial but often tractable (polynomial) increase in computational requirements. The following example
+provides some insight into the nature of cost improvement.
+2
+
+root
+
+Figure 1: Binary tree with N stages for the breakthrough problem. Each
+arc is either free or is blocked (crossed out in the figure). The problem is to
+find a path from the root to one of the leaves, which is free (such as the one
+shown with thick lines).
+
+Example 1: (The Breakthrough Problem)
+Consider a binary tree with N stages as shown in Fig. 1. Stage k of the tree has 2k nodes. There are two types of
+tree arcs: free and blocked. A free (or blocked) arc can (cannot, respectively) be traversed in the direction from
+the root to the leaves. The objective is to break through the graph with a sequence of free arcs (a free path)
+starting from the root, and ending at one of the leaves.
+One may use a DP-like algorithm to discover a free path (if one exists) by starting from the last stage and
+by proceeding backwards to the root node. The kth step of the algorithm determines for each node of stage N k
+whether there is a free path from that node to some leaf node, by using the results of the preceding step. The
+amount of calculation at the kth step is O(2N k ). Adding the calculations for the N stages, it can be seen that
+the total amount of calculation is O(N 2N ), so it increases exponentially with the number of stages.
+As an alternative, one may suboptimally use a greedy algorithm, which starts at the root node, selects a
+free outgoing arc (if one is available), and tries to construct a free path by adding successively nodes to the path.
+Generally, at the current node, if one of the outgoing arcs is free and the other is blocked, the greedy algorithm
+selects the free arc. Otherwise, it selects one of the two outgoing arcs according to some fixed rule that depends
+only on the current node (and not on the status of other arcs). Clearly, the greedy algorithm may fail to find a
+free path even if such a path exists, as can be seen from Fig. 1 (e.g., if the choice at the root node is the right-hand
+side arc). On the other hand the amount of computation associated with the greedy algorithm is O(N ), which
+is much faster than the O(N 2N ) computation of the optimal algorithm. Thus one may may view the greedy
+algorithm as a fast heuristic, which is suboptimal in the sense that there are problem instances where it fails while
+the DP algorithm succeeds.
+Consider also the rollout algorithm that uses the greedy algorithm as the base heuristic. This algorithm
+starts at the root and tries to construct a free path by exploring alternative paths constructed by the greedy
+algorithm. At the current node, it proceeds according to the following two cases:
+(a) If at least one of the two outgoing arcs of the current node is blocked, the rollout algorithm adds to the
+current path the arc that the greedy algorithm would select at the current node.
+(b) If both outgoing arcs of the current node are free, the rollout algorithm considers the two end nodes of
+these arcs, and from each of them it runs the greedy algorithm. If the greedy algorithm succeeds in finding
+a free path that starts from at least one of these nodes, the rollout algorithm stops with a free path having
+been found; otherwise, the rollout algorithm moves to the node that the greedy algorithm would select at
+the current node.
+Thus, when both outgoing arcs are free, the rollout algorithm explores further the suitability of these arcs,
+as in case (b) above. Because of this additional discriminatory capability, the rollout algorithm always does at
+
+3
+
+least as well as the greedy (it always finds a free path when the greedy algorithm does, and it also finds a free
+path in some cases where the greedy algorithm does not). This is consistent with our earlier discussion of the
+generic cost improvement property of the rollout algorithm over the base heuristic. On the other hand, the rollout
+algorithm applies the greedy heuristic as many as 2N times, so that it requires O(N 2 ) amount of computation
+– this is intermediate between the O(N ) computation of the greedy and the O(N 2N ) computation of the DP
+algorithm.
+The greedy and the rollout algorithms may be evaluated by calculating the probabilities that they will find
+a free path given a randomly chosen breakthrough problem. In particular, the graph of the problem may be
+generated randomly, by selecting each of its arcs to be free with probability p, independently of the other arcs. If
+the corresponding probabilities of success for the greedy and the rollout algorithms are calculated, it follows that
+the rollout algorithm has an O(N ) times larger probability of finding a free path than the greedy algorithm, while
+requiring O(N ) times more computation (see [8], Example 6.4.2). This type of tradeoff is qualitatively typical:
+the rollout algorithm achieves a substantial performance improvement over the base heuristic at the expense of
+extra computation that is equal to the computation time of the base heuristic times a factor that is a low order
+polynomial of the problem size.
+
+2.
+
+THE BASIC ROLLOUT ALGORITHM FOR DISCRETE OPTIMIZATION
+The rollout algorithm will now be formalized by introducing a graph search problem that can serve as a
+general model for discrete optimization. A graph is given that has a finite set of nodes N , a finite set of
+arcs A, and a special node s, called the origin. The arcs are directed in the sense that arc (i, j) is distinct
+from arc (j, i). A subset N of nodes is also given, called destinations, and a cost g(i) for each destination i.
+The destination nodes are terminal in the sense that they have no outgoing arcs. The problem is to find a
+path that starts at the origin s, ends at one of the destination nodes i ⇧ N , and is such that the cost g(i) is
+minimized.
+In our terminology, a path is a sequence of arcs
+(i1 , i2 ), (i2 , i3 ), . . . , (im 1 , im ),
+all of which are oriented in the forward direction. The nodes i1 and im are called the start node and the
+end node of the path, respectively. For convenience, and without loss of generality,† it will be assumed that
+given an ordered pair of nodes (i, j), there is at most one arc with start node i and end node j, which (if
+it exists) will be denoted by (i, j). In this way, a path consisting of arcs (i1 , i2 ), (i2 , i3 ), . . . , (im 1 , im ) is
+unambiguously specified as the sequence of nodes (i1 , i2 , . . . , im ).
+Let us assume the availability of a heuristic path construction algorithm, denoted H, which given
+a non-destination node i ⇧
+/ N , constructs a path (i, i1 , . . . , im , i) starting at i and ending at one of the
+destination nodes i. Implicit in this assumption is that for every non-destination node, there exists at least
+one path starting at that node and ending at some destination node. The algorithm H is referred to as
+the base heuristic, and will be used as the basic building block for constructing the rollout algorithm to be
+introduced shortly.
+The end node i of the path constructed by the base heuristic H is completely specified by the start
+node i. The node i is called the projection of i under H, and is denoted by p(i). The corresponding cost is
+denoted by H(i),
+⇥
+H(i) = g p(i) .
+The projection of a destination node is the node itself by convention, so that i = p(i) and H(i) = g(i) for
+all i ⇧ N . Note that while the base heuristic H will generally yield a suboptimal solution, the path that it
+
+† In the case where there are multiple arcs connecting a node pair, all these arcs can be merged to a single arc,
+since the set of destination nodes that can be reached from any non-destination node will not be affected.
+4
+
+s
+
+i1
+
+im-1
+
+im
+
+j1
+
+p(j1 )
+
+j2
+
+p(j2 )
+
+j3
+
+p(j3 )
+
+j4
+
+p(j4 )
+
+Neighbors of im
+
+Projections of
+Neighbors of im
+
+Figure 2: Illustration of the rollout algorithm. After m steps, the algorithm has
+constructed the path (s, i1 , . . . , im ). To extend this path at the next step, the set
+N (im ) of neighbors of the terminal node im is generated, and the neighbor that
+has the best projection is selected from this set, i.e.
+im+1 ⇤ arg
+
+min
+
+j⇥N (im )
+
+H(j) ⇤ arg
+
+min
+
+j⇥N (im )
+
+⇥
+
+g p(j) .
+
+constructs may involve a fairly sophisticated suboptimization. For example, H may construct several paths
+ending at destination nodes according to some heuristics, and then select the path that yields minimal cost.
+One possibility for suboptimal solution of the problem is to start at the origin s and use the base
+heuristic H to obtain the projection p(s). It is instead proposed to use H to construct a path to a destination
+node sequentially. At the typical step, a path that starts at s and ends at a node i is available, the base
+heuristic H is run starting from each of the downstream neighbors j of i, and the corresponding projections
+and costs are obtained. The neighbor that gives the best projection is chosen as the next node in the current
+path. This sequential version of H is called the rollout algorithm based on H, and is denoted by RH.
+Formally, let N (i) denote the set of downstream neighbors of a non-destination node i,
+⇧
+⌃
+N (i) = j | (i, j) is an arc .
+The rollout algorithm RH starts with the origin node s. At the typical step, given a node sequence
+(s, i1 , . . . , im ), where im is not a destination, RH adds to the sequence a node im+1 such that
+im+1 ⇧ arg min H(j).
+j⌅N (im )
+
+(2.1)
+
+If im+1 is a destination node, RH terminates. Otherwise, the process is repeated with the sequence
+(s, i1 , . . . , im , im+1 ) replacing (s, i1 , . . . , im ); see Fig. 2.
+Once RH has terminated with a path (s, i1 , . . . , im ), the projection p(ik ) of each of the nodes ik ,
+k = 1, . . . , m, will have been obtained. The best of these projections yields a cost
+⇥
+min H(ik ) = min g p(ik ) ,
+k=1,...,m
+
+k=1,...,m
+
+and the projection that corresponds to the minimum above may be taken as the final (suboptimal) solution
+⇥
+produced by the rollout algorithm. The above minimal cost may also be compared with the cost g p(s) of
+the projection p(s) of the origin, so that p(s) is used as the final solution if it produces a smaller cost. This
+will ensure that the rollout algorithm will produce a solution that is no worse than the one produced by the
+base heuristic. Note that while the best neighbor of im is im+1 according to Eq. (2.1), it does not necessarily
+follow that im+1 has a better projection that im under H, i.e., that
+H(im+1 ) ⇤ H(im ).
+5
+
+(2.2)
+
+The reason is that if the path constructed by H starting from im is (im , j1 , . . . , jk , i), it is not necessarily
+true that the path constructed by H starting from j1 is (j1 , . . . , jk , i). If this were so, then Eq. (2.2) would
+hold, since im+1 would have no worse projection that j1 according to Eq. (2.1). This argument will be the
+basis for further analysis to be given later (see Prop. 1).
+Example 2: (Traveling Salesman Problem)
+Let us consider the traveling salesman problem, whereby a salesman wants to find a minimum mileage/cost tour
+that visits each of N given cities exactly once and returns to the city he started from. With each city i = 1, . . . , N ,
+a node is associated and an arc (i, j) with traversal cost aij is introduced for each ordered pair of nodes i and j.
+Note that the graph is assumed complete; that is, there exists an arc for each ordered pair of nodes. There is no
+loss of generality in doing so because a very high cost aij can be assigned to an arc (i, j) that is precluded from
+participation in the solution. The problem is to find a cycle that goes through all the nodes exactly once and
+whose sum of arc costs is minimum.
+There are many heuristic approaches for solving the traveling salesman problem. For illustration purposes,
+consider a simple nearest neighbor heuristic. It starts from a path consisting of just a single node i1 and at each
+iteration, it enlarges the path with a node that does not close a cycle and minimizes the cost of the enlargement.
+In particular, after k iterations, a path {i1 , . . . , ik } consisting of distinct nodes has been constructed, and at the
+next iteration, an arc (ik , ik+1 ) that minimizes aik i over all arcs (ik , i) with i ⇧= i1 , . . . , ik , is added. After N 1
+iterations, all nodes are included in the path, which is then converted to a tour by adding the final arc (iN , i1 ).
+The traveling salesman problem can be formulated as a graph search problem as follows: A starting city,
+say i1 , is chosen corresponding to the origin of the graph search problem. Each node of the graph search
+problem corresponds to a path (i1 , i2 , . . . , ik ), where i1 , i2 , . . . , ik are distinct cities. The neighbor nodes of the
+path (i1 , i2 , . . . , ik ) are paths of the form (i1 , i2 , . . . , ik , ik+1 ) that correspond to adding one more unvisited city
+ik+1 ⇧= i1 , i2 , . . . , ik at the end of the path. The destinations are the cycles of the form (i1 , i2 , . . . , iN ), and the
+cost of a destination in the graph search problem is the cost of the corresponding cycle. Thus a path from the
+origin to a destination in the graph search problem corresponds to constructing a cycle in N 1 arc addition
+steps, and at the end incurring the cost of the cycle.
+Let us now use as base heuristic the nearest neighbor method. The corresponding rollout algorithm operates
+as follows: After k iterations, a path {i1 , . . . , ik } consisting of distinct nodes has been constructed. At the next
+iteration, the nearest neighbor heuristic is run starting from each of the paths of the form {i1 , . . . , ik , i} where
+i ⇧= i1 , . . . , ik , and a corresponding cycle is obtained. The node ik+1 of the path is selected to be the node i that
+corresponds to the best cycle thus obtained.
+
+2.1
+
+Termination and Sequential Consistency
+
+The rollout algorithm RH is said to be terminating if it is guaranteed to terminate finitely starting from
+any node. Contrary to the base heuristic H, which by definition, has the property that it yields a path
+terminating at a destination starting from any node, the rollout algorithm RH need not have this property
+in the absence of additional conditions. The termination question can usually be resolved quite easily, and
+a few different methods by which this can be done will now be discussed.
+One important case where RH is terminating is when the graph is acyclic, since then the nodes of the
+path generated by RH cannot be repeated within the path, and their number is bounded by the number of
+nodes in N . As a first step towards developing another case where RH is terminating, consider the following
+definition, which will also set the stage for further analysis of the properties of RH.
+Definition 1: The base heuristic H is said to be sequentially consistent if for every node i, it has the
+following property: If H generates the path (i, i1 , . . . , im , i) when it starts at i, it generates the path
+(i1 , . . . , im , i) when it starts at the node i1 .
+6
+
+Thus H is sequentially consistent if all the nodes of a path that it generates have the same projection.
+There are many examples of sequentially consistent algorithms that are used as heuristics in combinatorial
+optimization, including the following.
+Example 3: (Greedy Algorithms as Base Heuristics)
+Consider a function F , which for each node i, provides a scalar estimate F (i) of the optimal cost starting from i,
+that is, the minimal cost g(i) that can be obtained with a path that starts at i and ends at one of the destination
+nodes i ⌅ N . Then F can be used to define a base heuristic, called the greedy algorithm with respect to F , as
+follows:
+The greedy algorithm starts at a node i with the (degenerate) path that consists of just node i. At the
+typical step, given a path (i, i1 , . . . , im ), where im is not a destination, the algorithm adds to the path a node
+im+1 such that
+im+1 ⌅ arg min F (j).
+(2.3)
+j⇥N (im )
+
+If im+1 is a destination, the algorithm terminates with the path (i, i1 , . . . , im , im+1 ). Otherwise, the process is
+repeated with the path (i, i1 , . . . , im , im+1 ) replacing (i, i1 , . . . , im ).
+An example of a greedy algorithm is the nearest neighbor heuristic for the traveling salesman problem (cf.
+Example 2). Recall from that example that nodes of the graph search problem correspond to paths (sequences of
+distinct cities), and a transition to a neighbor node corresponds to adding one more unvisited city to the end of
+the current path. The function F in the nearest neighbor heuristic specifies the cost of the addition of the new
+city.
+It is also interesting to note that by viewing F as a cost-to-go approximation, the greedy algorithm may
+be considered to be a special type of one-step lookahead policy. Furthermore, if F (j) is chosen to be the cost
+obtained by some base heuristic starting from j, then the greedy algorithm becomes the corresponding rollout
+algorithm. Thus, it may be said that the rollout algorithm is a special case of a greedy algorithm. However, the
+particular choice of F used in the rollout algorithm is responsible for special properties that are not shared by
+other types of greedy algorithms.
+Let us denote by H the greedy algorithm described above and assume that it terminates starting from every
+node (this has to be verified independently). Let us also assume that whenever there is a tie in the minimization
+of Eq. (2.3), H resolves the tie in a manner that is fixed and independent of the starting node i of the path, e.g.,
+by resolving the tie in favor of the numerically smallest node j that attains the minimum in Eq. (2.3). Then it
+can be seen that H is sequentially consistent, since by construction, every node on a path generated by H has the
+same projection.
+
+For a sequentially consistent base heuristic H, a restriction will be imposed in the way the rollout
+algorithm RH resolves ties in selecting the next node on its path; this restriction will guarantee that RH is
+terminating. In particular, suppose that after m steps, RH has produced the node sequence (s, i1 , . . . , im ),
+and that the path generated by H starting from im is (im , im+1 , im+2 , . . . , i). Suppose that among the
+neighbor set N (im ), the node im+1 attains the minimum in the selection test
+min H(j),
+
+j⌅N (im )
+
+(2.4)
+
+but there are also some other nodes, in addition to im+1 , that attain this minimum. Then, the tie is broken in
+favor of im+1 , i.e., the next node added to the current sequence (s, i1 , . . . , im ) is im+1 . Under this convention
+for tie-breaking, the following proposition shows that the rollout algorithm RH terminates at a destination
+and yields a cost that is no larger than the cost yielded by the base heuristic H.†
+† For an example where this convention for tie-breaking is not observed and as a consequence RH does not
+terminate, assume that there is a single destination d and that all other nodes are arranged in a cycle. Each nondestination node i has two outgoing arcs: one arc that belongs to the cycle, and another arc which is (i, d). Let H
+be the (sequentially consistent) base heuristic that starting from a node i ⇧= d, generates the path (i, d). When the
+7
+
+Proposition 1: Let the base heuristic H be sequentially consistent. Then the rollout algorithm RH is
+terminating. Furthermore, if (i1 , . . . , im̃ ) is the path generated by RH starting from a non-destination
+node i1 and ending at a destination node im̃ , the cost of RH starting from i1 is less or equal to the cost
+of H starting from i1 . In particular,
+H(i1 ) ⌅ H(i2 ) ⌅ · · · ⌅ H(im̃ 1 ) ⌅ H(im̃ ).
+
+(2.5)
+
+Furthermore, for all m = 1, . . . , m̃,
+⌥
+H(im ) = min H(i1 ), min H(j), . . . ,
+j⌅N (i1 )
+
+min
+
+j⌅N (im 1 )
+
+H(j) .
+
+(2.6)
+
+Proof: Let im and im+1 be two successive nodes generated by RH, and let (im , i⇤m+1 , i⇤m+2 , . . . , im ) be the
+path generated by H starting from im , where im is the projection of im . Then, since H is sequentially
+consistent,
+H(im ) = H(i⇤m+1 ) = g(im ).
+Furthermore, since i⇤m+1 ⇧ N (im ), using the definition of RH [cf. Eq. (2.1)],
+H(i⇤m+1 ) ⌅
+
+min H(j) = H(im+1 ).
+
+j⌅N (im )
+
+Combining the last two relations,
+H(im ) ⌅ H(im+1 ) =
+
+min H(j).
+
+j⌅N (im )
+
+(2.7)
+
+To show that RH is terminating, note that in view of Eq. (2.7), either H(im ) > H(im+1 ), or else
+H(im ) = H(im+1 ). In the latter case, in view of the convention for breaking ties that occur in Eq. (2.4) and
+the sequential consistency of H, the path generated by H starting from im+1 is the tail portion of the path
+generated by H starting from im , and has one arc less. Thus the number of nodes generated by RH between
+successive times that the inequality H(im ) > H(im+1 ) holds is finite. On the other hand, the inequality
+H(im ) > H(im+1 ) can occur only a finite number of times, since the number of destination nodes is finite,
+and the destination node of the path generated by H starting from im cannot be repeated if the inequality
+H(im ) > H(im+1 ) holds. Therefore, RH is terminating.
+Finally, if (i1 , . . . , im̃ ) is the path generated by RH, the relation (2.7) implies the desired relations (2.5)
+and (2.6). Q.E.D.
+Proposition 1 shows that in the sequentially consistent case, the rollout algorithm RH has an important
+“automatic cost sorting” property, whereby it follows the best path generated by the base heuristic H. In
+particular, when RH generates a path (i1 , . . . , im̃ ), it does so by using H to generate a collection of other paths
+and corresponding projections starting from all the successor nodes of the intermediate nodes i1 , . . . , im̃ 1 .
+However, (i1 , . . . , im̃ ) is guaranteed to be the best among this path collection and im̃ has minimal cost
+among all generated projections [cf. Eq. (2.6)]. Of course this does not guarantee that the path generated
+by RH will be a near-optimal path, because the collection of paths generated by H may be “poor.” Still,
+the property whereby RH at all times follows the best path found so far is intuitively reassuring.
+The following example illustrates the preceding concepts.
+terminal node of the path is node i, the rollout algorithm RH compares the two neighbors of i, which are d and the
+node next to i on the cycle, call it j. Both neighbors have d as their projection, so there is tie in Eq. (2.4). It can be
+seen that if RH breaks ties in favor of the neighbor j that lies on the cycle, then RH continually repeats the cycle
+and never terminates.
+
+8
+
+Example 4: (One-Dimensional Walk)
+Consider a person who walks on a straight line and at each time period takes either a unit step to the left or a
+unit step to the right. There is a cost function assigning cost g(i) to each integer i. Given an integer starting
+point on the line, the person wants to minimize the cost of the point where he will end up after a given and fixed
+number N of steps.
+This problem can be formulated as a graph search problem of the type discussed in the preceding section.
+In particular, without loss of generality, assume that the starting point is the origin, so that the person’s position
+after n steps will be some integer in the interval [ n, n]. The nodes of the graph are identified with pairs (k, m),
+where k is the number of steps taken so far (k = 1, . . . , N ) and m is the person’s position (m ⌅ [ k, k]). A
+node (k, m) with k < N has two outgoing arcs with end nodes (k + 1, m 1) (corresponding to a left step) and
+(k + 1, m + 1) (corresponding to a right step). The starting state is (0, 0) and the terminating states are of the
+form (N, m), where m is of the form N 2l and l ⌅ [0, N ] is the number of left steps taken.
+Let the base heuristic H be defined as the algorithm, which, starting at a node (k, m), takes N k successive
+steps to the right and terminates at the node (N, m + N k). Note that H is sequentially consistent. The rollout
+algorithm RH, at node (k, m) compares the cost of the destination node (N, m + N k) (corresponding to taking
+a step to the right and then following H) and the cost of the destination node (N, m + N k 2) (corresponding
+to taking a step to the left and then following H).
+Let us say that an integer i ⌅ [ N + 2, N 2] is a local minimum if g(i 2) ⇤ g(i) and g(i) ⇥ g(i + 2). Let
+us also say that N (or N ) is a local minimum if g(N 2) ⇥ g(N ) [or g( N ) ⇥ g( N + 2), respectively]. Then
+it can be seen that starting from the origin (0, 0), RH obtains the local minimum that is closest to N , (see Fig.
+3). This is no worse (and typically better) than the integer N obtained by H. This example illustrates how RH
+may exhibit “intelligence” that is totally lacking from H, and is in agreement with the result of Prop. 1.
+
+(0,0)
+
+(N,-N)
+
+(N,0)
+g(i)
+
+-N
+
+0
+
+_
+i
+
+_
+i
+
+(N,N)
+
+N-2 N
+
+Figure 3: Illustration of the path generated by the rollout algorithm RH in
+Example 4. The algorithm keeps moving to the left up to the time where the base
+heuristic H generates two destinations (N, i) and (N, i 2) with g(i) ⇥ g(i 2).
+Then it continues to move to the right ending at the destination (N, i), which
+corresponds to the local minimum closest to N .
+
+9
+
+i
+
+Sequential Improvement
+It is possible to show that the rollout algorithm improves on the base heuristic (cf. Prop. 1) under weaker
+conditions. To this end the following definition is introduced.
+
+Definition 2: The base heuristic H is said to be sequentially improving if for every non-destination
+node i,
+H(i) ⌅ min H(j).
+(2.8)
+j⌅N (i)
+
+It can be seen that a sequentially consistent H is also sequentially improving, since sequential consistency implies that H(i) is equal to one of the values H(j), j ⇧ N (i). The following proposition generalizes
+Prop. 1.
+
+Proposition 2: Let the base heuristic H be sequentially improving, and assume that the rollout algorithm RH is terminating. Let (i1 , . . . , im̃ ) be the path generated by RH starting from a non-destination
+node i1 and ending at a destination node im̃ . Then the cost of RH starting from i1 is less or equal to
+the cost of H starting from i1 . In particular, for all m = 1, . . . , m̃,
+⌥
+H(im ) = min H(i1 ), min H(j), . . . ,
+j⌅N (i1 )
+
+Proof: For each m = 1, . . . , m̃
+
+1,
+
+H(im ) ⌅
+
+min
+
+j⌅N (im 1 )
+
+H(j) .
+
+(2.9)
+
+min H(j),
+
+j⌅N (im )
+
+by the sequential improvement assumption, while
+min H(j) = H(im+1 ),
+
+j⌅N (im )
+
+by the definition of the rollout algorithm. These two relations imply Eq. (2.9). Since the cost of RH starting
+from i1 is H(im̃ ), the result follows. Q.E.D.
+
+Example 5: (One-Dimensional Walk – Continued)
+Consider the one-dimensional walk problem of Example 4, and let H be defined as the algorithm that, starting
+at a node (k, m), compares the cost g(m + N k) (corresponding to taking all of the remaining N k steps to
+the right) and the cost g(m N + k) (corresponding to taking all of the remaining N k steps to the left), and
+accordingly moves to node
+(N, m + N
+
+k)
+
+if
+
+g(m + N
+
+N + k)
+
+if
+
+g(m
+
+k) ⇥ g(m
+
+N + k),
+
+or to node
+(N, m
+
+N + k) < g(m + N
+
+k).
+
+It can be seen that H is not sequentially consistent, but is instead sequentially improving. Using Eq. (2.9), it
+follows that starting from the origin (0, 0), RH obtains the global minimum of g in the interval [ N, N ], while H
+obtains the better of the two points N and N .
+
+10
+
+Proposition 2 actually follows from a general equation for the cost of the path generated by the rollout
+algorithm, which holds for any base heuristic (not necessarily one that is sequentially improving). This is
+given in the following proposition.
+
+Proposition 3: Assume that the rollout algorithm RH is terminating. Let (i1 , . . . , im̃ ) be the path
+generated by RH starting from a non-destination node i1 and ending at a destination node im̃ . Then
+the cost of RH starting from i1 is equal to
+H(i1 ) + i1 + · · · + im̃ 1 ,
+where for every non-destination node i,
+i =
+
+min H(j)
+
+j⌅N (i)
+
+H(i).
+
+Proof: By the definition of the rollout algorithm
+H(im ) + im =
+
+min H(j) = H(im+1 ),
+
+j⌅N (im )
+
+m = 1, . . . , m̃
+
+1.
+
+By adding these equations over m,
+H(i1 ) + i1 + · · · + im̃ 1 = H(im̃ ).
+Since the cost of RH starting from i1 is H(im̃ ), the result follows.
+
+Q.E.D.
+
+If the base heuristic is sequentially improving, there holds i ⇤ 0 for all non-destination nodes i, so it
+follows from Prop. 3 that the cost of the rollout algorithm is less or equal to the cost of the base heuristic
+(cf. Prop. 2).
+The Fortified Rollout Algorithm
+A variant of the rollout algorithm will now be described, which implicitly uses a sequentially improving base
+heuristic, so that it has the cost improvement property of Prop. 2. This variant, called the fortified rollout
+algorithm, and denoted by RH, starts at the origin s, and after m steps, maintains, in addition to the current
+sequence of nodes (s, i1 , . . . , im ), a path
+P (im ) = (im , i⇤m+1 , . . . , i⇤k ),
+ending at a destination i⇤k . Roughly speaking, the path P (im ) is the tail portion of the best path found
+after the first m steps of the algorithm, in the sense that the destination i⇤k has minimal cost over all the
+projections of nodes calculated thus far.
+In particular, initially P (s) is the path generated by the base heuristic H starting from s. At the
+typical step of the fortified rollout algorithm RH, a node sequence (s, i1 , . . . , im ) has been constructed and
+the path P (im ) = (im , i⇤m+1 , . . . , i⇤k ) is available, where im is not a destination. Then, if
+min H(j) < g(i⇤k ),
+
+j⌅N (im )
+
+RH adds to the node sequence (s, i1 , . . . , im ) the node
+im+1 ⇧ arg min H(j),
+j⌅N (im )
+
+11
+
+(2.10)
+
+and sets P (im+1 ) to the path generated by H, starting from im+1 . On the other hand, if
+min H(j) ⌅ g(i⇤k ),
+
+(2.11)
+
+j⌅N (im )
+
+RH adds to the node sequence (s, i1 , . . . , im ) the node
+im+1 = i⇤m+1 ,
+and sets P (im+1 ) to the path (im+1 , i⇤m+2 , . . . , i⇤k ). If im+1 is a destination, RH terminates, and otherwise RH
+repeats the process with (s, i1 , . . . , im+1 ) replacing (s, i1 , . . . , im ), and P (im+1 ) replacing P (im ), respectively.
+The idea behind the construction of RH is to follow the path P (im ) unless a path of lower cost is
+discovered through Eq. (2.10). It can be shown that RH may be viewed as the rollout algorithm RH
+corresponding to a modified version of H, called fortified H, and denoted H. This algorithm is applied to
+a slightly modified version of the original problem, which involves an additional downstream neighbor for
+each node im that is generated in the course of the algorithm RH and for which the condition (2.11) holds.
+For every such node im , the additional neighbor is a copy of i⇤m+1 , and the path generated by H starting
+from this copy is (i⇤m+1 , . . . , i⇤k ). From every other node, the path generated by H is the same as the path
+generated by H.
+It can be seen that H is sequentially improving, so that RH is terminating and has the automatic cost
+sorting property of Prop. 2; that is,
+⌥
+H(im ) = min H(i1 ), min H(j), . . . , min H(j) .
+j⌅N (i1 )
+
+j⌅N (im 1 )
+
+The above property can also be easily verified directly, using the definition of RH. Finally, it can be seen
+that when H is sequentially consistent, the rollout algorithm RH and its fortified version RH coincide.
+Using Multiple Base Heuristics - Parallel Rollout
+In many problems, several promising path construction heuristics may be available. It is then possible to
+use all of these heuristics in parallel within the rollout framework, essentially by combining them into a
+single “superheuristic.” In particular, let us assume that K algorithms H1 , . . . , HK are available. The kth of
+these algorithms, given a non-destination node i, produces a path (i, i1 , . . . , im , i) that ends at a destination
+node i, and the corresponding cost is denoted by Hk (i) = g(i). The K algorithms can be incorporated in a
+generalized version of the rollout algorithm, which uses the minimal cost
+H(i) =
+
+min
+
+k=1,...,K
+
+Hk (i),
+
+(2.12)
+
+in place of the cost obtained by any one of the K algorithms H1 , . . . , HK .
+In particular, the algorithm starts with the origin node s. At the typical step, given a node sequence
+(s, i1 , . . . , im ), where im is not a destination, the algorithm adds to the sequence a node im+1 such that
+im+1 ⇧ arg min H(j).
+j⌅N (im )
+
+If im+1 is a destination node, the algorithm terminates, and otherwise the process is repeated with the
+sequence (s, i1 , . . . , im , im+1 ) replacing (s, i1 , . . . , im ).
+An interesting property, which can be readily verified by using the definitions, is that if all the algorithms H1 , . . . , HK are sequentially improving, the same is true for H. This is evident from the fact that
+the heuristics run in parallel from a given node may be viewed as a single heuristic, which has the cost
+improvement property of Def. 2. The fortified version of the rollout algorithm RH easily generalizes for the
+12
+
+case of Eq. (2.12), by defining the path generated starting from a node i as the path generated by the path
+construction algorithm, which attains the minimum in Eq. (2.12).
+In an alternative version of the rollout algorithm that uses multiple path construction heuristics, the
+results of the K algorithms H1 , . . . , HK are weighted with some fixed scalar weights rk to compute H(i) for
+use in Eq. (2.1):
+K
+
+H(i) =
+
+rk Hk (i).
+
+(2.13)
+
+k=1
+
+The weights rk may be adjusted by trial and error, or more sophisticated techniques which may be found in
+the literature (see e.g., [6]).
+Extension for Intermediate Arc Costs
+Let us consider a variant of the graph search problem where in addition to the terminal cost g(i), there is
+a cost c(i, j) for a path to traverse an arc (i, j). Within this context, the cost of a path (i1 , i2 , . . . , in ) that
+starts at i1 and ends at a destination node in is redefined to be
+n 1
+
+g(in ) +
+
+c(ik , ik+1 ).
+
+(2.14)
+
+k=1
+
+Note that when the cost g(i) is zero for all destination nodes i, this is the problem of finding a shortest
+path from the origin node s to one of the destination nodes, with c(i, j) viewed as the length of arc (i, j).
+However, here we are interested in problems where the number of nodes is very large, and the use of the
+shortest path algorithms is impractical.
+One way to transform the problem with arc costs into one involving a terminal cost only is to redefine
+the graph of the problem so that nodes correspond to sequences of nodes in the original problem graph. Thus
+having arrived at node ik using path (i1 , . . . , ik ), the choice of ik+1 as the next node is viewed as a transition
+from (i1 , . . . , ik ) to (i1 , . . . , ik , ik+1 ). Both nodes (i1 , . . . , ik ) and (i1 , . . . , ik , ik+1 ) are viewed as nodes of a
+redefined graph. Furthermore, in this redefined graph, a destination node has the form (i1 , i2 , . . . , in ), where
+in is a destination node of the original graph, and has a cost given by Eq. (2.14).
+After the details are worked out, it can be seen that to recover our earlier algorithms and analysis, the
+cost of the heuristic algorithm H needs to be modified as follows: If the path (i1 , . . . , in ) is generated by H
+starting at i1 , then
+n 1
+
+H(i1 ) = g(in ) +
+
+c(ik , ik+1 ).
+k=1
+
+Furthermore, the rollout algorithm RH at node im selects as next node im+1 the node
+⇤
+⌅
+im+1 ⇧ arg min c(im , j) + H(j) ;
+j⌅N (im )
+
+[cf. Eq. (2.1)]. The definition of a sequentially consistent algorithm remains unchanged. Furthermore, Prop.
+1 remains unchanged except that Eqs. (2.5) and (2.6) are modified to read
+⇤
+⌅
+H(ik ) ⌅ c(ik , ik+1 ) + H(ik+1 ) = min c(ik , j) + H(j) , k = 1, . . . , m 1.
+j⌅N (ik )
+
+A sequentially improving algorithm should now be characterized by the property
+H(ik ) ⌅ c(ik , ik+1 ) + H(ik+1 ),
+
+where ik+1 is the next node on the path generated by H starting from ik . Furthermore, Prop. 2 remains
+unchanged, except that Eq. (2.9) is modified to read
+⇤
+⌅
+H(ik ) ⌅ min c(ik , j) + H(j) ,
+k = 1, . . . , m 1.
+j⌅N (ik )
+
+13
+
+Finally, the criterion minj⌅N (im ) H(j) < g(i⇤k ) [cf. Eq. (2.10)] used in the fortified rollout algorithm, given
+the sequence (s, i1 , . . . , im ), where im ⇧
+/ N , and the path P (im ) = (im , i⇤m+1 , . . . , i⇤k ), should be replaced by
+min
+
+⇤
+⌅
+c(im , j) + H(j) < g(i⇤k ) + c(im , i⇤m+1 ) +
+
+j⌅N (im )
+
+k 1
+
+c(i⇤l , i⇤l+1 ).
+l=m+1
+
+Rollout Algorithms with Multistep Lookahead
+It is possible to incorporate multistep lookahead into the rollout framework. To describe the case of 2-step
+lookahead, suppose that after m steps of the rollout algorithm, the current node sequence is (s, i1 , . . . , im ).
+Then the set of all 2-step-ahead neighbors of im is considered, defined as
+⇧
+⌃
+N2 (im ) = j ⇧ N | j ⇧ N (im ) and j ⇧ N , or j ⇧ N (n) for some n ⇧ N (im ) .
+
+The base heuristic H is then run starting from each j ⇧ N2 (im ) and the node j ⇧ N2 (im ) that has projection
+of minimum cost is found. Let im+1 ⇧ N (im ) be the node next to im on the (one- or two-arc) path from im
+to j. If im+1 is a destination node, the algorithm terminates. Otherwise, the process is repeated with the
+sequence (s, i1 , . . . , im , im+1 ) replacing (s, i1 , . . . , im ).
+Note that a fortified version of the rollout algorithm described above is possible along the lines described
+earlier. Also, it is possible to eliminate from the set N2 (im ) some of the 2-step neighbors of im that are
+judged less promising according to some heuristic criterion, in order to limit the number of applications of
+the base heuristic. This may be viewed as selective depth lookahead. Finally, the extension of the algorithm
+to lookahead of more than two steps is straightforward: the 2-step-ahead neighbor set N2 (im ) is simply
+replaced with a suitably defined k-step ahead neighbor set Nk (im ).
+Interpretation in Terms of DP
+Let us now reinterpret the graph-based rollout algorithm within the context of deterministic DP. The base
+heuristic will be viewed as a suboptimal policy, and the rollout algorithm will be viewed as a policy obtained
+by a process of policy improvement, provided the base heuristic is sequentially consistent.
+To this end, the graph search problem is cast as a sequential decision problem, where each node
+corresponds to a state of a dynamic system. At each non-destination node/state i, a node j must be selected
+from the set of neighbors N (i); then if j is a destination, the process terminates with cost g(j), and otherwise
+the process is repeated with j becoming the new state. The DP algorithm calculates for every node i, the
+minimal cost that can be achieved starting from i, that is, the smallest value of g(i) that can be obtained
+using paths that start from i and end at destination nodes i. This value, denoted J ⇥ (i), is the optimal
+cost-to-go starting at node i. Once J ⇥ (i) is computed for all nodes i, an optimal path (i1 , i2 , . . . , im ) can be
+constructed starting from any initial node/state i1 by successively generating nodes using the relation
+ik+1 ⇧ arg min J ⇥ (j),
+j⌅N (ik )
+
+k = 1, . . . , m
+
+1,
+
+(2.15)
+
+up to the point where a destination node im is encountered.†
+A base heuristic H defines a policy ⇥, i.e., an assignment of a successor node to any non-destination
+node. However, starting from a given node i, the cost of ⇥ need not be equal to H(i) because if a
+path (i1 , i2 , i3 , . . . , im ) is generated by H starting from node i1 , it is not necessarily true that the path
+(i2 , i3 , . . . , im ) is generated by the base heuristic starting from i2 . Thus the successor node chosen at node
+i2 by policy ⇥ may be different than the one used in the calculation of H(i1 ). On the other hand, if H
+† It is assumed here that there are no termination/cycling di⇤culties of the type illustrated in the footnote
+following Example 3.
+14
+
+is sequentially consistent, the cost of policy ⇥ starting from a node i is H(i), since sequential consistency
+implies that the path that the base heuristic generates starting at the successor node is part of the path it
+generates at the predecessor node. It turns out that the cost improvement property of the rollout algorithm
+in the sequentially consistent case is a special case of a cost improvement property for rollout algorithms
+that holds for more general DP contexts, including stochastic ones.
+Generally, in the DP context the rollout algorithm RH is viewed as a one-step lookahead policy that
+uses H(j) as a cost-to-go approximation from state j. In some cases, H(j) is the cost of some policy (in the
+DP sense), such as for example when H is sequentially consistent, as explained above. In general, however,
+this need not be so, in which case H(j) can be viewed as a convenient cost-to-go approximation that is derived
+from the base heuristic. Still, the rollout algorithm RH may improve on the cost of the base heuristic (e.g.,
+when H is sequentially improving, cf. Prop. 2).
+3.
+
+APPLICATIONS IN DISCRETE OPTIMIZATION
+Finally, to provide some perspective on the rollout methodology, let us explore the connections with some
+important discrete optimization problems and methods. In particular, let us consider the generic discrete
+optimization problem of minimizing a cost function g(x) over a finite set X of feasible solutions. This
+problem will be reformulated as a graph search problem. It may be noted that several reformulations are
+possible, and different choices of the underlying graph give rise to different rollout algorithms. Thus, it is
+important to select a reformulation that matches the type of rollout algorithm one wishes to develop. Some
+reformulations and corresponding rollout algorithms will be discussed in what follows, and these algorithms
+will be related to some general computational methods.
+Suppose that each solution x has N components; that is, it has the form x = (x1 , . . . , xN ), where N is
+a positive integer. For example, in a 0-1 integer programming problem, each component xk may correspond
+to a single variable that can take the values 0 or 1, or alternatively it may correspond to a multidimensional
+vector involving several variables each taking the values 0 or 1. In a network optimization problem, each
+component xk may correspond to a vector involving the flows of several arcs of the network. One way to
+reformulate the problem
+minimize g(x)
+subject to x ⇧ X
+into the framework of the search problem is to introduce an acyclic graph involving an artificial origin node
+s and N subsets of nodes I1 , . . . , IN . In particular, for each feasible solution x ⇧ X and each k = 1, . . . , N ,
+the node set Ik contains a node (x(k), k), where x(k) consists of the first k components of x [two feasible
+solutions x, x⇤ ⇧ X whose first k components are identical are mapped onto the same node (x(k), k) of Ik ].
+Each node (x(N ), N ) ⇧ IN is viewed as a destination node of the graph and has cost g(x), where x is the
+feasible solution mapping onto x(N ). The origin node is connected with an arc to each node (x(1), 1) ⇧ I1 .
+Furthermore, for every k = 1, . . . , N 1, each node (x(k), k) ⇧ Ik is connected with an arc to each node
+(x(k + 1), k + 1) ⇧ Ik+1 such that the components x1 , . . . , xk of x(k) and the first k components x(k + 1) are
+identical. A few observations may be made:
+(a) Selecting one neighbor out of the set of neighbors of the origin node amounts to selecting the 1st
+component x1 of x, while selecting one neighbor out of the set of neighbors of a node (x(k), k) ⇧ Ik
+amounts to selecting the (k + 1)st component xk+1 of x.
+(b) Choosing a path that starts at s and ends at a destination node (x(N ), N ) amounts to a sequential
+choice of the components of x: the 1st component is chosen when the arc connecting s to a node
+(x(1), 1) ⇧ I1 is selected, and the kth component is chosen (k = 2, . . . , N ) when the arc connecting a
+node (x(k 1), k 1) ⇧ Ik 1 to a node (x(k), k) ⇧ Ik is selected. For each k = 2, . . . , N , the first k 1
+components of x(k 1) and x(k) are identical.
+15
+
+(c) Any base heuristic that starts at node s amounts to a sequential choice of the components xk , k =
+1, . . . , N , so that the final result (x1 , . . . , xN ) is feasible (belongs to X). Any base heuristic that
+starts at a non-destination node (x(k), k) ⇧ Ik , amounts to a sequential choice of the components
+xk+1 , . . . , xN , so that after they are added to the k components x1 , . . . , xk specified by x(k), the final
+result (x1 , . . . , xN ) is feasible.
+Given a base heuristic H, as described in (c) above, the kth step of the rollout algorithm RH minimizes g with respect to the kth component xk , while keeping the preceding components x1 , . . . , xk 1 at the
+values selected at the preceding steps, and using the base heuristic H to supply the remaining components
+xk+1 , . . . , xN .
+Here is an example where the base heuristic is trivial, and the rollout algorithm leads to a well-known
+method.
+Example 6: (Coordinate Descent)
+Assume that the set X has the (Cartesian product) form
+
+⇧
+
+⌃
+
+(x1 , . . . , xN ) | xk ⌅ Xk , k = 1, . . . , N ,
+
+(3.1)
+
+where Xk , k = 1, . . . , N , are some given finite sets. In principle, there is no loss of generality in this assumption
+since sets Xk such that the set (3.1) contains X can always be found, and the cost g(x) can be set to a very high
+value for every x ⌅
+/ X that belongs to the set (3.1).
+Let x be some given feasible solution. Consider the base heuristic that operates as follows:
+
+(a) Starting from the origin s, it generates the solution x.
+(b) Starting from (x(k), k) ⌅ Ik , k = 1, . . . , N1 , it generates the solution that has the first k components equal
+to the corresponding k components of x(k), and the last N k components equal to the corresponding last
+N k components of x.
+Then, it can be seen that the rollout algorithm is equivalent to a coordinate descent method that starts from x,
+and yields (x̃1 , . . . , x̃N ) according to
+x̃1 ⌅ arg min g(x1 , x2 , . . . , xN ),
+x1 ⇥X1
+
+x̃k ⌅ arg min g(x̃1 , . . . , x̃k 1 , xk , xk+1 , . . . , xN ),
+xk ⇥Xk
+
+k = 2, . . . , N.
+
+Note that a more general version of coordinate descent is obtained by using a base heuristic similarly defined
+by multiple solutions x1 , . . . , xm in place of x. Then the preceding equation are replaced by
+
+⇧
+
+⌃
+
+m
+x̃1 ⌅ arg min min g(x1 , x12 , . . . , x1N ), . . . , g(x1 , xm
+2 , . . . , xN ) ,
+x1 ⇥X1
+
+⇧
+
+⌃
+
+m
+x̃k ⌅ arg min min g(x̃1 , . . . , x̃k 1 , xk , x1k+1 , . . . , x1N ), . . . , g(x̃1 , . . . , x̃k 1 , xk , xm
+k+1 , . . . , xN ) ,
+xk ⇥Xk
+
+k = 2, . . . , N.
+
+The preceding example provides a baseline. It shows what can be achieved in a coordinate-based
+formulation of the rollout algorithm, even with a very trivial base heuristic. One can expect much better
+performance with more sophisticated base heuristics.
+There are interesting variations of the coordinate-based reformulation of the generic discrete optimization problem into a graph search problem. In particular, the problem has been reformulated so that the
+components of x1 , . . . , xN are selected in a specific order. Alternative orders are possible, and in fact an
+attempt to optimize the choice of order may be effected through the rollout algorithm. This can be done by
+introducing the index of the component of x as part of the specification of a node. In particular, the nodes
+16
+
+in the “layer” Ik of the graph may have the form (x(k), k, n) where n specifies the next component to be
+chosen by the rollout algorithm.
+Let us also explore the relation between rollout algorithms and local search methods, which are a broad
+and important class of heuristics for the generic discrete optimization problem of minimizing g(x) over the
+finite set X. A local search method uses the notion of a neighborhood N (x) of a feasible solution x ⇧ X,
+which is a (usually small) subset of X, containing solutions that are “close” to x in some sense.
+In particular, given a solution x, the method selects among the solutions in the neighborhood N (x)
+a successor solution x⇤ , according to some rule. The process is then repeated with x⇤ replacing x (or stops
+when some termination criterion is met). Thus a local search method is characterized by:
+(a) The method for choosing a starting solution.
+(b) The definition of the neighborhood N (x) of a solution x.
+(c) The rule for selecting a successor solution from within N (x).
+(d) The termination criterion.
+The definition of a neighborhood often involves intricate calculations and suboptimizations that aim
+to bring to consideration promising neighbors. While the definition of neighborhood is typically problemdependent, some general classes of procedures for generating neighborhoods have been developed. An example of such a class is the well-known genetic algorithms.
+The criterion for selecting a solution from within a neighborhood is usually the cost of the solution,
+so that a neighbor of minimum cost is selected. Then, by assuming that each x ⇧ X belongs to its own
+neighborhood N (x), the local search is cost improving, and effectively stops at a local minimum, that is, a
+solution that is no worse than all other solutions within its neighborhood. Attention will be restricted to
+such methods, but there are important alternatives, such as in the methods of tabu search and simulated
+annealing, which will not be discussed here.
+Consider a cost improving local search method, as described above, and let N (x) and x be the neighborhood definition and the starting point of the method, respectively. Let us assume that there is a given
+limit M to the number of iterations, so that the method terminates when it reaches this limit (if it encounters a local minimum before M iterations are performed, it may be assumed that it simply repeats the local
+minimum, until the limit M is reached). We will provide a reformulation of the problem into the framework
+of the search problem of the preceding section, so that the rollout algorithm becomes identical to the local
+search method described above.
+To this end, an acyclic graph is introduced, which consists of an origin node that corresponds to the
+starting solution x, and M subsets of nodes I1 , I2 , . . . , IM , which may be viewed as replicas of the feasible
+set X. In particular, for each feasible solution x ⇧ X and each k = 1, . . . , M , the node set Ik contains a node
+(x, k). Each node (x, M ) ⇧ IM is viewed as a destination node of the graph and has cost g(x). The origin
+node is connected with an arc to each node (x, 1) such that x ⇧ N (x), while for every k = 1, . . . , M 1, each
+node (x, k) ⇧ Ik is connected with an arc to each node (x⇤ , k + 1) ⇧ Ik+1 such that x⇤ ⇧ N (x).
+Consider now the base heuristic that starting from a node (x, k) ⇧ Ik , generates the destination (x, N )
+with cost g(x). Then, it can be seen that the rollout algorithm reduces to the local search method. In
+particular, the rollout algorithm, given x after k steps [i.e., when at node (x, k)], it considers all x⇤ in the
+neighborhood N (x), and runs the base heuristic starting at x⇤ and yielding the cost g(x⇤ ). It then selects
+x⇤ ⇧ N (x) that yields the minimum cost. This is exactly what the local search method also does.
+The preceding reformulation suggests that rollout algorithms can provide an additional dimension
+to local search methods, whereby intermediate infeasible solutions may be generated, and these solutions
+are evaluated through their projections, which are obtained through a base heuristic. Thus, while local
+search methods rely on a single construct, namely neighborhoods, for selecting successive solutions, rollout
+algorithms bring to bear two independent constructs, neighborhoods and base heuristics. It should be
+mentioned also that rollout algorithms embody some additional important methodological ideas, namely
+17
+
+DP and policy iteration. For this reason, rollout algorithms admit natural extensions to stochastic control
+problems, for which there is no known analog of a local search method.
+
+4.
+
+NOTES AND SOURCES
+The main idea of rollout algorithms, obtaining an improved policy starting from some other suboptimal
+policy using a one-time policy improvement, has appeared in several DP application contexts. In the context
+of game-playing computer programs, it has been proposed by Abramson [1] and by Tesauro and Galperin
+[24]. The name “rollout” was coined by Tesauro in specific reference to rolling the dice in the game of
+backgammon. In Tesauro’s proposal, a given backgammon position is evaluated by “rolling out” many
+games starting from that position, using a simulator, and the results are averaged to provide a “score” for
+the position. The internet contains a lot of material on computer backgammon and the use of rollout, in
+some cases in conjunction with multistep lookahead and cost-to-go approximation.
+The application of rollout algorithms to discrete optimization problems has its origin in the neurodynamic programming work of the author and J. Tsitsiklis [6]. The formalization as a path construction
+algorithm, including the notions of sequential consistency, sequential improvement, fortified and parallel
+rollout, was given in the paper by Bertsekas, Tsitsiklis, and Wu [2]. The subsequent paper by Bertsekas
+and Castanon [3] considered its application to stochastic DP and stochastic scheduling. The analysis of the
+breakthrough problem (Example 1) is given in the DP book by Bertsekas [8], and is based on unpublished
+work by Bertsekas, Castanon, and Tsitsiklis. An analysis of the optimal policy and some suboptimal policies
+for this problem is given by Pearl [18]. A discussion of rollout algorithms as applied to network optimization
+problems may be found in the author’s network optimization book [7].
+For applications of rollout algorithms, see Christodouleas [11], Duin and Voss [12], Secomandi [21],
+[22], [23], Ferris and Voelker [13], [14], McGovern, Moss, and Barto [16], Savagaonkar, Givan, and Chong
+[19], Bertsimas and Popescu [5], Guerriero and Mancini [15], Tu and Pattipati [25], Wu, Chong, and Givan
+[26], Chang, Givan, and Chong [10], Meloni, Pacciarelli, and Pranzo [17], Yan, Diaconis, Rusmevichientong,
+and Van Roy [27], Besse and Chaib-draa [4], and Sun, Zhao, Lun, and Tomastik [20]. These works discuss a
+broad variety of applications and case studies, and generally report positive computational experience. The
+survey [9] discusses rollout algorithms from a control theory point of view, and explores its close connection
+with model predictive control (MPC).
+
+5.
+
+REFERENCES
+[1] Abramson, B., 1990. “Expected-Outcome: A General Model of Static Evaluation,” IEEE Transactions
+on Pattern Analysis and Machine Intelligence, Vol. 12, pp. 182-193.
+[2] Bertsekas, D. P., Tsitsiklis, J. N., and Wu, C., 1997. “Rollout Algorithms for Combinatorial Optimization,” Heuristics, Vol. 3, pp. 245-262.
+[3] Bertsekas, D. P., and Castanon, D. A., 1999. “Rollout Algorithms for Stochastic Scheduling Problems,”
+Heuristics, Vol. 5, pp. 89-108.
+[4] Besse, C., and Chaib-draa, B., 2008. “Parallel Rollout for Online Solution of DEC-POMDPs,” Proc. of
+21st International FLAIRS Conference, pp. 619-624.
+[5] Bertsimas, D., and Popescu, I., 2003. “Revenue Management in a Dynamic Network Environment,”Transportation Science, Vol. 37, pp. 257-277.
+[6] Bertsekas, D. P., and Tsitsiklis, J. N., 1996. Neuro-Dynamic Programming, Athena Scientific, Belmont,
+MA.
+18
+
+[7] Bertsekas, D. P., 1998. Network Optimization: Continuous and Discrete Models, Athena Scientific, Belmont, MA.
+[8] Bertsekas, D. P., 2005. Dynamic Programming and Optimal Control, Vol. I, Athena Scientific, Belmont,
+MA.
+[9] Bertsekas, D. P., 2005. “Dynamic Programming and Suboptimal Control: A Survey from ADP to MPC,”
+in Fundamental Issues in Control, European J. of Control, Vol. 11, Nos. 4-5.
+[10] Chang, H. S., Givan, R. L., and Chong, E. K. P., 2004. “Parallel Rollout for Online Solution of Partially
+Observable Markov Decision Processes,” Discrete Event Dynamic Systems, Vol. 14, pp. 309-341.
+[11] Christodouleas, J. D., 1997. “Solution Methods for Multiprocessor Network Scheduling Problems with
+Application to Railroad Operations,” Ph.D. Thesis, Operations Research Center, Massachusetts Institute of
+Technology.
+[12] Duin, C., and Voss, S., 1999. “The Pilot Method: A Strategy for Heuristic Repetition with Application
+to the Steiner Problem in Graphs,” Networks, Vol. 34, pp. 181191.
+[13] Ferris, M. C., and Voelker, M. M., 2002. “Neuro-Dynamic Programming for Radiation Treatment Planning,” Numerical Analysis Group Research Report NA-02/06, Oxford University Computing Laboratory,
+Oxford University.
+[14] Ferris, M. C., and Voelker, M. M., 2004. “Fractionation in Radiation Treatment Planning,” Mathematical
+Programming B, Vol. 102, pp. 387-413.
+[15] Guerriero, F., and Mancini, M., 2003. “A Cooperative Parallel Rollout Algorithm for the Sequential
+Ordering Problem,” Parallel Computing, Vol. 29, pp. 663-677.
+[16] McGovern, A., Moss, E., and Barto, A., 2002. “Building a Basic Building Block Scheduler Using Reinforcement Learning and Rollouts,” Machine Learning, Vol. 49, pp. 141-160.
+[17] Meloni, C., Pacciarelli, D., and Pranzo, M., 2004. “A Rollout Metaheuristic for Job Shop Scheduling
+Problems,” Annals of Operations Research, Vol. 131, pp. 215-235.
+[18] Pearl, J., 1984. Heuristics, Addison-Wesley, Reading, MA.
+[19] Savagaonkar, U., Givan, R., and Chong, E. K. P., 2002. “Sampling Techniques for Zero-Sum, Discounted
+Markov Games,” in Proc. 40th Allerton Conference on Communication, Control and Computing, Monticello,
+Ill.
+[20] Sun, T., Zhao, Q., Lun, P., and Tomastik, R., 2008. “Optimization of Joint Replacement Policies for
+Multipart Systems by a Rollout Framework, IEEE Transactions on Automation Science and Engineering,
+Vol. 5, pp. 609619.
+[21] Secomandi, N., 2000. “Comparing Neuro-Dynamic Programming Algorithms for the Vehicle Routing
+Problem with Stochastic Demands,” Computers and Operations Research, Vol. 27, pp. 1201-1225.
+[22] Secomandi, N., 2001. “A Rollout Policy for the Vehicle Routing Problem with Stochastic Demands,”
+Operations Research, Vol. 49, pp. 796-802.
+[23] Secomandi, N., 2003. “Analysis of a Rollout Approach to Sequencing Problems with Stochastic Routing
+Applications,” J. of Heuristics, Vol. 9, pp. 321-352.
+[24] Tesauro, G., and Galperin, G. R., 1996. “On-Line Policy Improvement Using Monte Carlo Search,”
+presented at the 1996 Neural Information Processing Systems Conference, Denver, CO; also in M. Mozer et
+al. (eds.), Advances in Neural Information Processing Systems 9, MIT Press (1997).
+
+19
+
+[25] Tu, F., and Pattipati, K. R., 2003. “Rollout Strategies for Sequential Fault Diagnosis,” IEEE Trans. on
+Systems, Man and Cybernetics, Part A, pp. 86-99.
+[26] Wu, G., Chong, E. K. P., and Givan, R. L., 2003. “Congestion Control Using Policy Rollout,” Proc. 2nd
+IEEE CDC, Maui, Hawaii, pp. 4825-4830.
+[27] Yan, X., Diaconis, P., Rusmevichientong, P., and Van Roy, B., 2005. “Solitaire: Man Versus Machine,”
+Advances in Neural Information Processing Systems, Vol. 17, to appear.
+
+20
+
+

@@ -1,0 +1,1105 @@
+Efficient LLM Inference via Chunked Prefills
+Arney Agrawal2, Nitin Kedia l , Ashish Panwar l , Jayashree Mohan l , Nipun Kwatra l ,
+Bhargav S. Gulavani I, Alexey Tumanov 2, and Ramachandran Ramjee l
+1Microsoft Research India
+
+2Georgia Institute of Technology
+
+III
+
+Abstract
+
+C
+
+...
+
+_1.25
+
+Qj
+
+Large Language Model (LLM) inference serving faces a
+fundamental challenge due to the distinct characteristics of its
+two phases: compute-intensive pre fill and memory-intensive
+decode. Existing scheduling strategies often prioritize one
+phase over the other, leading to a difficult tradeoff between
+system throughput and request latency. Prefill-prioritizing
+schedulers improve throughput but introduce significant latency jitter (generation stalls) by interfering with ongoing
+decodes. Conversely, decode-prioritizing schedulers maintain
+low latency but underutilize GPU resources, resulting in low
+throughput. This paper revisits the technique of chunked prefills, demonstrating its efficacy in mitigating this tradeoff. By
+splitting large prefill computations into smaller, manageable
+chunks and interleaving them with decode operations using
+stall-free batching, we can leverage the compute slack inherent in the decode phase. This approach significantly improves
+serving capacity under strict latency constraints, minimizes
+generation stalls, and reduces pipeline bubbles in distributed
+deployments, enabling efficient and responsive inference.
+
+Qj
+
+cQj
+
+0 111
+
+1.00
+
+20K
+
+Qj Q) 0 .75
+III
+
+CI
+
+t riO .50
+
+III 10K
+
+c
+
+,Qcn
+
+!l
+
+E
+
+.25
+
+j::
+
+(a) Generation stall.
+
+(b) High tail latency.
+
+Figure 1: Yi-34B running on two AlOO GPUs serving 128 requests from arxiv-summarisation trace. Figure 1a highlights
+one of the many generation stalls lasting over several seconds
+in vLLM [19]. Figure 1b shows the impact of increasing
+load on tail latency. Sarathi-Serve improves throughput while
+eliminating generation stalls.
+
+sizes for subsequent decodes, thereby improving throughput.
+However, executing long prefills can significantly delay ongoing decode operations, leading to poor tail latency (high TimeBetween-Tokens, TBT) and noticeable generation stalls , as
+illustrated in Figure 1a. Conversely, older systems like FasterTransformer [3] prioritize completing decodes before starting
+new prefills, ensuring low TBT but sacrificing throughput due
+to smaller decode batches.
+
+1 Introduction
+The remarkable capabilities of Large Language Models
+(LLMs) [13, 14, 18, 20, 27] have fueled their rapid adoption across diverse applications, making LLM inference a
+dominant workload in modern data centers [7]. Optimizing
+the cost and user experience of LLM serving is paramount.
+LLM inference proceeds in two phases: an initial prefill phase
+that processes the input prompt in parallel to generate the
+first output token, followed by an iterative decode phase that
+generates subsequent tokens autoregressively, one at a time.
+The prefill phase is compute-bound, efficiently utilizing
+GPU resources, while the decode phase is memory-bound, often leaving compute units underutilized, especially at smaller
+batch sizes [1 9, 28]. This dichotomy creates a fundamental
+throughput-latency tradeoff for LLM serving systems. Schedulers like vLLM [19] prioritize prefills to maximize batch
+
+This paper summarizes the approach presented in SarathiServe [8, 9], which employs chunked prefills and stall-free
+hatching to mitigate this tradeoff. Chunked prefills break
+down large, potentially stall-inducing prefill operations into
+smaller chunks. Stall-free batching intelligently interleaves
+these prefill chunks with ongoing decode operations by utilizing the decode phase's inherent compute slack, without
+pausing the decode stream. This allows the system to maintain high GPU utilization and throughput while significantly
+reducing generation stalls and TBT variance, leading to a
+more responsive user experience. We briefly discuss the core
+mechanism and highlight its benefits, including how chunking
+enables advanced parallelism for further scaling.
+
+9
+
+2
+
+Background: LLM Inference Fundamentals
+
+Timeline
+
+Modern LLMs commonly employ the decoder-only Transformer architecture [25]. Serving these models efficiently
+involves understanding their unique inference process and
+resource requirements.
+
+Ad' Bd
+
+I
+
+Decodes for A, B stalled
+
+vLLM
+
+C, 0 enter
+
+lAd' e d' Cd' Ddl ...
+
+Dp
+
+Cp
+
+'-----y-----"
+
+C, 0 enter
+Ad' Bd
+
+Prefill
+Prioritized
+Schedules
+
+TBTwith
+prefill interference
+
+TBTwithout
+prefill interference
+
+Orca
+
+Decodes for A, B stalled
+
+FasterTransformer
+
+Prefills for C, 0 stalled
+
+I
+A exits
+
+C, 0 enter
+
+2.1 Transformer Architecture
+
+A 8
+
+I
+
+B
+
+A B
+-"----'•.
+
+I
+
+I 8 --=--"--,----_----'leo
+...
+'. --,,_ __
+
+A exits
+
+Each layer in a typical decoder-only Transformer consists of
+two main sub-modules:
+Self-Attention. This mechanism allows each token in the
+sequence to attend to all preceding tokens (and itself) to compute a contextually aware representation. It involves projecting input embeddings into Query (Q), Key (K), and Value (V)
+vectors and performing matrix multiplications. The quadratic
+complexity of attention (0 (n 2 ) for sequence length n) makes
+it computationally intensive, especially for long sequences.
+Feed-Forward Network (FFN). This module typically consists of two linear transformations with a non-linear activation
+function in between, further processing the output of the attention layer. At lower sequence lengths, the FFN cost dominates
+the overall inference time.
+
+2.2
+
+Sarathi-Serve
+
+I
+
+I
+
+Ad' ad' C p1 [ Ad' a d' Cp1
+
+A exits
+
+a d' Cd' Dpl
+
+Prioritized
+Schedule
+
+B exits
+
+No stalls
+
+I
+
+a d' Cd' D p2
+
+I ...
+
+B exits
+
+}
+
+Stall-free
+Schedule
+
+Figure 2: A generation stall occurs when one or more prefills
+are scheduled in between consecutive decode iterations of
+a request. A, B, C and D represent different requests. Subscript d represents a decode iteration, p represents a full prefill
+and pO, pi represent two chunked prefills of a given prompt.
+vLLM induces generation stalls by scheduling as many prefills as possible before resuming ongoing decodes. Despite
+supporting hybrid batches, Orca cannot mitigate generation
+stalls because the execution time of batches containing long
+prompts remains high. FasterTransformer is free of generation
+stalls as it finishes all ongoing decodes before scheduling a
+new prefill but compromises on throughput due to low decode
+batch size. In contrast, Sarathi-Serve generates a schedule
+that eliminates generation stalls yet delivers high throughput.
+
+Autoregressive Inference Phases
+
+LLM inference is an autoregressive process with two distinct
+phases:
+Prefill Phase. The input prompt tokens are processed in parallel through the Transformer layers to generate the first output
+token. This phase is compute-bound due to the parallel processing and potentially large n2 attention computation.
+Decode Phase. Subsequent tokens are generated one by one.
+In each step, the previously generated token is fed back into
+the model to predict the next token. This requires the attention mechanism to consider all previously generated tokens .
+To avoid redundant computations, the K and V vectors for
+all processed tokens are stored in a KV cache. Accessing
+this growing KV cache makes the decode phase increasingly
+memory-bandwidth bound, as only one token is processed per
+request per iteration.
+The time to generate the first token is the Time-To-FirstToken (TTFT), critical for interactivity. The time between
+subsequent tokens is the Time-Between-Tokens (TBT), impacting perceived fluency.
+
+2.3
+
+C, 0 enter
+Ad' Bd
+
+} Decode
+
+single GPU, necessitating model parallelism techniques like
+Tensor Parallelism (TP) [23] (sharding layers intra-GPU) and
+Pipeline Parallelism (PP) [16] (sharding layers inter-GPU) to
+distribute the computation and memory load across multiple
+devices. These add communication overhead and scheduling
+complexity.
+
+3
+
+The Challenge: Prefills vs. Decodes
+
+3.1
+
+Contrasting Resource Demands
+
+As outlined above, pre fill computation is typically computebound, while decode computations processing single tokens
+is memory-bound. This difference in bottlenecks is central to
+the scheduling challenge. The compute slack available during
+the memory-bound decode phase presents an optimization
+opportunity if it can be utilized without hindering decode
+progress.
+
+Serving Challenges: Batching and Parallelism
+
+3.2
+
+To improve GPU utilization (especially during decode) and
+overall throughput, serving systems batch multiple user requests together [19, 28]. However, managing batches containing requests in both prefill and decode phases is complex.
+Furthermore, large models exceed the memory capacity of a
+
+The Scheduling Tradeoff and Stalls
+
+Iteration-level batching systems like Orca [28] and vLLM
+[19] improve throughput over request-level batching by dynamically adding/removing requests. However, their prefillprioritizing nature (scheduling prefills eagerly when resources
+allow) leads to generation stalls. A long prefill computation,
+
+10
+
+Timeline
+Bubble due 10 prefill
+length variation
+
+GPUO
+
+B, _ + - - - - - - - - -C"
+' -D
+-,----,
+
+GPU 1 .L _ _ _ _ _ _L -_ _A"-" B-,, _ _---'---._
+
+Bubble due 10 prefill
+decode interference
+
+'--"-,---B
+,,
+
+...
+
+I
+
+C,'---"-1
+' , D"
+
+--,C,,--, D, -------,--.A-'"C,--, B,,-,
+,.
+
+::J
+
+c..
+..c:
+
+Orca
+
+...o
+
+I-
+
+Sarathi-Serve
+
+vLLM
+Prefill prioritizing
+
+,/ Paged
+
+.
+Ileration-level
+_---batching ,,',,"
+
+Attention
+
+Orca
+Prefill prioritizing
+
+---
+
+• Fast;;rTransformer
+Decode prioritizing
+
+Figure 3: A 2-way pipeline parallel iteration-level schedule
+in Orca across 4 requests (A,B,C,D) shows the existence of
+pipeline bubbles due to non-uniform batch execution times.
+Sarathi-Serve is able to minimize these stalls by creating
+uniform-compute batches.
+
+TBT Latency
+
+Figure 4: Current LLM serving systems involve a tradeoff between throughput and latency depending on their scheduling
+policy. Prioritizing prefills optimizes throughput but sacrifices
+TBT (time-between-tokens) tail latency whereas prioritizing
+decodes has the opposite effect. Sarathi-Serve serves high
+throughput with low TBT latency via stall-free batching. (The
+figure is illustrative and actual values will depend on the
+model and workload characteristics.)
+
+potentially taking hundreds of milliseconds or even seconds,
+blocks the decode steps of other requests in the batch, causing a spike in their TBT. Figure 2 conceptually shows how
+scheduling a large prefill ('Cp' , 'Dp ' ) can stall the decodes
+('Ad', 'Bd') of ongoing requests A and B. While maximizing
+throughput, this compromises interactive latency. Conventional metrics like average Time Per Output Token (TPOT) or
+Normalized Latency often mask these stalls due to normalization, providing a misleading picture of user experience [?].
+
+monolithic prefill operations into a sequence of shorter, more
+manageable uniform compute units .
+
+4.2
+
+Pipeline Bubbles
+
+Stall-Free Batching
+
+Leveraging the compute slack available during decode iterations and the smaller compute units created by chunking,
+stall-free batching constructs hybrid batches containing both
+ongoing decode tokens and one (or more) prefill chunks from
+newly arrived or partially processed requests. Crucially, it
+does not pause ongoing decodes to execute prefills. Instead,
+it carefully sizes the prefill chunk(s) added to a batch such
+that the total compute load fits within a target iteration time
+(token budget), determined by the application's TBT SLO.
+As shown conceptually in Figure 2 (bottom), prefill chunks
+(,CpJ " 'Cp 2', etc.) are coexecuted with decode iterations ('Ad',
+'B/) without causing stalls. This ensures that decode tokens
+are processed without significant delay, effectively eliminating generation stalls caused by pre fill interference. By coscheduling pre fills and decodes, it maximizes GPU utilization, boosting throughput. Furthermore, the resulting hybrid
+batches have more uniform execution times compared to
+batches in traditional prefill-prioritizing systems, significantly
+reducing pipeline bubbles in PP deployments.
+
+In distributed deployments using Pipeline Parallelism (PP)
+[16], the varying execution times of micro-batches (iterations)
+containing different mixes of prefill and decode tokens cause
+pipeline bubbles (GPU idle time) , reducing overall efficiency
+as shown in Figure 3. Prefill-heavy iterations take much longer
+than decode-heavy iterations, forcing downstream stages to
+wait, causing large pipeline bubbles.
+
+Chunked Prefills and Stall-Free Batching
+
+We introduces two synergistic techniques to address these
+challenges.
+
+4.1
+
+•
+,/
+/
+
+::J
+
+..c:
+
+4
+
+Sarathi-Serve
+Stall-free
+batching
+
+Cl
+
+Minimal Bubbles
+
+3.3
+
+*
+
+Chunked Prefills
+
+Instead of processing an entire input prompt in a single prefill
+iteration, chunked prefills divide the prompt into multiple,
+smaller chunks (e.g., 512 or 2048 tokens) . Each chunk is
+processed in a separate iteration. This is motivated by two insights. First, Prefill computation often saturates GPU compute
+capacity even with moderately sized inputs (e.g., a few hundred tokens). Second, contrary to earlier assumptions, the
+overhead of chunking (e.g., repeated KV cache reads for
+attention) is often minimal, especially for models employing optimizations like Multi-Query/Grouped-Query Attention (MQA/GQA) [11 , 22] and for the long contexts where
+chunking is most needed [10]. Chunking transforms long,
+
+4.3
+
+Enabling Advanced Parallelism
+
+Chunking provides the fine-grained control necessary for
+more advanced parallelism strategies, particularly crucial
+for scaling to extremely long contexts. We recently introduced [10] introduces Sequence Pipeline Parallelism (SPP),
+where consecutive chunks of the same long prefill request are
+processed concurrently across different stages of a pipeline,
+
+11
+
+Modell Attenti?n I
+Mechamsm
+
+'I
+
+Mistral-7B
+Yi-34B
+LLaMA2-70B
+Falcon-180B
+
+I
+
+GPU
+Configuration
+
+Memory
+
+Orca
+
+ITotal (per-GPU)
+
+I2'2Zl vLLM
+
+Sarathi·Serve
+
+GQA-SW
+80GB (80GB)
+I AIOO
+160GB (80GB)
+2 AIOOs (TP2)
+GQA
+GQA
+384GB (48GB)
+8 A40s (TP4-PP2)
+GQA
+4 AIOOs x 2 nodes (TP4-PP2) 640GB (80GB)
+
+Table 1: Models and GPU configurations (GQA: groupedquery attention, SW: sliding window).
+Dataset
+
+5696
+12985
+
+2088 I
+3638
+
+415
+208
+
+834
+37 1
+
+Yi-34B
+
+(a) Dataset: openchacsharegpt4.
+
+Output Tokens
+Median P90 Std.
+
+Prompt Tokens
+Median
+P90
+Std.
+
+openchacsharegpt4 I 1730
+arxiv_summarization
+7059
+
+Mistral-7B
+
+1.0 , - - - - - - - - - - - - - - - - - - ,
+
+..c.
+..
+:lE
+'u
+
+101
+265
+
+0.5
+
+)(
+
+Table 2: Datasets used for evaluation.
+
+Mistral-7B
+
+significantly reducing the time-to-first-token (TTFf) for long
+prompts. This contrasts with traditional PP, which pipelines
+micro-batches from different requests primarily for throughput. Chunking enables SPP by breaking the long sequence dependency inherent in a full prefill. Combined with KV-Cache
+Parallelism (KVP) for accelerating decode [10], chunking
+forms the foundation for efficient inference even at multimillion token scales.
+
+5
+
+(b) Dataset: arxiv_summarization.
+
+Figure 5: Capacity (in queries per second) of Mistral-7B and
+Yi-34B with different schedulers under strict (SLO-S) and
+relaxed (SLO-R) latency SLOs.
+
+use Azure NC96ads v4 VMs, each equipped with 4 NVIDIA
+80GB A 100 GPUs, connected with pairwise NVLINK. The
+machines are connected with a 100 Gbps ethernet connection. For LLaMA2-70B, we use a server with eight pairwise
+connected NVIDIA 48GB A40 GPUs. We run Yi-34B in a 2way tensor parallel configuration (TP-2) , and LLaMA2-70B
+and Falcon-180B in a hybrid parallel configuration with four
+tensor parallel workers and two pipeline stages for (TP4-PP2).
+
+Evaluation
+
+We evaluate Sarathi-Serve on a variety of popular models and
+GPU configurations (see Table 1) and two datasets (see Table 2). We consider vLLM and Orca as baseline because they
+represent the state-of-the-art for LLM inference. Our evaluation seeks to answer the following questions:
+
+Workloads: In order to emulate the real-world serving scenarios, we generate traces by using the request
+length characteristics from the openchacsharegpt4 [26] and
+arxiv_summarization [15] datasets (Table 2). The openchacsharegpt4 trace contains user-shared conversations with
+ChatGPT-4 [2]. A conversation may contain multiple rounds
+of interactions between the user and chatbot. Each such interaction round is performed as a separate request to the system .
+This multi-round nature leads to high relative variance in the
+prompt lengths. In contrast, arxiv_summarization is a collection of scientific publications and their summaries (abstracts)
+on arXiv.org [1]. This dataset contains longer prompts and
+lower variance in the number of output tokens, and is representative of LLM workloads such as Microsoft M365 Copilot [5]
+and Google Duet AI [4] etc. The request arrival times are generated using Poisson distribution. We filter outliers of these
+datasets by removing requests with total length more than
+8192 and 16384 tokens, respectively.
+
+1. What is the maximum load a model replica can serve under
+specific Service Level Objective (SLO) constraints with
+different inference serving systems (§5.1 ) and how does
+this load vary with varying SLO constraints (§ 5.2)?
+2. How does Sarathi-Serve perform under various deployments such as TP and PP? (§ 5.3)
+Models and Environment: We evaluate Sarathi-Serve across
+four different models Mistral-7B [17], Yi-34B [6], LLaMA270B [24] and Falcon-180B [1 2] - these models are among
+the best in their model size categories. We use two different
+server configurations. For all models except LLaMA2-70B we
+relaxed SLO I strict SLO
+Model IP99 TBT (s) P99 TBT (s)
+Mistral-7B
+Yi-34B
+LLaMA2-70B
+Falcon-180B
+
+0.5
+
+Yi-34B
+
+0.1
+0.2
+
+Metrics: We focus on the median value for the TTFT since
+this metric is obtained only once per user request and on the
+99th percentile (P99) for TBT values since every decode token
+results in a TBT latency value.
+
+5
+5
+
+Table 3: SLOs for different model configurations.
+
+12
+
+Orca
+
+...>-1.0
+
+·u
+
+5 .54x
+
+IZZZI vLLM
+
+_
+
+the P99 TBT latency SLO before they can reach their maximum serviceable throughput. Thus, we observe relaxing the
+latency target leads to considerable increase in their model
+serving capacity. In Sarathi-Serve, one can adjust the chunk
+size based on the desired SLO. Therefore, we use a strict
+token budget and split prompts into smaller chunks when
+operating under strict latency SLO. This reduces system efficiency marginally but allows us to achieve lower tail latency.
+On the other hand, when the latency constraint is relaxed,
+we increase the token budget to allow more efficient prefills.
+We use token budget of 2048 and 512 for all models under
+the relaxed and strict settings, respectively, except for the
+LLaMA2-70B relaxed configuration where we use token budget of 1536 to reduce the impact of pipeline bubbles. The
+system performance can be further enhanced by dynamically
+varying the token budget based on workload characteristics.
+We leave this exploration for future work.
+We further notice that vLLM significantly outperforms
+Orca under relaxed setting. The reason for this is two-fold.
+First, Orca batches prompts for multiple requests together
+(max sequence length * batch size compared to max sequence
+length in vLLM), which can lead to even higher tail latency
+in some cases. Second, vLLM supports a much larger batch
+size compared to Orca. The lower batch size in Orca is due to
+the lack of PagedAttention and the large activation memory
+footprint associated with processing batches with excessively
+large number of tokens.
+Finally, note that the capacity of each system is
+higher for openchat_sharegpt4 dataset compared to the
+arxiv_summarization dataset. This is expected because
+prompts in the arxiv_summarization datasets are much longer
+- 7059 vs 1730 median tokens as shown in Table 2. The larger
+prompts makes Orca and vLLM more susceptible to latency
+violations due to higher processing time of these longer prefills.
+
+Sarathi-Serve
+
+6.31x
+
+5 .62x
+
+IV
+CI.
+
+OS
+><
+
+IV
+
+::E
+
+LLaMA2-70B
+
+Falcon-1BOB
+
+(a) Dataset: openchacsharegpt4.
+
+·uIV
+
+_ _3 .00x_ _
+4.60x
+
+4.20x
+
+2.75x
+
+:;-0.2
+
+u
+::E
+
+LLaMA2-70B
+
+Falcon-1BOB
+
+(b) Dataset: arxiv_summarization.
+
+Figure 6: Capacity of LLaMA2-70B and Falcon-180B (models with pipeline parallelism) with different schedulers under
+strict (SLO-S) and relaxed (SLO-R) latency SLOs.
+
+5.1
+
+Capacity Evaluation
+
+We evaluate Sarathi-Serve, Orca and vLLM on all four models
+and both datasets under two different latency configurations:
+relaxed and strict. Similar to Patel et al. [21 ], to account for
+the intrinsic performance limitations of a model and hardware
+pair, we define the SLO on P99 TBT to be equal to 5 x and
+25 x the execution time of a decode iteration for a request
+(with prefilliength of 4k and 32 batch size) running without
+any prefill interference for the strict and relaxed settings,
+respectively. Table 3 shows a summary of the absolute SLO
+thresholds. Note that the strict SLO represents the latency
+target desired for interactive applications like chatbots. On
+the other hand, the relaxed configuration is exemplary of
+systems where the complete sequence of output tokens should
+be generated within a predictable time limit but the TBT
+constraints on individual tokens is not very strict. For all load
+experiments, we ensure that the maximum load is sustainable,
+i.e. , the queuing delay does not blow up (we use a limit of 2
+seconds on median scheduling delay).
+Figure 5 and Figure 6 show the results of our capacity
+experiments. Sarathi-Serve consistently outperforms Orca
+and vLLM in all cases across models and workloads. Under
+strict SLO, Sarathi-Serve can sustain up to 4.0 x higher load
+compared to Orca and 3.7 x higher load than vLLM under
+strict SLO (Yi-34B, openchacsharegpt4). For larger models
+using pipeline parallelism, Sarathi-Serve achieves gains of up
+to 6.3 x and 4.3 x compared to Orca and vLLM respectively
+(LLaMA2-70B, openchacsharegpt4) due to few pipeline bubbles.
+We observe that in most scenarios, Orca and vLLM violate
+
+5.2
+
+Throughput-Latency Tradeoff
+
+To fully understand the throughput-latency tradeoff in LLM
+serving systems, we vary the P99 TBT latency SLO and observe the impact on system capacity for vLLM and SarathiServe. Figure 7 shows the results for Mistral-7B and Yi34B models with five different SLO values for the openchacsharegpt4 dataset.
+We evaluate vLLM with three different batch sizes in an
+attempt to navigate the latency-throughput trade-off as prescribed by Yu et al. [28]. The maximum capacity of vLLM
+gets capped due to generation stalls under stringent TBT
+SLOs. Notably, the capacity of vLLM remains largely identical for all the three batch size settings. This implies that
+even though PagedAttention enables large batch sizes with
+efficient memory management - in practical situations with
+latency constraints, vLLM cannot leverage the large batch
+
+13
+
+-+- vLLM-128
+
+-e- vLLM-32
+--- vLLM-64
+
+-&-
+
+-0-
+
+55-2048
+
+55-512
+
+2.5 ,---_ _ _ _ __'M
+___i___
+
+1.25
+
+_
+
+1 .0 0
+
+IZZJ v LLM TP4 : PP2
+_
+Sarathi-Serve TP4:PP2
+
+:>.
+
+vLlM TP8
+
+fi" O.7 5
+
+___I-_'7_=B'___ _ _ ____,
+
+u
+
+)( 0.50
+
+;[ 0 .25
+
+SLO
+
+(a) TBT (Falcon-180B).
+
+0. 0 0. 10
+
+0. 15
+
+0 .20
+
+0. 25
+
+0 .3 0
+
+0. 35
+
+0 .40
+
+0 .45
+
+Figure 8: TP scales poorly across nodes. (a) Median TBT for
+decode-only batches: cross node TP increases median TBT
+by more than 2 x compared to a 4-way TP within node and
+PP across nodes. (b) Capacity under strict (SLO-S) and relaxed (SLO-R) latency SLOs: Sarathi-Serve increases Falcon180B's serving capacity by 4.3 x and 3.6x over vLLM's TPonly and hybrid-parallel configurations under strict SLOs.
+
+0 .50
+
+P99 TBT SLO (5)
+l.4 r -_ _ _ _ _ _Y
+..:...i' --3"'-4
+-.:.:B
+= --_ _ _ _ ____,
+
+>-
+
+l. 2
+
++
+
+:51.0
+
+(b) Capacity (Falcon-180B).
+
+1\1
+
+Q, 0 .8
+
+1\1
+
+U 0.6
+)(
+
+1\1 0 .4
+
+::E
+
+0 .0
+
+0 .2
+
+0. 3
+
+0.4
+
+0 .5
+
+0 .6
+
+0.7
+
+0.8
+
+0 .9
+
+compared to a TP-4 PP-2 hybrid parallel configuration. We
+observe that the median latency for tensor parallelism is '" 2 x
+higher than pipeline parallelism. This is because TP incurs
+high communication overhead due to cross-node all-reduces.
+Figure 8b shows the capacity for tensor and hybrid parallel configurations for Falcon-180B on openchacsharegpt4
+dataset. Note that unlike the hybrid parallel configuration, TP
+achieves low capacity even under the relaxed SLO due to
+high latency. Even though vLLM can support a fairly high
+load with hybrid parallelism under relaxed SLO, it's performance drops sharply under the strict regime due to pipeline
+bubbles. Sarathi-Serve on the other hand, leverages chunkedprefills to reduce the variation in the execution time between
+microbatches to avoid pipeline bubbles, resulting in a 1.48 x
+increase in capacity under relaxed SLOs and 3.6 x increase
+in capacity under strict SLOs.
+
+l.0
+
+P99 TBT SLO (5)
+
+Figure 7: Latency - Throughput tradeoff in vLLM and
+Sarathi-Serve for Mistral-7B and Yi-34B models on openchacsharegpt4 dataset. We evaluate vLLM with three different max batch sizes of 32, 64 and 128_ For Sarathi-Serve, we
+consider token budget of 512 and 2048 with max batch size
+of 128_ Sarathi-Serve delivers 3.5 x higher capacity under
+stringent SLOs for Yi-34B using Stall-free hatching.
+
+size due to the steep latency-throughput tradeoff made by it's
+prefill-prioritizing scheduler.
+On the other hand, the latency-throughput tradeoff in
+Sarathi-Serve can be precisely controlled by varying the token
+budget. Sarathi-Serve achieves 3.5 x higher capacity compared to vLLM under strict SLO (lOOms, Mistral-7B) using a
+small token budget of 512. For scenarios with more relaxed
+SLO constraints, picking a larger token budget of 2048 allows
+Sarathi-Serve to operate more efficiently resulting in 1.65 x
+higher capacity compared to vLLM (is, Yi-34B).
+
+5.3
+
+6
+
+Conclusion
+
+Optimizing LLM inference for high throughput and low latency is desirable but challenging. We presented a broad characterization of existing LLM inference schedulers by dividing
+them into two categories - prefill-prioritizing and decodeprioritizing. In general, we argue that the former category is
+better at optimizing throughput whereas the latter is better
+at optimizing TBT latency. However, none of them is ideal
+when optimizing throughput and latency are both important.
+To address this tradeoff, we introduce Sarathi-Servea system that instantiates a novel approach comprised of
+chunked-prefills and stall-free hatching. Sarathi-Serve chunks
+input prompts into smaller units of work to create stall-free
+schedules. This way, Sarathi-Serve can add new requests in a
+running batch without pausing ongoing decodes. Our evaluation shows that Sarathi-Serve improves the serving capacity
+of Mistral-7B by up to 2.6 x on a single AlOO OPU and up to
+5.6 x for Falcon-180B on 8 AlOO OPUs.
+
+Making Pipeline Parallel Viable
+
+We now show that Sarathi-Serve makes it feasible to efficiently serve LLM inference across commodity networks
+with efficient pipeline parallelism. For these experiments, we
+run Falcon-180B over two nodes, each with four AlOO OPUs,
+connected over 100 Obps Ethernet. We evaluate model capacity under three configurations: vLLM with 8-way TP, vLLM
+with our pipeline-parallel implementation and Sarathi-Serve
+with pipeline-parallel. For PP configurations, we do 4-way
+TP within node and 2-way PP across nodes.
+Figure 8a shows the latency for decode-only batches for
+Falcon-180B with purely tensor parallel TP-8 deployment
+
+14
+
+[13] Tom Brown, Benjamin Mann, Nick Ryder, Melanie
+Subbiah, Jared D Kaplan, Prafulla Dhariwal, Arvind
+Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+Askell, et al. Language models are few-shot learners. Advances in neural information processing systems,
+33:1877–1901, 2020.
+
+References
+[1] arxiv.org e-print archive. https://arxiv.org/.
+[2] Chatgpt. https://chat.openai.com.
+[3] Faster Transformer. https://github.com/NVIDIA/
+FasterTransformer.
+
+[14] Aakanksha Chowdhery, Sharan Narang, Jacob Devlin, Maarten Bosma, Gaurav Mishra, Adam Roberts,
+Paul Barham, Hyung Won Chung, Charles Sutton, Sebastian Gehrmann, Parker Schuh, Kensen Shi, Sasha
+Tsvyashchenko, Joshua Maynez, Abhishek Rao, Parker
+Barnes, Yi Tay, Noam Shazeer, Vinodkumar Prabhakaran, Emily Reif, Nan Du, Ben Hutchinson, Reiner
+Pope, James Bradbury, Jacob Austin, Michael Isard, Guy
+Gur-Ari, Pengcheng Yin, Toju Duke, Anselm Levskaya,
+Sanjay Ghemawat, Sunipa Dev, Henryk Michalewski,
+Xavier Garcia, Vedant Misra, Kevin Robinson, Liam Fedus, Denny Zhou, Daphne Ippolito, David Luan, Hyeontaek Lim, Barret Zoph, Alexander Spiridonov, Ryan Sepassi, David Dohan, Shivani Agrawal, Mark Omernick,
+Andrew M. Dai, Thanumalayan Sankaranarayana Pillai, Marie Pellat, Aitor Lewkowycz, Erica Moreira, Rewon Child, Oleksandr Polozov, Katherine Lee, Zongwei Zhou, Xuezhi Wang, Brennan Saeta, Mark Diaz,
+Orhan Firat, Michele Catasta, Jason Wei, Kathy MeierHellstern, Douglas Eck, Jeff Dean, Slav Petrov, and
+Noah Fiedel. Palm: Scaling language modeling with
+pathways. CoRR, abs/2204.02311, 2022.
+
+[4] Google duet ai. https://workspace.google.com/
+solutions/ai/.
+[5] Microsoft copilot. https://www.microsoft.com/enus/microsoft-copilot.
+[6] Yi series of large language models trained from scratch
+by developers at 01.AI. https://huggingface.co/
+01-ai/Yi-34B-200K.
+[7] Amey Agrawal, Nitin Kedia, Jayashree Mohan, Ashish
+Panwar, Nipun Kwatra, Bhargav S Gulavani, Ramachandran Ramjee, and Alexey Tumanov. Vidur: A large-scale
+simulation framework for llm inference. Proceedings of
+The Seventh Annual Conference on Machine Learning
+and Systems, 2024, Santa Clara, 2024.
+[8] Amey Agrawal, Nitin Kedia, Ashish Panwar, Jayashree
+Mohan, Nipun Kwatra, Bhargav S Gulavani, Alexey
+Tumanov, and Ramachandran Ramjee.
+Taming
+Throughput-Latency Tradeoff in LLM Inference with
+Sarathi-Serve. OSDI, 2024.
+
+[15] Arman Cohan, Franck Dernoncourt, Doo Soon Kim,
+Trung Bui, Seokhwan Kim, Walter Chang, and Nazli
+Goharian. A discourse-aware attention model for abstractive summarization of long documents. In Proceedings of the 2018 Conference of the North American
+Chapter of the Association for Computational Linguistics: Human Language Technologies, Volume 2 (Short
+Papers), pages 615–621, New Orleans, Louisiana, June
+2018. Association for Computational Linguistics.
+
+[9] Amey Agrawal, Ashish Panwar, Jayashree Mohan,
+Nipun Kwatra, Bhargav S. Gulavani, and Ramachandran
+Ramjee. Sarathi: Efficient llm inference by piggybacking decodes with chunked prefills, 2023.
+[10] Amey Agrawal, Haoran Qiu, Junda Chen, Inigo Goiri,
+Ramachandran Ramjee, Chaojie Zhang, Alexey Tumanov, and Esha Choukse. Medha: Efficiently serving
+multi-million context length llm inference requests without approximations. arXiv preprint arXiv:2409.17264,
+2024.
+
+[16] Yanping Huang, Youlong Cheng, Ankur Bapna, Orhan
+Firat, Dehao Chen, Mia Chen, HyoukJoong Lee, Jiquan
+Ngiam, Quoc V Le, Yonghui Wu, et al. Gpipe: Efficient training of giant neural networks using pipeline
+parallelism. Advances in neural information processing
+systems, 32, 2019.
+
+[11] Joshua Ainslie, James Lee-Thorp, Michiel de Jong, Yury
+Zemlyanskiy, Federico Lebrón, and Sumit Sanghai. Gqa:
+Training generalized multi-query transformer models
+from multi-head checkpoints, 2023.
+
+[17] Albert Q Jiang, Alexandre Sablayrolles, Arthur Mensch,
+Chris Bamford, Devendra Singh Chaplot, Diego de las
+Casas, Florian Bressand, Gianna Lengyel, Guillaume
+Lample, Lucile Saulnier, et al. Mistral 7b. arXiv preprint
+arXiv:2310.06825, 2023.
+
+[12] Ebtesam Almazrouei, Hamza Alobeidli, Abdulaziz
+Alshamsi, Alessandro Cappelli, Ruxandra Cojocaru,
+Mérouane Debbah, Étienne Goffinet, Daniel Hesslow,
+Julien Launay, Quentin Malartic, Daniele Mazzotta,
+Badreddine Noune, Baptiste Pannier, and Guilherme
+Penedo. The falcon series of open language models,
+2023.
+
+[18] Jared Kaplan, Sam McCandlish, Tom Henighan, Tom B.
+Brown, Benjamin Chess, Rewon Child, Scott Gray, Alec
+Radford, Jeffrey Wu, and Dario Amodei. Scaling laws
+
+15
+
+for neural language models. CoRR, abs/2001.08361,
+2020.
+
+[26] Guan Wang, Sijie Cheng, Xianyuan Zhan, Xiangang Li,
+Sen Song, and Yang Liu. Openchat: Advancing opensource language models with mixed-quality data, 2023.
+
+[19] Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying
+Sheng, Lianmin Zheng, Cody Hao Yu, Joseph Gonzalez,
+Hao Zhang, and Ion Stoica. Efficient memory management for large language model serving with pagedattention. SOSP ’23, page 611–626, New York, NY, USA,
+2023. Association for Computing Machinery.
+[20] OpenAI.
+GPT-4 technical report.
+abs/2303.08774, 2023.
+
+[27] Jason Wei, Yi Tay, Rishi Bommasani, Colin Raffel, Barret Zoph, Sebastian Borgeaud, Dani Yogatama, Maarten
+Bosma, Denny Zhou, Donald Metzler, Ed H. Chi, Tatsunori Hashimoto, Oriol Vinyals, Percy Liang, Jeff Dean,
+and William Fedus. Emergent abilities of large language
+models. Trans. Mach. Learn. Res., 2022, 2022.
+
+CoRR,
+
+[28] Gyeong-In Yu, Joo Seong Jeong, Geon-Woo Kim, Soojeong Kim, and Byung-Gon Chun. Orca: A distributed
+serving system for Transformer-Based generative models. In 16th USENIX Symposium on Operating Systems
+Design and Implementation (OSDI 22), pages 521–538,
+Carlsbad, CA, July 2022. USENIX Association.
+
+[21] Pratyush Patel, Esha Choukse, Chaojie Zhang, Íñigo
+Goiri, Aashaka Shah, Saeed Maleki, and Ricardo Bianchini. Splitwise: Efficient generative llm inference using
+phase splitting, 2023.
+[22] Noam Shazeer. Fast transformer decoding: One writehead is all you need, 2019.
+[23] Mohammad Shoeybi, Mostofa Patwary, Raul Puri,
+Patrick LeGresley, Jared Casper, and Bryan Catanzaro.
+Megatron-lm: Training multi-billion parameter language
+models using gpu model parallelism. arXiv preprint
+arXiv:1909.08053, 2019.
+[24] Hugo Touvron, Louis Martin, Kevin Stone, Peter Albert, Amjad Almahairi, Yasmine Babaei, Nikolay Bashlykov, Soumya Batra, Prajjwal Bhargava, Shruti Bhosale,
+Dan Bikel, Lukas Blecher, Cristian Canton Ferrer, Moya
+Chen, Guillem Cucurull, David Esiobu, Jude Fernandes, Jeremy Fu, Wenyin Fu, Brian Fuller, Cynthia Gao,
+Vedanuj Goswami, Naman Goyal, Anthony Hartshorn,
+Saghar Hosseini, Rui Hou, Hakan Inan, Marcin Kardas,
+Viktor Kerkez, Madian Khabsa, Isabel Kloumann, Artem
+Korenev, Punit Singh Koura, Marie-Anne Lachaux,
+Thibaut Lavril, Jenya Lee, Diana Liskovich, Yinghai Lu,
+Yuning Mao, Xavier Martinet, Todor Mihaylov, Pushkar
+Mishra, Igor Molybog, Yixin Nie, Andrew Poulton,
+Jeremy Reizenstein, Rashi Rungta, Kalyan Saladi, Alan
+Schelten, Ruan Silva, Eric Michael Smith, Ranjan Subramanian, Xiaoqing Ellen Tan, Binh Tang, Ross Taylor,
+Adina Williams, Jian Xiang Kuan, Puxin Xu, Zheng
+Yan, Iliyan Zarov, Yuchen Zhang, Angela Fan, Melanie
+Kambadur, Sharan Narang, Aurelien Rodriguez, Robert
+Stojnic, Sergey Edunov, and Thomas Scialom. Llama 2:
+Open foundation and fine-tuned chat models, 2023.
+[25] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob
+Uszkoreit, Llion Jones, Aidan N Gomez, Ł ukasz Kaiser,
+and Illia Polosukhin. Attention is all you need. In
+I. Guyon, U. Von Luxburg, S. Bengio, H. Wallach,
+R. Fergus, S. Vishwanathan, and R. Garnett, editors,
+Advances in Neural Information Processing Systems,
+volume 30. Curran Associates, Inc., 2017.
+
+16
+
+

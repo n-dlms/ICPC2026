@@ -1,0 +1,879 @@
+arXiv:1212.5309v1 [math.OC] 21 Dec 2012
+
+On Evaluation of the Mean Service Cycle Time
+in Tandem Queueing Systems∗
+N. K. Krivulin†‡
+
+V. B. Nevzorov§¶
+
+Abstract
+The problem of exact evaluation of the mean service cycle time in
+tandem systems of single-server queues with both infinite and finite
+buffers is considered. It is assumed that the interarrival and service
+times of customers form sequences of independent and identically distributed random variables with known mean values. We start with
+tandem queues with infinite buffers, and show that under the above
+assumptions, the mean cycle time exists. Furthermore, if the random
+variables which represent interarrival and service times have finite variance, the mean cycle time can be calculated as the maximum out from
+the mean values of these variables. Finally, obtained results are extended to evaluation of the mean cycle time in particular tandem systems with finite buffers and blocking.
+Key-Words: tandem queueing systems, mean cycle time, recursive
+equations, independent random variables, bounds on the mean value
+
+1
+
+Introduction
+
+We consider tandem systems of single-server queues with both infinite and
+finite buffers. The interarrival and service times of customers are assumed to
+form sequences of independent and identically distributed random variables.
+Given the mean values of interarrival and service times, we are interested
+in evaluating the mean cycle time of the system. In what follows, the mean
+cycle time is used in reference to the mean value of the time interval between
+∗
+
+Applied Statistical Science V / Ed. by M. Ahsanullah, J. Kennyon, and S. K. Sarkar,
+Nova Science Publishers, Huntington, NY, 2001, pp. 145-155.
+†
+Faculty of Mathematics and Mechanics, St. Petersburg State University, 28 Universitetsky Ave., St. Petersburg, 198504, Russia, Nikolai.Krivulin@pobox.spbu.ru.
+‡
+The work was partially supported by the Russian Foundation for Basic Research,
+Grant #00-01-00760.
+§
+Faculty of Mathematics and Mechanics, St. Petersburg State University, 28 Universitetsky Ave., St. Petersburg, 198504, Russia, Valery.Nevzorov@pobox.spbu.ru.
+¶
+The work was partially supported by the Russian Foundation for Basic Research,
+Grant #99-01-00732
+
+1
+
+two successive departures of customers from the system as the number of
+customers tends to infinity. The inverse of the mean cycle time, which
+implies the mean number of customers leaving the system per unit time, is
+referred to as system throughput.
+Among other characteristics including, in particular, the mean waiting
+time of customers, both the mean cycle time and the throughput present
+system performance measures commonly used in the analysis of queues.
+Note that the problem of evaluating the mean waiting time is known as
+rather difficult; it allows for the exact solution in an explicit form only for
+particular queueing systems under certain restrictions on customer arrival
+and service processes. One can find an overview of related results in [1] (see,
+also, [2] for more recent results and references).
+In many cases, the mean cycle time can be calculated exactly under fairly
+general assumptions. As an illustration, one can consider results obtained
+in [3, 4] in the context of investigation of stability of queueing systems. It
+has been shown in [4] that for a general single-server system with infinite
+buffer capacity, regardless of whether it is stable or not, the mean cycle time
+can be calculated as the maximum out from the mean values of customer
+interarrival and service times. Moreover, if a tandem system of queues
+with infinite buffers is stable, the intensities of both customer arrival and
+departure processes coincide, and therefore, the mean cycle time is equal to
+the mean interarrival time of customers.
+For more complicated queueing systems including tandem queues with
+finite buffers and blocking, and fork-join networks there are some techniques
+which allow one to derive bounds on the mean cycle time. Specifically, an
+efficient approach which relies on results of the theory of large deviations as
+well as on the Perron-Frobenius spectral theory has been proposed in [5, 6].
+As another example, one can consider simple bounds in [7, 8], obtained by using an approach essentially based on pure algebraic manipulations together
+with application of bounds on extreme values, derived in [9, 10].
+In this paper, we first give quite general conditions for the mean cycle
+time in tandem queueing systems with infinite buffers to exist, and show how
+it can be calculated through the mean values of the interarrival and service
+times of customers. The obtained results are then extended to evaluation of
+the mean cycle time in particular tandem systems with finite buffers, which
+operate under the manufacturing and communication blocking rules.
+As the starting point, we take obvious recursive equations which describe
+tandem system dynamics, and then examine their related explicit solution.
+Our approach is based on simple algebraic manipulations with the solution,
+combined with some classical results providing bounds on the mean value of
+maxima of independent and identically distributed random variables. The
+approach does not involve taking account of stability of the entire system,
+and therefore, offers a unified way of examining both stable and unstable
+systems.
+2
+
+The rest of the paper is organized as follows. In Section 2, we introduce
+some notations, and consider recursive equations describing the dynamics of
+tandem queueing systems with infinite buffers. Section 3 presents preliminary results including an existence theorem and some inequalities. Our main
+result which provides general existence conditions and a simple expression
+for calculating the mean cycle time is included in Section 4. The obtained
+results are then applied to the examination of the mean cycle time in particular tandem systems with finite buffers in Section 5. Finally, Section 6
+offers some concluding remarks and discussion.
+
+2
+
+Tandem Queues with Infinite Buffers
+
+We consider a series of M single-server queues with infinite buffers and
+customers of a single class. Each customer that arrives into the system is
+initially placed in the buffer at the 1st server and then has to pass through all
+the queues one after the other. Upon the completion of his service at server i,
+the customer is instantaneously transferred to queue i+ 1, i = 1, . . . , M − 1,
+and occupies the (i + 1)st server provided that it is free. If the customer
+finds this server busy, he is placed in its buffer and has to wait until the
+service of all his predecessors is completed.
+Denote the time between the arrivals of nth customer and his predecessor
+by τ0n , and the service time of the nth customer at server i by τin , i =
+1, . . . , M , n = 1, 2, . . . . Furthermore, let D0 (n) be the nth arrival epoch
+to the system, and Di (n) be the nth departure epoch from the ith server.
+We assume that for each i, i = 0, 1, . . . , M , the sequence {τin | n = 1, 2, . . .}
+consists of nonnegative random variables (r.v.’s).
+With the condition that the tandem queueing system starts operating at
+time zero, and it is free of customers at the initial time, we put Di (0) = 0 for
+all i = 0, . . . , M . The recursive equations representing the system dynamics
+can readily be written as
+D0 (n) = D0 (n − 1) + τ0n ,
+
+Dm (n) = max(Dm−1 (n), Dm (n − 1)) + τmn ,
+
+m = 1, . . . , M,
+
+for all n = 1, 2, . . . .
+The above recursions can be resolved to get
+
+
+k2
+k1
+n
+
+X
+X
+X
+τmj
+τ1j + · · · +
+Dm (n) =
+max
+τ0j +
+
+1≤k1 ≤···≤km ≤n 
+j=1
+
+j=k1
+
+(1)
+
+j=km
+
+for all m = 1, . . . , M .
+We consider the evolution of the system as a sequence of service cycles:
+the 1st cycle starts at the initial time, and it is terminated as soon as the
+3
+
+M th server completes its 1st service, the 2nd cycle is terminated as soon
+as this server completes its 2nd service, and so on. Clearly, the completion
+time of the nth cycle can be represented as DM (n).
+In many applications, one is interested in evaluating the mean service
+cycle time of the tandem system, which can also be treated as the mean
+interdeparture time of customers from the system. It is defined as
+1
+
+γ = lim
+
+n→∞ n
+
+DM (n)
+
+(2)
+
+provided that the above limit exists. The system throughput π presents
+another performance measure of interest, which is calculated as the inverse
+of the mean cycle time; that is, π = 1/γ .
+
+3
+
+Preliminary Results
+
+In order to examine the existence of the mean cycle time for the tandem
+queueing system, we will apply the next classical theorem which has been
+proved in [11].
+Theorem 1. Let {ζln | l, n = 0, 1, . . . ; l < n} be a family of r.v.’s which
+satisfy the following properties:
+Subadditivity: ζln ≤ ζlk + ζkn for all l < k < n;
+Stationarity: the joint distributions are the same for both families {ζln | l <
+n} and {ζl+1,n+1 | l < n};
+Boundedness: for all n = 1, 2, . . . , there exists E[ζ0n ] ≥ −cn for some
+positive constant c.
+Then there exists a constant γ , such that it holds
+1. lim ζ0n /n = γ with probability one (w.p.1),
+n→∞
+
+2. lim E[ζ0n ]/n = γ .
+n→∞
+
+Let us now consider some useful inequalities which will be exploited in
+evaluation of the mean cycle time in the next section. In what follows, we
+assume ξ1 , . . . , ξn to be independent r.v.’s.
+We start with a classical result from [12], providing an upper bound on
+the mean value of the maximum of cumulative sums
+ζk = ξ1 + · · · + ξk
+of independent r.v.’s with zero means.
+Lemma 2. If E[ξk ] = 0, and E|ξk |p < ∞ for some p > 1, k = 1, . . . , n,
+then it holds
+p
+
+
+p
+p
+E|ζn |p .
+E max |ζk | ≤ 2
+1≤k≤n
+p−1
+4
+
+The next inequality has been derived in [13]. Note that it actually remains valid under somewhat weaker conditions than that of independence
+between the r.v.’s ξ1 , . . . , ξn .
+Lemma 3. If E[ξk ] = 0, and E|ξk |p < ∞ for some p, 1 ≤ p ≤ 2, k =
+1, . . . , n, then it holds
+
+ n
+1 X
+p
+E|ξk |p .
+E |ζn | ≤ 2 −
+n
+k=1
+
+With Lemmas 2 and 3, one can prove the following statement.
+Lemma 4. If E[ξk ] = 0, and E[ξk2 ] < ∞, k = 1, . . . , n, then it holds
+E
+
+
+
+r
+
+
+
+max ζk ≤ 2
+
+1≤k≤n
+
+n
+X
+
+2(2n − 1)
+n
+
+!1/2
+
+E[ξk2 ]
+
+k=1
+
+.
+
+Proof. First note that
+E
+
+
+
+
+
+max ζk ≤ E
+
+1≤k≤n
+
+
+
+
+max |ζk | ≤
+
+1≤k≤n
+
+E
+
+
+
+2 !1/2
+.
+max |ζk |
+
+1≤k≤n
+
+By applying Lemma 2 with p = 2, and then Lemma 3, we get
+ n
+
+
+2
+1 X
+2
+E[ξk2 ].
+E max |ζk | ≤ 8E[ζn ] ≤ 8 2 −
+1≤k≤n
+n
+k=1
+
+Finally, extracting square root leads us to the desired result.
+Now suppose that ξ1 , . . . , ξn present independent and identically distributed (i.i.d.) r.v.’s. With this condition, in particular, the inequality in
+Lemma 4 takes the form
+
+
+q
+E max ζk ≤ 2 2(2n − 1)E[ξ12 ].
+1≤k≤n
+
+The next result obtained in [9, 10] offers an upper bound for the expected
+value of maximum of i.i.d. r.v.’s.
+Lemma 5. If E[ξ1 ] < ∞ and D[ξ1 ] < ∞, then it holds
+
+
+n−1 p
+D[ξ1 ].
+E max ξk ≤ E[ξ1 ] + √
+1≤k≤n
+2n − 1
+
+Assuming ξ1 , . . . , ξn to be i.i.d. r.v.’s, let us introduce the notation
+ζlk = ξl + ξl+1 + · · · + ξk
+
+with 1 ≤ l ≤ k ≤ n, and consider the following statement.
+5
+
+Lemma 6. If E[ξ1 ] = a ≤ 0, and D[ξ1 ] < ∞, then it holds
+
+
+
+
+p
+p
+n−1
+√
+E max ζlk ≤ E[ξ1 ] + 4 2(2n − 1) +
+D[ξ1 ].
+1≤l≤k≤n
+2n − 1
+Proof. Simple algebraic manipulations give
+)
+( k
+l−1
+X
+X
+(−ξi )
+max ζlk =
+max
+ξi +
+1≤l≤k≤n
+
+1≤l≤k≤n
+
+i=1
+
+i=1
+
+)
+( k
+l
+X
+X
+(−ξi + a) + ξl
+(ξi − a) +
+max
+
+≤
+
+1≤l≤k≤n
+
+≤
+
+k
+k
+X
+X
+(−ξi + a) + max ξk .
+(ξi − a) + max
+max
+
+1≤k≤n
+
+i=1
+
+i=1
+
+1≤k≤n
+
+i=1
+
+1≤k≤n
+
+i=1
+
+Proceeding to expectation, with E(ξ1 − a)2 = D[ξ1 ], we have from Lemmas 4 and 5
+
+
+p
+n−1 p
+E max ζlk ≤ 4 2(2n − 1)D[ξ1 ] + E[ξ1 ] + √
+D[ξ1 ]
+1≤l≤k≤n
+2n − 1
+
+
+p
+p
+n−1
+√
+= E[ξ1 ] + 4 2(2n − 1) +
+D[ξ1 ].
+2n − 1
+
+4
+
+Exact Evaluation of the Mean Cycle Time
+
+We are now in a position to prove our main result which can be formulated
+as follows.
+Theorem 7. Suppose that {τin | n = 1, 2, . . .}, i = 0, 1, . . . , M, are mutually
+independent sequences of i.i.d. r.v.’s with 0 ≤ E[τi1 ] < ∞.
+Then the limit at (2) exists w.p.1, and if D[τi1 ] < ∞, it is given by
+γ = max E[τi1 ].
+
+(3)
+
+0≤i≤M
+
+Proof. First, we have to verify the existence of the limit at (2). In order to
+apply Theorem 1, let us denote
+
+
+k1
+k2
+n
+X
+
+X
+X
+ζln =
+max
+τ0j +
+τ2j + · · · +
+τM j
+(4)
+
+l<k1 ≤···≤kM ≤n 
+j=l+1
+
+j=k1
+
+j=kM
+
+for each l, n, 0 ≤ l < n, and note that we can now write
+DM (n) = ζ0n .
+
+6
+
+With simple algebraic manipulations, it is not difficult to verify that the
+family {ζln | l < n} defined by (4) is subadditive. Since τi1 , τi2 , . . . , are i.i.d.
+r.v.’s for each i = 0, 1, . . . , M , the family also possesses the stationarity
+property. Finally, boundedness follows from the condition 0 ≤ E[τi1 ] < ∞
+which immediately results in E[ζ0n ] = E[DM (n)] ≥ 0.
+Therefore, one can apply Theorem 1 so as to conclude that the limit at
+(2) exists w.p.1, and it can be calculated as
+γ = lim
+
+1
+
+n→∞ n
+
+E[DM (n)].
+
+Suppose that the maximum at (3) is achieved at some i = m. Consider
+the completion time DM (n) and represent it in the form
+
+
+k2
+k1
+n
+n
+X
+ X
+X
+X
+τ0j +
+τ1j + · · · +
+DM (n) =
+max
+τmj +µ,
+τM j =
+
+1≤k1 ≤···≤kM ≤n 
+j=1
+
+j=k1
+
+j=1
+
+j=kM
+
+where
+
+µ =
+
+max
+
+(k
+1
+X
+(τ0j − τmj )
+
+1≤k1 ≤···≤kM ≤n
+
++
+
+k2
+X
+
+j=k1
+
+j=1
+
+(τ1j − τmj ) + · · · +
+)
+
+n
+X
+
+j=kM
+
+(τM j − τmj )
+
++ τmk1 + · · · + τmkM .
+
+(5)
+
+Now we can write
+1
+1
+E[DM (n)] = E[τm1 ] + E[µ].
+n
+n
+Let us examine the expected value E[µ]. With k1 = · · · = km = 1, and
+km+1 = · · · = kM = n, we have from (5)
+µ ≥ τ01 + τ11 + · · · + τm−1,1 + τm+1,n + · · · + τM n ≥ 0,
+and so E[µ] ≥ 0.
+On the other hand, simple algebra gives us an obvious upper bound for
+µ in the form
+µ ≤
+
+k1
+X
+max
+(τ0j − τmj )
+
+1≤k1 ≤n
+
++
+
+j=1
+
+max
+
+1≤k1 ≤k2 ≤n
+
+k2
+X
+
+j=k1
+
+(τ1j − τmj ) + · · · + max
+
+1≤kM ≤n
+
++ M max (τm1 , . . . , τmn ) .
+7
+
+n
+X
+
+j=kM
+
+(τM j − τmj )
+
+With the condition that E(τi1 − τm1 ) ≤ 0 for all i = 0, 1, . . . , M , one can
+apply Lemma 6 to the first M + 1 terms on the right-hand side, and then
+Lemma 5 to the last one so as to get
+M 
+X
+
+
+
+p
+p
+n−1
+D(τi1 − τm1 )
+E(τi1 − τm1 ) + 4 2(2n − 1) + √
+E[µ] ≤
+2n − 1
+i=0
+
+
+n−1 p
++ M E[τm1 ] + √
+D[τm1 ]
+2n − 1
+
+X
+M
+M p
+X
+p
+n−1
+E[τi1 ] + 4 2(2n − 1) + √
+=
+D(τi1 − τm1 )
+2n − 1 i=0
+i=0
+
+
+i6=m
+
+i6=m
+
+n−1 p
+D[τm1 ],
++M√
+2n − 1
+
+and therefore,
+
+E[µ] ≤
+
+M
+X
+
+√
+E[τi1 ] + O( n).
+
+i=0
+i6=m
+
+Finally, we have the double inequality
+√
+M
+1
+1X
+O( n)
+E[τm1 ] ≤ E[DM (n)] ≤ E[τm1 ] +
+E[τi1 ] +
+,
+n
+n
+n
+i=0
+i6=m
+
+and with n → ∞, immediately arrive at (5).
+Corollary 8. Under the same conditions as in Theorem 7, if at least one
+of the expectations E[τi1 ], i = 0, 1, . . . , M , is positive, then it holds
+
+−1
+.
+π = max E[τi1 ]
+0≤i≤M
+
+5
+
+Tandem Queues with Finite Buffers
+
+In this section, we show how the above approach can be applied to the
+analysis of tandem systems which include queues with finite buffers. Because
+of limited buffer capacity, servers in the systems may be blocked according
+to one of the blocking rules [14]. Below we present examples of systems
+with manufacturing blocking and communication blocking which are most
+commonly encountered in practice.
+Let us consider a system which consists of two queues in tandem. Suppose that the buffer at the first server is infinite, while that at the second
+server is finite. The customers arriving to the system have to pass through
+the queues consecutively, and then leave the system.
+8
+
+First we suppose that the system operates under the manufacturing
+blocking rule. With this type of blocking, if upon completion of a service,
+the first server sees the buffer of the second one is full, it cannot be freed
+and has to remain busy until the second server completes its current service
+to provide a free space in its buffer.
+For simplicity, let us assume the finite buffer to have capacity 0. With
+the notations introduced above, one can represent the dynamics of the system by the equations
+D0 (n) = D0 (n − 1) + τ0n ,
+
+D1 (n) = max(max(D0 (n), D1 (n − 1)) + τ1n , D2 (n − 1)),
+
+(6)
+
+D2 (n) = max(D1 (n), D2 (n − 1)) + τ2n ,
+
+for all n = 1, 2, . . . .
+Note that from the second equation, we have D1 (n) ≥ D2 (n − 1), and
+therefore, the third equation can be reduced to
+D2 (n) = D1 (n) + τ2n .
+Clearly, under appropriate conditions, both E[D1 (n)]/n and E[D2 (n)]/n
+have a common limit γ as n tends to ∞, which can be considered as the
+mean cycle time of the system.
+By resolving the recursive equations, we get
+
+
+n−1
+k
+
+X
+X
+max(τ1,j+1 , τ2j ) .
+D1 (n) = max
+τ0j + τ1k +
+
+1≤k≤n 
+j=1
+
+j=k
+
+As it is easy to verify, D1 (n) satisfies the double inequality
+L(n) − max(τ1,n+1 , τ2n ) ≤ D1 (n) ≤ U (n),
+
+(7)
+
+where
+
+k
+X
+
+n
+X
+
+j=1
+
+j=k
+
+
+
+L(n) = max
+τ0j +
+max(τ1,j+1 , τ2j ) ,
+
+1≤k≤n 
+j=1
+j=k
+
+
+n
+k
+X
+
+X
+τ0j +
+max(τ1j , τ2,j−1 ) .
+U (n) = max
+
+1≤k≤n 
+
+Taking into account that both L(n) and U (n) actually have the form of
+(1), one can see that, under the same conditions as in Theorem 7, it holds
+1
+1
+E[L(n)] = lim E[U (n)] = max(E[τ01 ], E max(τ11 , τ21 )).
+n→∞ n
+n→∞ n
+lim
+
+9
+
+Finally, proceeding to mean value in both sides of (7), divided by n, we
+conclude that the mean cycle time is given by
+γ = max(E[τ01 ], E max(τ11 , τ21 )).
+Let us now assume the system to follow the communication blocking
+rule. This type of blocking requires the first server not to initiate service of
+a customer if the buffer of the second server is completed. With the finite
+buffer having capacity 0, the system dynamics is described by the same
+recursions as above, except for equation (6) which now takes the form
+D1 (n) = max(D0 (n), D1 (n − 1), D2 (n − 1)) + τ1n .
+Resolving the recursive equations leads us to the expression
+
+
+n
+k
+X
+
+X
+τ0j +
+(τ1j + τ2j ) .
+D2 (n) = max
+
+1≤k≤n 
+j=1
+
+j=k
+
+Under the same conditions as in Theorem 7, we get the mean cycle time
+γ = max(E[τ01 ], E[τ11 ] + E[τ21 ]).
+
+6
+
+Concluding Remarks
+
+First note that with similar arguments as used in the proof of Theorem 7 and
+related lemmas, one can verify that the statement of the theorem remains
+α ] < ∞ for some α > 1, instead of D[τ ] < ∞.
+valid with the condition E[τi1
+i1
+Furthermore, the proof of the theorem does not actually require that for
+each n, r.v.’s τin with i = 0, 1, . . . , M , be independent. This allows one
+to apply obtained results to tandem queueing systems with dependence for
+each customer between his interarrival and service times, including tandem
+queues with identical service times at each server.
+Theorem 1 actually offers more general existence conditions for the mean
+cycle time, which imply stationarity of the sequence {(τ0n , τ1n , . . . τM n )| n =
+1, 2, . . .} in place of independence conditions in Theorem 7.
+Let us consider recursive equations describing the dynamics of the tandem queues above, and note that the symbol τin can be thought of as the
+nth service time at server i rather than the service time of the nth customer
+at the server. Since in this case, the order in which customers are selected
+from a queue for service is of no concern, the equation also describes the
+dynamics of systems with any queueing disciplines not permitting the preempting of service, and therefore, Theorem 7 can trivially be extended to
+such systems.
+Finally note that the proof of the theorem provides us with bounds on
+E[DM (n)], as well as an upper bound of order n−1/2 for the convergence
+rate of E[DM (n)]/n to the mean cycle time as n tends to ∞.
+10
+
+References
+[1] L. Kleinrock, Queueing Systems, Volume II: Computer Applications.
+Wiley, New York, 1976.
+[2] R. L. Disney and D. Konig, “Queueing networks: a survey of their
+random processes,” SIAM Rev. 27 no. 3, (1985) 335–403.
+[3] J. Sacks, “Ergodocity of queues in series,” Ann. Math. Stat. 31 no. 3,
+(1960) 579–588.
+[4] R. M. Loynes, “The stability of a queue with non-independent
+inter-arrival and service times,”
+Math. Proc. Cambridge Philos. Soc. 58 (1962) 497–520,
+http://journals.cambridge.org/article S0305004100036781.
+[5] F. Baccelli and P. Konstantopoulos,
+“Estimates of cycle times in stochastic petri nets,” in Applied
+Stochastic Analysis, I. Karatzas and D. Ocone, eds., vol. 177 of
+Lecture Notes in Control and Information Sciences, pp. 1–20.
+Springer, Berlin, Heidelberg, 1992.
+[6] P. Glasserman and D. D. Yao, “Stochastic vector difference equations
+with stationary coefficients,” J. Appl. Probab. 32 no. 4, (1995)
+851–866.
+[7] N. K. Krivulin, “Bounds on mean cycle time in acyclic fork-join
+queueing networks,” in Proc. Intern. Workshop on Discrete Event
+Systems WODES’98, A. Giua, R. Smedinga, and M. Spathopoulos,
+eds., pp. 469–474. IEE, London, 1998. arXiv:1212.1521 [math.OC].
+[8] N. K. Krivulin, “Monotonicity properties and simple bounds on the
+mean cycle time in acyclic fork-join queueing networks,” in Recent
+Advances in Information Science and Technology, N. E. Mastorakis,
+ed., pp. 146–152. World Scientific, Singapore, 1998.
+[9] E. J. Gumbel, “The maxima of the mean largest value and of the
+range,” Ann. Math. Stat. 25 no. 1, (1954) 76–84.
+[10] H. O. Hartley and H. A. David, “Universal bounds for mean range
+and extreme observation,” Ann. Math. Stat. 25 no. 1, (1954) 85–99.
+[11] J. F. C. Kingman, “Subadditive ergodic theory,” Ann. Probab. 1
+no. 6, (1973) 883–899.
+[12] J. Marcinkiewicz and A. Zygmund, “Sur les fonctions indépendantes,”
+Fund. Math. 29 no. 1, (1937) 60–90.
+
+11
+
+[13] B. von Bahr and C.-G. Esseen, “Inequalities for the rth absolute
+moment of a sum of random variables, 1 ≤ r ≤ 2,” Ann. Math. Stat.
+36 no. 1, (1965) 299–303.
+[14] N. K. Krivulin, “A max-algebra approach to modeling and simulation
+of tandem queueing systems,”
+Math. Comput. Modelling 22 no. 3, (1995) 25–37,
+arXiv:1211.5811 [math.NA].
+
+12
+
+

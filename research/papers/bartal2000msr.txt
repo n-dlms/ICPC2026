@@ -1,0 +1,1062 @@
+Multiprocessor scheduling with rejection
+Citation for published version (APA):
+Bartal, Y., Leonardi, S., Marchetti Spaccamela, A., Sgall, J., & Stougie, L. (2000). Multiprocessor scheduling with
+rejection. SIAM Journal on Discrete Mathematics, 13(1), 64-78. https://doi.org/10.1137/S0895480196300522
+
+DOI:
+10.1137/S0895480196300522
+Document status and date:
+Published: 01/01/2000
+Document Version:
+Publisher’s PDF, also known as Version of Record (includes final page, issue and volume numbers)
+Please check the document version of this publication:
+• A submitted manuscript is the version of the article upon submission and before peer-review. There can be
+important differences between the submitted version and the official published version of record. People
+interested in the research are advised to contact the author for the final version of the publication, or visit the
+DOI to the publisher's website.
+• The final author version and the galley proof are versions of the publication after peer review.
+• The final published version features the final layout of the paper including the volume, issue and page
+numbers.
+Link to publication
+
+General rights
+Copyright and moral rights for the publications made accessible in the public portal are retained by the authors and/or other copyright owners
+and it is a condition of accessing publications that users recognise and abide by the legal requirements associated with these rights.
+• Users may download and print one copy of any publication from the public portal for the purpose of private study or research.
+• You may not further distribute the material or use it for any profit-making activity or commercial gain
+• You may freely distribute the URL identifying the publication in the public portal.
+If the publication is distributed under the terms of Article 25fa of the Dutch Copyright Act, indicated by the “Taverne” license above, please
+follow below link for the End User Agreement:
+www.tue.nl/taverne
+
+Take down policy
+If you believe that this document breaches copyright please contact us at:
+openaccess@tue.nl
+providing details and we will investigate your claim.
+
+Download date: 05. Aug. 2026
+
+SIAM J. DISCRETE MATH.
+Vol. 13, No. 1, pp. 64–78
+
+c 2000 Society for Industrial and Applied Mathematics
+°
+
+MULTIPROCESSOR SCHEDULING WITH REJECTION∗
+YAIR BARTAL† , STEFANO LEONARDI‡ , ALBERTO MARCHETTI-SPACCAMELA† ,
+JIŘÍ SGALL§ , AND LEEN STOUGIE¶
+Abstract. We consider a version of multiprocessor scheduling with the special feature that jobs
+may be rejected at a certain penalty. An instance of the problem is given by m identical parallel
+machines and a set of n jobs, with each job characterized by a processing time and a penalty. In
+the on-line version the jobs become available one by one and we have to schedule or reject a job
+before we have any information about future jobs. The objective is to minimize the makespan of the
+schedule for accepted jobs plus the sum of the penalties of rejected jobs.
+The main result is a 1 + φ ≈ 2.618 competitive algorithm for the on-line version of the problem,
+where φ is the golden ratio. A matching lower bound shows that this is the best possible algorithm
+working for all m. For fixed m we give improved bounds; in particular, for m = 2 we give a φ ≈ 1.618
+competitive algorithm, which is best possible.
+For the off-line problem we present a fully polynomial approximation scheme for fixed m and a
+polynomial approximation scheme for arbitrary m. Moreover, we present an approximation algorithm
+1
+approximation ratio.
+which runs in time O(n log n) for arbitrary m and guarantees a 2 − m
+Key words. multiprocessor scheduling, on-line algorithms, competitive analysis, approximation
+algorithms
+AMS subject classification. 68Q25
+PII. S0895480196300522
+
+1. Introduction. Scheduling jobs on parallel machines is a classical problem
+that has been widely studied for more than three decades [6, 12]. In this paper we
+consider a version of the problem that has the special feature that jobs can be rejected
+at a certain price.
+We call this problem multiprocessor scheduling with rejection and use the abbreviation MSR. Given are m identical machines and n jobs. Each job is characterized
+by its processing time and its penalty. A job can be either rejected, in which case its
+penalty is paid, or scheduled on one of the machines, in which case its processing time
+contributes to the completion time of that machine. The processing time is the same
+∗ Received by the editors March 13, 1996; accepted for publication (in revised form) May 7, 1999;
+published electronically January 13, 2000. A preliminary version of this paper appeared in the
+Proceedings of the Seventh Annual ACM-SIAM Symposium on Discrete Algorithms, Atlanta, GA,
+January 28–30, 1996, SIAM, Philadelphia, 1996, pp. 95–103.
+http://www.siam.org/journals/sidma/13-1/30052.html
+† Department of Computer Science, Tel-Aviv University, Tel-Aviv 69978, Israel (yairb@math.
+tau.ac.il). The research of this author was supported in part by the Ben Gurion Fellowship, Israel
+Ministry of Science and Arts.
+‡ Dipartimento di Informatica Sistemistica, Università di Roma “La Sapienza,” via Salaria 113,
+00198-Roma, Italia (leonardi@dis.uniroma1.it, marchetti@dis.uniroma1.it). The research of this author was partly supported by ESPRIT BRA Alcom II under contract 7141, and by Italian Ministry
+of Scientific Research Project 40% “Algoritmi, Modelli di Calcolo e Strutture Informative.”
+§ Mathematical Institute, AS CR, Žitná 25, 115 67 Prague 1, Czech Republic, and Department of
+Applied Mathematics, Faculty of Mathematics and Physics, Charles University, Prague, Czech Republic (sgall@math.cas.cz). The research of this author was partially supported by grants A1019602
+and A1019901 of GA AV ČR, postdoctoral grant 201/97/P038 of GA ČR, and cooperative research
+grant INT-9600919/ME-103 from the NSF (USA) and the MŠMT (Czech Republic). Part of this
+work was done at the Institute of Computer Science, Hebrew University, Jerusalem, Israel and was
+supported in part by a Golda Meir Postgraduate Fellowship.
+¶ Department of Mathematics, Eindhoven University of Technology, P.O. Box 513, 5600 MB Eindhoven, The Netherlands (leen@win.tue.nl). The research of this author was supported by the Human
+Capital Mobility Network DONET of the European Community.
+
+64
+
+MULTIPROCESSOR SCHEDULING WITH REJECTION
+
+65
+
+for all the machines, as they are identical. Preemption is not allowed; i.e., each job
+is assigned to a single machine and once started is processed without interruption.
+The objective is to minimize the sum of the makespan and the penalties of all rejected
+jobs. Makespan (the length of the schedule) is defined as the maximum completion
+time taken over all machines.
+In the on-line version of MSR jobs become available one by one, and the decision
+to either reject a job or to schedule it on one of the machines has to be made before
+any information about following jobs is disclosed. In particular, there may be no other
+jobs. On-line algorithms are evaluated by the competitive ratio; an on-line algorithm
+is c-competitive if for each input the cost of the solution produced by the algorithm
+is at most c times the cost of an optimal solution (cf. [14]).
+The main goal of an on-line MSR algorithm is to choose the correct balance
+between the penalties of the jobs rejected and the increase in the makespan for the
+accepted jobs. At the beginning, it might have to reject some jobs if the penalty
+for their rejection is small compared to their processing time. However, at a certain
+point it would have been better to schedule some of the previously rejected jobs since
+the increase in the makespan due to scheduling those jobs in parallel is less than the
+total penalty incurred. In this scenario the on-line MSR problem can be seen as a
+nontrivial generalization of the well-known Rudolph’s ski rental problem [11]. (In that
+problem, a skier has to choose whether to rent skis for the cost of 1 per trip or to
+buy them for the cost of c, without knowing the future number of trips. The best
+possible deterministic strategy is to rent for the first c trips and buy afterwards. In our
+problem, rejecting jobs is analogous to renting, while scheduling one job is analogous
+to buying, as it allows us to schedule m − 1 more jobs of no bigger processing time
+without extra cost.)
+Our main result is a best possible, 1√
++ φ ≈ 2.618 competitive algorithm for the
+on-line MSR problem, where φ = (1 + 5)/2 is the golden ratio. We prove that
+no deterministic algorithm that receives m as input can achieve a better competitive
+ratio independent of m.
+For small values of m we give better upper and lower bounds. In particular, for
+m = 2 we obtain a best possible, φ ≈ 1.618 competitive algorithm. For m = 3 we
+obtain 2-competitive algorithms and show a lower bound of 1.839.
+Our results should be compared with the current knowledge about on-line algorithms for the classical multiprocessor scheduling problem. In that problem, each job
+has to be scheduled; hence it is equivalent to a special case of our problem where
+each penalty is larger than the corresponding processing time. Graham’s list schedul1
+ing algorithm schedules each job on the currently least loaded machine and is 2 − m
+competitive [7]. It is known that for m > 3, list scheduling is not optimal [5], and in
+fact there exist 2 − ε competitive algorithms for small constant ε > 0 [2, 10, 1]. The
+best possible competitive ratio is known to be between 1.85 and 1.92 (see [1]), but
+its precise value is unknown. In contrast, for the more general on-line MSR problem
+we do find the optimal competitive ratio. More surprisingly, our algorithms achieving
+the optimal competitive ratio schedule the accepted jobs using list scheduling, which
+is inferior when rejections are not allowed!
+Next we consider the off-line MSR problem. We present an approximation al1
+gorithm with a 2 − m
+worst-case approximation ratio running in time O(n log n) for
+arbitrary m. We also present a fully polynomial approximation scheme for MSR for
+any fixed m and a polynomial approximation scheme for arbitrary m, i.e., where m is
+part of the input.
+
+66
+
+BARTAL ET AL.
+
+More explicitly, the approximation schemes give algorithms with running time
+either polynomial in n and 1/ but exponential in m, or polynomial in n and m
+but exponential in 1/, where  is the maximal error allowed. This implies that for
+the more general problem with possible rejection of jobs we have algorithms that are
+essentially as good as those known for the classical problem without rejection. In fact,
+our algorithms are based on the techniques used for the problem without rejection,
+namely, on the fully polynomial approximation scheme for fixed m [9] (based on a
+dynamic programming formulation of the problem) and the polynomial approximation
+scheme for arbitrary m [8].
+Obviously, the MSR problem on a single machine is easily solved exactly by
+scheduling every job whose processing time does not exceed its penalty, and for m ≥ 2
+it is NP-hard to find the optimal solution, similarly as in the classical case without
+rejections.
+The on-line algorithms and lower bounds are presented in sections 3 and 4. Section 5 contains the results of the off-line problem.
+2. Notation. An instance of the MSR problem consists of a number of machines
+m and a set of jobs J, |J| = n. We abuse the notation and denote the jth job in the
+input sequence by j. Each job j ∈ J is characterized by a pair (pj , wj ), where pj is
+its processing time and wj is its penalty.
+P
+For aP
+set of jobs X ⊆ J, W (X) = j∈X wj is the total penalty of jobs in X, and
+M (X) = j∈X pj /m is the sum of the loads of the jobs in X, where the load of a job
+j is defined by pj /m. The set B = {j | wj ≤ pj /m} contains jobs with penalty less
+than or equal to their load.
+Given a solution produced by an on-line or approximation algorithm, R denotes
+the set of all rejected jobs, A denotes the set of all accepted job, and T denotes
+the largest processing time of all accepted jobs. For their analogues in the optimal
+solution we use ROP T , AOP T , T OP T , respectively. Z OP T denotes the total cost of
+the optimal solution for a given instance of the problem, and Z H is the cost achieved
+by algorithm H. An on-line algorithm ON is c-competitive if Z ON ≤ c · Z OP T for
+every input instance.
+√
+The golden ratio is denoted by φ = ( 5 + 1)/2 ≈ 1.618. We will often use the
+property of the golden ratio that φ − 1 = 1/φ.
+Using list scheduling, the makespan of a schedule is bounded from above by the
+processing time of the job that finishes last plus the sum of the loads of all other
+scheduled jobs [7]. We denote this bound by C LS (X) for a set X of scheduled jobs.
+If ` is the job in X that finishes last, then
+
+
+1
+LS
+C (X) = M (X − {`}) + p` ≤ M (X) + 1 −
+(2.1)
+T.
+m
+3. On-line scheduling with rejections. In the first part of this section we
+present an on-line MSR algorithm which works for arbitrary m and achieves the best
+possible competitive ratio in that case. The corresponding lower bound is given in
+section 4.2. For fixed m ≥ 3 this algorithm gives the best competitive ratio we are
+able to achieve; however, we are not able to prove a matching lower bound. In the
+second part we present a different algorithm which is best possible for the case of two
+machines. The corresponding lower bound is given in section 4.1.
+3.1. Arbitrary number of machines. Our algorithm uses two simple rules.
+First, all jobs in the set B are rejected, which seems advantageous since their penalty
+
+MULTIPROCESSOR SCHEDULING WITH REJECTION
+
+67
+
+is smaller than their load. The second rule is inspired by the relation of MSR to
+the ski rental problem and states that a job is rejected unless its penalty added to
+the total penalty of the hitherto rejected jobs would be higher than some prescribed
+fraction of its processing time. This fraction parameterizes the algorithm; we denote
+it by α.
+Algorithm RTP(α) (Reject-Total-Penalty(α)).
+(i) If a job from B becomes available, reject it.
+(ii) Let W be the total penalty of all jobs from J − B rejected so far. If a job
+/ B becomes available, reject it if W + wj ≤ αpj , otherwise
+j = (pj , wj ) ∈
+accept it and schedule it on a least loaded machine.
+In Theorem 3.1 we will prove that for given m, the algorithm is c-competitive if
+c and α > 0 satisfy
+
+
+1 1
+c≥1+ 1−
+(3.1)
+,
+m α
+2
+c≥2+α− .
+m
+To obtain a best possible algorithm for arbitrary m, we use α = φ − 1 ≈ 0.618.
+Then c = 1 + φ satisfies the inequalities above. For a fixed m, the √
+best c is obtained
+if equality
+is
+attained
+in
+both
+cases.
+For
+m
+=
+2
+this
+leads
+to
+α
+=
+2/2 ≈ 0.707 and
+√
+c = 1 + 2/2 ≈ 1.707, and for m = 3 we get α = 2/3 and c = 2. For general m we
+obtain
+q
+2
+8
+)+ 5− m
++ m42
+−(1 − m
+,
+α=
+2q
+2
+8
+)+ 5− m
++ m42
+(1 − m
+.
+c=1+
+2
+Theorem 3.1. The algorithm RTP(α) for m machines is c-competitive if c and
+α satisfy (3.1).
+Proof. First we notice that since our algorithm uses list scheduling for the accepted
+1
+)T + M (A) (cf. (2.1)). Hence,
+jobs, its makespan is bounded by C LS (A) = (1 − m
+
+
+1
+T + M (A) + W (R).
+Z ON ≤ 1 −
+m
+For any set S ⊆ R, the right-hand side of this inequality can be rewritten as a sum
+of two terms:
+
+
+
+1
+(3.2) Z ON ≤ (M (A) + W (R − S) + M (S)) +
+T + W (S) − M (S) .
+1−
+m
+Now, we fix an off-line optimal solution. We use the above inequality for the set
+S = (R − B) ∩ AOP T , the set of all jobs rejected by the algorithm in step (ii) and
+accepted in the optimal solution. First, we bound the first term in (3.2). Notice that
+(3.3) M (A) = M (A ∩ AOP T ) + M (A ∩ ROP T ) ≤ M (A ∩ AOP T ) + W (A ∩ ROP T ),
+since no job of the set B is accepted by the algorithm, and thus the load of each job
+accepted by the algorithm is smaller than its penalty. Next we notice that S ⊆ AOP T ,
+implying that
+(3.4)
+
+M (S) = M (AOP T ∩ S).
+
+68
+
+BARTAL ET AL.
+
+Since ROP T and AOP T is a partition of the set of all jobs, and B ⊆ R, we obtain
+(3.5)
+
+R − S = [(R ∩ ROP T ) ∪ (R ∩ AOP T )] − [(R − B) ∩ AOP T ]
+= (R ∩ ROP T ) ∪ (B ∩ AOP T ).
+
+From (3.5) and the definition of B we have
+(3.6) W (R − S) = W (B ∩ AOP T ) + W (R ∩ ROP T ) ≤ M (B ∩ AOP T ) + W (R ∩ ROP T ).
+Inequalities (3.3), (3.4), and (3.6) together imply that
+M (A) + W (R − S) + M (S) ≤ M (AOP T ) + W (ROP T ) ≤ Z OP T .
+To finish the proof, it is now sufficient to show
+(3.7)
+
+
+
+
+
+
+2
+1 1
+1
+OP T
+T + W (S) − M (S) ≤ 1 + α −
+T
+W (ROP T ),
++ 1−
+1−
+m
+m
+m α
+and notice that under our conditions (3.1) on c this is at most
+(c − 1)T OP T + (c − 1)W (ROP T ) ≤ (c − 1)Z OP T .
+All jobs in S are scheduled in the optimal solution and hence have processing
+time at most T OP T . The algorithm never rejects such a job if this would increase the
+penalty above αT OP T , and hence
+W (S) ≤ αT OP T .
+
+(3.8)
+
+For any job j that was rejected by step (ii) of the algorithm we have wj ≤ αpj .
+Summing over all jobs in S we obtain W (S) ≤ αmM (S), and hence
+
+
+
+
+
+
+1
+1
+1
+OP T
+W (S) ≤ 1 −
+αT
+T OP T .
+(3.9) W (S) − M (S) ≤ 1 −
+= α−
+αm
+αm
+m
+Thus, if T ≤ T OP T , (3.7) follows. If T > T OP T , let W be the penalty incurred
+by the jobs rejected in step (ii) of the algorithm until it schedules the first job with
+processing time T , job j say, having penalty wj . By the condition in step (ii) of the
+algorithm, αT ≤ W + wj . Conversely, W + wj ≤ W (S) + W (ROP T ), as all jobs
+rejected in step (ii) are in S ∪ ROP T , and also the job with processing time T is in
+ROP T , since T > T OP T . Thus,
+(3.10)
+
+
+1−
+
+1
+m
+
+
+
+
+
+
+1 1
+(W (S) + W (ROP T ))
+m α
+
+
+
+
+1 1
+1
+T OP T + 1 −
+W (ROP T ),
+≤ 1−
+m
+m α
+
+T ≤
+
+1−
+
+using (3.8). Adding (3.9) to (3.10) we obtain (3.7), which finishes the proof.
+Choosing α = φ − 1 and c = φ + 1, both inequalities in (3.1) are satisfied for any
+m, which yields our main result. For arbitrarily large m these values are the best
+possible.
+
+MULTIPROCESSOR SCHEDULING WITH REJECTION
+
+69
+
+Theorem 3.2. Algorithm RTP(φ − 1) is (1 + φ)-competitive.
+For any choice of m and α the bounds on c given by the inequalities (3.1) give a
+tight analysis of Algorithm RTP(α), as shown by the following two examples. First,
+1
+1
+1
+consider the sequence of two jobs (1 − αm
+, α− m
+) and (1 − ε, m
+) with  > 0 arbitrarily
+small. RTP(α) rejects the first job and accepts the second job, while in the optimal
+solution both jobs are rejected. The competitive ratio attained on this sequence is
+1
+))/α, which for any α > 0 and m can be made arbitrarily close to the
+(1 − ε + (α − m
+first inequality of (3.1). Second, consider the sequence formed by one job (1, α), m − 2
+1
+), and one job (1, 1). RTP(α) rejects the first m − 1 jobs and accepts job
+jobs (1, m
+2
+,
+(1, 1), while the optimal solution accepts all jobs. The competitive ratio is 2 + α − m
+leading to the second inequality of (3.1).
+3.2. Two machines. To obtain a best possible, φ-competitive algorithm for two
+machines we use another approach. We simply reject all jobs with penalty at most
+α times their processing time, where α is again a parameter of the algorithm. Again
+the optimal value is α = φ − 1 ≈ 0.618.
+Algorithm RP(α) (Reject-Penalty(α)). If a job j = (pj , wj ) becomes available, reject it if wj ≤ αpj , otherwise accept it and schedule it on a least loaded
+machine.
+Theorem 3.3. The algorithm RP(φ − 1) is φ-competitive for two machines.
+Proof. If the algorithm does not schedule any job, then
+Z ON = W (J) ≤ 2(φ − 1)M (AOP T ) + W (ROP T ) ≤ 2(φ − 1)Z OP T ≤ φZ OP T ,
+and the theorem is proved.
+Otherwise denote by ` a job that is finished last by the on-line algorithm. Since the
+algorithm uses list scheduling, the makespan is bounded by C LS (A) = M (A−{`})+p` ,
+and therefore we have
+Z ON ≤ W (R) + M (A − {`}) + p` .
+
+(3.11)
+Notice that
+
+(3.12)
+W (R) = W (R ∩ ROP T ) + W (R ∩ AOP T ) ≤ W (R ∩ ROP T ) + 2(φ − 1)M (R ∩ AOP T )
+by direct application of the rejection rule of algorithm RP(φ − 1).
+For any job that is accepted by the algorithm, the rejection rule of RP(φ − 1)
+implies that its load is not greater than its penalty. Therefore,
+(3.13)
+
+M (A − {`}) = M ((A − {`}) ∩ AOP T ) + M ((A − {`}) ∩ ROP T )
+≤ M ((A − {`}) ∩ AOP T ) + W ((A − {`}) ∩ ROP T ).
+
+Invoking (3.12) and (3.13) in (3.11) yields
+(3.14)
+
+Z ON ≤ W (ROP T − {`}) + 2(φ − 1)M (AOP T − {`}) + p` .
+
+We distinguish two cases. In the first case the optimal solution rejects job `. Since
+` is scheduled by the algorithm, we have p` ≤ φw` , and therefore
+Z ON ≤ φW (ROP T ) + 2(φ − 1)M (AOP T ) ≤ φZ OP T .
+
+70
+
+BARTAL ET AL.
+
+In the second case ` is accepted in the optimal solution. Then, we use the identity
+p` = 2(φ − 1)M ({`}) + (1 − (φ − 1))p` in (3.14) to obtain
+Z ON ≤ (2 − φ)p` + W (ROP T ) + 2(φ − 1)M (AOP T )
+≤ (2 − φ)Z OP T + 2(φ − 1)Z OP T = φZ OP T ,
+which completes the proof.
+The same approach can be used for larger m as well. However, for m > 3 this is
+worse than the previous algorithm. An interesting situation arises for m = 3. Choosing α = 1/2 we obtain a 2-competitive algorithm, which matches the competitive ratio
+of the algorithm RTP(2/3) for m = 3 in the previous subsection. Whereas RP(1/2)
+rejects all jobs with penalty up to 1/2 of their processing time, RTP(2/3) rejects all
+jobs with penalty up to 1/3 of their processing time and also jobs with larger penalty
+as long as the total penalty paid (by the jobs with smaller or equal processing times)
+remains at most 2/3 times the processing time. We can combine these two approaches
+and show that for any 1/3 ≤ α ≤ 1/2, the algorithm that rejects each job with penalty
+at most α times its processing time, and also if the total penalty is up to 1 − α times
+its processing time, is 2-competitive, too. However, no such combined algorithm is
+better.
+4. Lower bounds for on-line algorithms. In the first part of this section we
+give the lower bound for a small number of machines. In particular it shows that the
+algorithm presented in section 3.2 is best possible for m = 2. In the second part we
+exhibit the lower bound for algorithms working for all m.
+4.1. Small number of machines. Assume that there exists a c-competitive
+on-line algorithm for m machines. We prove that c satisfies c ≥ ρ, where ρ is the
+solution of the following equation:
+(4.1)
+
+ρm−1 + ρm−2 + · · · + 1 = ρm .
+
+For m = 2 we get ρ = φ, and hence prove that the algorithm RP(φ − 1) is best
+possible. For m = 3 we get ρ ≈ 1.839, and so on. Notice that for arbitrary m this
+proves only that the competitive ratio is at least 2.
+Theorem 4.1. For any c-competitive algorithm for MSR on m machines, it holds
+that c ≥ ρ, where ρ satisfies (4.1).
+Proof. Given m, let ρ be the solution of (4.1). Consider an adversary providing
+a sequence of jobs, all with processing time 1. The first job given has penalty w1 =
+1/ρ. If the on-line algorithm accepts this job, the sequence stops and the algorithm
+is ρ-competitive. Otherwise, a second job is given by the adversary with penalty
+w2 = 1/ρ2 . Again, accepting this job by the on-line algorithm makes the sequence
+stop and the competitive ratio is ρ. Rejection makes the sequence continue with a
+third job. This process is repeated for at most m − 1 jobs with penalties wj = 1/ρj
+for 1 ≤ j = m − 1. If the on-line algorithm accepts any job in this sequence, job k
+say, the adversary stops the sequence at that job, yielding a competitive ratio of the
+on-line algorithm on this sequence of k jobs of
+Pk−1
+1 + j=1 ρ1j
+Z ON
+= Pk 1
+= ρ,
+Z OP T
+j=1 j
+ρ
+
+since for any such k ≤ m − 1 in the optimal solution all jobs are rejected.
+
+MULTIPROCESSOR SCHEDULING WITH REJECTION
+
+71
+
+Otherwise, if none of the first m − 1 jobs are accepted by the on-line algorithm,
+another job is presented with penalty wm = 1. In the optimal solution all m jobs are
+accepted and scheduled in parallel, giving cost 1. The on-line cost is equal to the sum
+of the penalties of the first m − 1 jobs plus 1, independent of whether the last job is
+accepted or rejected. Thus,
+m−1
+X 1
+Z ON
+=
+1
++
+.
+OP
+T
+Z
+ρj
+j=1
+
+By (4.1), this is exactly ρ, and the theorem follows.
+Corollary 4.2. For two machines, no on-line algorithm has competitive ratio
+less than φ.
+4.2. Arbitrary number of machines. Now we prove the lower bound on algorithms working for arbitrary m. The sequence of jobs starts as in the previous
+section, but additional ideas are necessary.
+Theorem 4.3. There exists no on-line algorithm that is β-competitive for some
+constant β < 1 + φ and all m.
+Proof. All jobs in the proof have processing time 1. All logarithms are base 2. For
+contradiction, we assume that the on-line algorithm is β-competitive for a constant
+β < 1 + φ, and m is a sufficiently large power of two. Let ai = (log m)i+1 , and
+Pk
+let k be the largest integer such that log m + i=1 ai < m. Calculation gives k =
+blog m/ log log mc − 1.
+Consider again an adversary that intends to provide the following sequence of at
+most m jobs (all with processing time 1):
+1
+1
+1
+a1
+ak
+
+job with penalty
+job with penalty
+..
+.
+
+1/(1 + φ),
+1/(1 + φ)2 ,
+
+jobs with penalty
+
+1/ak .
+
+job with penalty 1/(1 + φ)log m ,
+jobs with penalty 1/a1 ,
+..
+.
+
+As in the proof of Theorem 4.1 we argue that if the on-line algorithm accepts one
+of the first log m jobs, the adversary stops the sequence and the competitive ratio is
+1 + φ. Therefore, any β-competitive algorithm has to reject the first log m jobs. Now,
+let bi be the number of jobs with penalty 1/ai that are rejected by the β-competitive
+algorithm. The penalty the algorithm pays on those jobs is bi /ai . Since there are less
+than m jobs, the optimal cost is at most 1. Thus the total penalty incurred by the
+on-line algorithm has to be at most β, and in particular there has to exist ` ≤ k such
+that b` /a` ≤ β/k < 3/k. Fix such `.
+Now consider the following modified sequence of at most 2m jobs (again all with
+
+72
+
+BARTAL ET AL.
+
+processing time 1):
+1
+1
+1
+a1
+a`
+M
+
+job with penalty
+job with penalty
+..
+.
+
+1/(1 + φ),
+1/(1 + φ)2 ,
+
+job with penalty 1/(1 + φ)log m ,
+jobs with penalty 1/a1 ,
+..
+.
+jobs with penalty 1/a` ,
+jobs with penalty 6,
+
+P`
+where M = m + 1 − i=1 (ai − bi ).
+The sequence is identical up to the jobs with penalty 1/a` , and hence the on-line
+algorithm behaves identically on this initial subsequence.
+In particular, it also rejects
+Plog m
+all first log m jobs paying a penalty of at least j=1 (1+φ)−j = (1−(1+φ)− log m )/φ ≥
+φ − 1 − 1/m for them. Then it also rejects bi jobs with penalty 1/ai , for i ≤ `, paying
+P`
+penalty i=1 bi /ai for them.
+The on-line algorithm has to accept all jobs with penalty 6, since the adversary
+will present at most 2m jobs, and hence scheduling them all would lead to a cost of
+at most 2. By summing the numbers, it follows that the on-line algorithm schedules
+exactly m + 1 jobs. Thus, its makespan is at least 2, and its total cost is at least
+1 + φ − 1/m.
+To finish the proof, it is sufficient to present a solution with cost 1+o(1). Consider
+the solution that rejects
+1 + log m
+b1
+b2
+b`−2
+b`−1 + b`
+
+jobs with penalty 1/a1 ,
+jobs with penalty 1/a2 ,
+jobs with penalty 1/a3 ,
+..
+.
+jobs with penalty
+jobs with penalty
+
+1/a`−1 ,
+1/a`
+
+and schedules all remaining jobs optimally. First we verify that this description is
+legal, i.e., there are always sufficiently many jobs with given penalty. By definition,
+bi ≤ ai ≤ ai+1 . For sufficiently large m, we have 1 + log m < a1 , and due to our choice
+of `, we also have b`−1 + b` ≤ a`−1 + 3a` /k ≤ a` .
+In the presented schedule one more job is rejected than in the solution produced
+by the on-line algorithm, and hence there are only m jobs to be scheduled. Thus, the
+makespan is 1. The penalty paid is
+`−1
+`−1
+b`
+1 + log m
+1 X bi
+b`
+1 + log m X bi
++
++
+=
++
++ .
+2
+a1
+a
+a`
+(log m)
+log m i=1 ai
+a`
+i=1 i+1
+
+The sum in the second term is less than the penalty paid by the on-line algorithm,
+and hence this term is bounded by O(1/ log m). The last term is bounded due to our
+choice of `; namely, it is O(1/k) = O(log log m/ log m). Thus, the total penalty paid
+is O(log log m/ log m) = o(1), and the total cost is 1 + o(1).
+
+MULTIPROCESSOR SCHEDULING WITH REJECTION
+
+73
+
+5. Off-line scheduling with rejection.
+5.1. An approximation algorithm for arbitrary number of machines. In
+1
+this section we give a (2 − m
+)-approximation algorithm for MSR on m machines. Our
+lower bounds imply that such a ratio cannot be achieved by an on-line algorithm.
+The algorithm rejects all jobs in the set B = {j | wj ≤ pj /m}. From all other jobs it
+accepts some number of jobs with the smallest processing time and chooses the best
+among such solutions.
+Algorithm APPROX.
+(i) Sort all jobs in J − B according to their processing times in nondecreasing
+order.
+(ii) Let Si , 0 ≤ i ≤ |J − B|, be the solution that schedules the first i jobs from
+J − B using list scheduling and rejects all other jobs. Choose the solution Si
+with the smallest cost.
+Note that step (ii) of the algorithm takes time O(n log m) (or O(n) in case m ≥ n),
+as we can build the schedules incrementally, and the bookkeeping of penalties for rejected jobs is simple. Thus, the whole algorithm runs in time O(n log n), independent
+of m. A performance analysis leads to the following worst-case ratio.
+1
+)Z OP T , where Z H is
+Theorem 5.1. Algorithm APPROX achieves Z H ≤ (2 − m
+the cost of the solution found by the algorithm.
+Proof. We assume that the jobs from J −B are ordered 1, 2, . . . , |J −B|, according
+to the ordering given by step (i) of the algorithm. If the optimal solution rejects all
+jobs from J − B, by the definition of B it is optimal to reject all jobs from B as well.
+Thus the solution S0 that rejects all jobs is optimal and Z H = Z OP T .
+Otherwise let ` be the last job from J − B accepted in the optimal solution.
+Consider the solution S` , which schedules all jobs up to `. Let A = {1, . . . , `} be the
+set of all jobs scheduled in S` . Job ` has the largest running time of all scheduled
+jobs, and since we use list scheduling, the makespan of S` is at most
+
+
+
+
+1
+1
+C LS (A) = M (A) + 1 −
+p` ≤ M (A) + 1 −
+Z OP T .
+m
+m
+Since the cost of the algorithm is at most the cost of S` , we have
+
+
+1
+H
+Z OP T
+Z ≤ W (J − A) + M (A) + 1 −
+m
+= W (AOP T ∩ (J − A)) + W (ROP T ∩ (J − A)) +
+
+
+1
+OP T
+OP T
+Z OP T .
+∩ A) + M (A
+∩ A) + 1 −
+M (R
+m
+By the choice of `, AOP T ∩(J −A) ⊆ B, and thus W (AOP T ∩(J −A)) ≤ M (AOP T ∩(J −
+A)). Moreover, since A does not contain any job of B, M (ROP T ∩A) ≤ W (ROP T ∩A).
+These observations inserted in the above inequality yield
+
+
+
+
+1
+1
+H
+OP T
+OP T
+OP T
+Z
+Z OP T .
+) + M (A
+)+ 1−
+≤ 2−
+Z ≤ W (R
+m
+m
+That the ratio is tight is shown by the following instance with m jobs (and m
+1
+(1 − ). The
+machines): p1 = · · · = pm = 1, w1 = 1 − , and w2 = · · · = wm = m
+m−1
+H
+heuristic will reject all jobs resulting in Z = (1+ m )(1−). In the optimal solution
+all jobs are accepted; hence Z OP T = 1. Therefore, Z H /Z OP T can be made arbitrarily
+1
+.
+close to 2 − m
+
+74
+
+BARTAL ET AL.
+
+This example also shows that any heuristic that rejects all jobs in the set B has
+1
+, since there is no scheduling at all involved in
+a worst-case ratio no better than 2 − m
+it. Thus, the only way in which an improvement might be obtained is by also possibly
+accepting jobs in the set B.
+5.2. A fully polynomial approximation scheme for fixed m. For the offline MSR problem there exists a fully polynomial approximation scheme for fixed
+m. The proof uses a rounding technique based on dynamic programming, as was
+developed in [9] for the classical makespan problem.
+Lemma 5.2. The MSR problem with integer processing times and penalties can
+be solved in time polynomial in n and (Z OP T )m .
+Proof. We use dynamic programming. Let Mi represent the current load of
+machine i, i = 1, . . . , m. We compute for each M1 , . . . , Mm ≤ Z OP T the minimal
+value of total penalty to be paid that can be achieved with these loads. We denote
+this value after the first j jobs are rejected or scheduled by Wj (M1 , . . . , Mm ) and
+define it to be ∞ whenever Mi < 0 for some i. At the same time we compute the
+minimal cost of a schedule that can be achieved with given loads M1 , . . . , Mm , denoted
+Z(M1 , . . . , Mm ). For M1 , . . . , Mm ≥ 0 these values can be computed recursively as
+follows:
+W0 (M1 , . . . , Mm ) = 0,
+Wj (M1 , . . . , Mm ) = min{ wj + Wj−1 (M1 , . . . , Mm ),
+min Wj−1 (M1 , . . . , Mi−1 , Mi − pj , Mi+1 , . . . , Mm )},
+i
+
+Z(M1 , . . . , Mm ) = Wn (M1 , . . . , Mm ) + max Mi .
+i
+
+We compute the values in the order of increasing maxi Mi . As soon as maxi Mi reaches
+the cost of the current optimal solution, which is the smallest value of Z computed
+so far, we stop, as we know it is a global optimum.
+Theorem 5.3. For any ε ≥ 0, there exists an ε-approximation algorithm for the
+MSR problem that runs in time polynomial in the size of the input instance, nm and
+1/εm .
+Proof. Given an instance I of the MSR problem with n jobs and m machines, we
+first use the approximation algorithm from section 5.1 to obtain the cost Z H . Now we
+define an instance I 0 by rounding the processing times and the penalties of the jobs
+in I. Namely, the processing time p0j and the penalty wj0 of job j in I 0 are p0j = bpj /kc
+and wj0 = bwj /kc, where k = εZ H /2n. We obtain the optimal solution of I 0 by the
+dynamic programming algorithm presented in the proof of Lemma 5.2 and derive an
+approximate solution for I by scheduling the respective jobs on the same machines as
+in the optimal solution for I 0 .
+The cost Z A(k) of the approximate solution deviates from the optimal solution for
+I by at most nk = εZ H /2. Therefore, by applying the lower bound Z OP T ≥ Z H /2
+we obtain
+2nk
+|Z A(k) − Z OP T |
+≤ H = ε.
+Z OP T
+Z
+By Lemma 5.2 it follows that the running time of the approximation algorithm is
+polynomial in n and (Z OP T (I 0 ))m . The theorem follows since Z OP T (I 0 ) ≤ Z OP T (I)/k
+≤ 2Z H /k, and hence Z OP T (I 0 ) ≤ 4n/ε.
+
+MULTIPROCESSOR SCHEDULING WITH REJECTION
+
+75
+
+5.3. A polynomial approximation scheme for arbitrary m. For arbitrary
+m we will design a polynomial approximation scheme (PAS) based on the PAS for
+the makespan problem in [8].
+Given an instance with n jobs, m machines, and  > 0, we are to find an approximate solution. As an upper bound U on the solution value we use the outcome
+Z H of the heuristic presented in section 5.1. Notice that all jobs with pj > U will
+be rejected. Thus, all jobs that are possibly scheduled have processing times in the
+interval [0, U ].
+From Theorem 5.1 we have a lower bound on the optimal solution that we denote
+by L = Z H /2 = U/2. We define the set S = {j | pj ∈ [0, L/3]}, a set of jobs
+with relatively small processing times. Let D = {j | j ∈
+/ S}. The remaining interval
+(L/3, U ] is partitioned into s ≤ 18d1/2 e subintervals (l1 , l2 ], (l2 , l3 ], . . . , (ls , ls+1 ]
+of length 2 L/9 each, with l1 = L/3 and ls+1 ≥ U . Let Di be the set of jobs with
+processing time in the interval (li , li+1 ], and let the jobs in each such set be ordered so
+that the penalties are nonincreasing. As before, define the set B = {j | wj ≤ pj /m}.
+First we will describe how, for any subset ∆ of D, we generate an approximate
+solution with value Z H() (∆). For any such set ∆ we determine a schedule for all the
+jobs in ∆ with an /3-approximate makespan using the PAS in [8]. All other jobs in
+1
+pj , i.e.,
+D, i.e., all jobs in D − ∆, are rejected. Jobs in the set S that have wj ≥ m
+jobs in the set S − B, are scheduled in any order according to the list scheduling rule
+starting from the /3-approximate schedule determined before. The remaining jobs,
+j ∈ S ∩ B, are considered in any order. Each next job is rejected if its assignment
+to a least loaded machine would cause an increase of the makespan; otherwise it is
+assigned to a least loaded machine as indicated by list scheduling.
+This procedure is applied to every set D(y1 , . . . , ys ) ⊆ D, where D(y1 , . . . , ys )
+denotes the set that is composed of the first yi elements in the ordered set Di , i =
+1, . . . , s. In this way an approximate solution Z H() (D(y1 , . . . , ys )) is found for each
+set D(y1 , . . . , ys ). The minimum value over all these sets,
+Z H() =
+
+min
+
+(y1 ,...,ys )
+
+Z H() (D(y1 , . . . , ys )),
+
+is taken as the output of our procedure.
+Theorem 5.4. For any  > 0 the algorithm H() described above runs in time
+polynomial in n and m and yields
+Z H()
+≤ 1 + .
+Z OP T
+Proof. The proof consists of two steps. First, consider the set AOP T ∩ D of jobs
+in D that are accepted in the optimal solution. Applying the heuristic procedure
+described above to this set of jobs yields the approximate solution Z H() (AOP T ∩ D).
+We will prove that
+(5.1)
+
+
+Z H() (AOP T ∩ D)
+≤1+ .
+Z OP T
+3
+
+In the second step we analyze how much the set AOP T ∩D may differ from D(y1 , . . . , ys ).
+Assume that for i = 1, . . . , s, AOP T ∩ D consists of yiOP T jobs from the set Di . These
+yiOP T jobs are not necessarily the first yiOP T jobs in the ordered set Di , but we will
+show that
+2
+(5.2)
+Z H() (D(y1OP T , . . . , ysOP T )) ≤ Z H() (AOP T ∩ D) + L.
+3
+
+76
+
+BARTAL ET AL.
+
+Inequalities (5.1) and (5.2) imply that
+Z H() (D(y1OP T , . . . , ysOP T ))
+≤ 1 + .
+Z OP T
+Since, obviously, Z H() ≤ Z H() (D(y1OP T , . . . , ysOP T )), the theorem follows.
+In order to prove inequality (5.1) two cases are distinguished.
+(1) The completion times of the various machines (in the heuristic solution corresponding to Z H() (AOP T ∩ D)) differ by no more than L/3. The resulting makespan
+is the same as the makespan after scheduling the jobs in AOP T ∩ D and S − B, and
+due to our assumption it is at most M (AOP T ∩ D) + M (S − B) + L/3. The weight
+of all rejected jobs is at most W (S ∩ B) + W (D − AOP T ). Thus
+Z H() (AOP T ∩ D) ≤ M (AOP T ∩ D) + M (S − B) +
+
+L
++ W (S ∩ B) + W (D − AOP T ).
+3
+
+Using the definition of the set B, we have for the optimal solution
+Z OP T ≥ M (AOP T ∩ D) + M (S − B) + W (S ∩ B) + W (D − AOP T ).
+From these two inequalities (5.1) follows immediately.
+(2) The completion times of the machines differ by more than L/3. Since the
+processing time of each job in S is less than L/3, we know that no job in the set S ∩B
+is rejected, and scheduling all jobs in S has not increased the makespan computed for
+the set AOP T ∩ D. Let C H() (AOP T ∩ D) and C OP T (AOP T ∩ D) denote, respectively,
+the /3-approximate and the optimal makespan for the jobs in AOP T ∩ D. In this
+case
+Z H() (AOP T ∩ D) = C H() (AOP T ∩ D) + W (D − AOP T )
+and
+Z OP T ≥ C OP T (AOP T ∩ D) + W (D − AOP T ).
+Moreover, since we have used an /3-approximate algorithm for scheduling the jobs
+in AOP T ∩ D, we have
+
+  OP T OP T
+C H() (AOP T ∩ D) ≤ 1 +
+C
+(A
+∩ D).
+3
+Inequality (5.1) results from the above three inequalities.
+In order to prove (5.2) we need to bound the extra error that might occur due to
+the fact that AOP T ∩ D 6= D(y1OP T , . . . , ysOP T ). Notice that, for any Di , i = 1, . . . , s,
+the difference in processing time between any two jobs in Di is at most 2 L/9, and
+that D(y1OP T , . . . , ysOP T ) contains the jobs with larger penalties in Di . The latter
+implies that the extra error can be due only to the fact that the first yiOP T jobs in Di
+have longer processing times than those in AOP T ∩ Di . Since the processing time of a
+job in D is at least L/3 and U ≤ 2L, no more than 6/ jobs from D are scheduled on
+any machine. Therefore the overall extra contribution to the makespan due to the fact
+that AOP T ∩ D 6= D(y1OP T , . . . , ysOP T ) can be no more than (6/)(2 L/9) = 2L/3,
+which implies inequality (5.2).
+This completes the proof of correctness of the approximation.
+The running time of the algorithm is dominated by the time required to compute
+the heuristic Z H() (D(y1 , . . . , ys )) for each possible set of values y1 , . . . , ys , such that
+
+MULTIPROCESSOR SCHEDULING WITH REJECTION
+
+77
+
+0 ≤ yi ≤ |Di |, i = 1, . . . , s. Since yi , i = 1, . . . , s, satisfies 1 ≤ yi ≤ n, there are at
+2
+most ns = O(n18d1/ e ) possible sets of values y1 , . . . , ys .
+For each of these sets an -approximate schedule is computed using the algorithm
+2
+in [8], taking O((n/)d9/ e ); attaching the jobs in the set S just adds O(n2 ) time
+to each of these computations. Hence, the overall running time of the algorithm is
+2
+O((n3 /)d9/ e ). This establishes that the algorithm is a polynomial approximation
+scheme for the problem with arbitrary m.
+6. Open problems and recent developments. Some open problems remain.
+For the on-line problem tight algorithms for the case of fixed m other than m = 2
+are still to be established. For the off-line problem perhaps better heuristics may be
+found by improving the rejection strategy proposed in the algorithm in section 5.1.
+Seiden [13] has proved new results related to our problem. For
+√ the variant of
+deterministic preemptive scheduling with rejection he gives a (4 + 10)/3 ≈ 2.387
+competitive algorithm for any number of machines, thus showing that allowing preemption can provably be exploited. Interestingly, this yields yet another 2-competitive
+algorithm for three machines. Also, Seiden notes that our Theorem 4.1 yields a lower
+bound for preemptive scheduling as well and hence yields a lower bound of 2 for general number of machines. For two machines, this shows that our algorithm RP(φ − 1)
+is best possible even among all preemptive algorithms. For three machines, an interesting open problem is to establish whether preemption allows a better competitive
+ratio. The best upper bound of 2 and the best lower bound of 1.839 for preemptive
+algorithms still coincide with those shown in this paper for nonpreemptive algorithms.
+Seiden [13] also studies randomized scheduling with rejection, both preemptive
+and nonpreemptive. He gives algorithms which are better than deterministic for a
+small number of machines, and in particular are 1.5-competitive for two machines,
+both preemptive and nonpreemptive; this is best possible for two machines. In both
+cases the question of whether randomized algorithms for any number of machines can
+be better than their deterministic counterparts remains open.
+Epstein and Sgall [4] presented polynomial time approximation schemes for related machines for various objectives, including MSR, thus generalizing the polynomial
+time approximation scheme given in this paper.
+Engels et al. [3] study scheduling with rejection where, in the objective, the
+makespan is replaced by the sum of the completions times.
+Acknowledgments. We thank Giorgio Gallo for having drawn our attention
+to this scheduling problem. We thank the anonymous referees for numerous helpful
+comments.
+REFERENCES
+[1] S. Albers, Better bounds for online scheduling, in Proceedings of the 29th Annual ACM
+Symposium on Theory of Computing, ACM, New York, 1997, pp. 130–139.
+[2] Y. Bartal, A. Fiat, H. Karloff, and R. Vohra, New algorithms for an ancient scheduling
+problem, J. Comput. Systems Sci., 51 (1995), pp. 359–366.
+[3] D. W. Engels, D. R. Karger, S. G. Kolliopoulos, S. Sengupta, R. N. Uma, and J. Wein,
+Techniques for scheduling with rejection, in Proceedings of the 6th Annual European Symposium on Algorithms, Lecture Notes in Comput. Sci. 1461, Springer-Verlag, New York,
+1998, pp. 490–501.
+[4] L. Epstein and J. Sgall, Approximation Schemes for Scheduling on Uniformly Related and
+Identical Parallel Machines, Technical Report KAM-DIMATIA Series 98-414, Charles University, Prague, Czech Republic, 1998.
+
+78
+
+BARTAL ET AL.
+
+[5] G. Galambos and G. J. Woeginger, An on-line scheduling heuristic with better worst case
+ratio than Graham’s list scheduling, SIAM J. Comput., 22 (1993), pp. 349–355.
+[6] M. R. Garey and D. S. Johnson, Computers and Intractability: A Guide to the Theory of
+NP–completeness, W. H. Freeman, San Francisco, CA, 1979.
+[7] R. L. Graham, Bounds for certain multiprocessor anomalies, Bell System Tech., 45 (1966),
+pp. 1563–1581.
+[8] D. S. Hochbaum and D. B. Shmoys, Using dual approximation algorithms for scheduling
+problems: Theoretical and practical results, J. Assoc. Comput. Mach., 34 (1987), pp. 144–
+162.
+[9] E. Horowitz and S. Sahni, Exact and approximate algorithms for scheduling non-identical
+processors, J. Assoc. Comput. Mach., 23 (1976), pp. 317–327.
+[10] D. R. Karger, S. J. Phillips, and E. Torng, A better algorithm for an ancient scheduling
+problem, J. Algorithms, 20 (1996), pp. 400–430.
+[11] R. M. Karp, On-line algorithms versus off-line algorithms: How much is it worth to know the
+future?, in Proceedings of the IFIP 12th World Computer Congress. Vol. 1: Algorithms,
+Software, Architecture, J. van Leeuwen, ed., Elsevier Science Publishers, Amsterdam, 1992,
+pp. 416–429.
+[12] E. L. Lawler, J. K. Lenstra, A. H. G. Rinnooy Kan, and D. B. Shmoys, Sequencing
+and scheduling: Algorithms and complexity, in Handbooks in Operations Research and
+Management Science, Vol. 4: Logistics of Production and Inventory, S. C. Graves, A. H. G.
+Rinnooy Kan, and P. Zipkin, eds., North–Holland, Amsterdam, 1993, pp. 445–552.
+[13] S. S. Seiden, More Multiprocessor Scheduling with Rejection, Technical Report Woe-16, Department of Mathematics, TU Graz, Graz, Austria, 1997.
+[14] D. D. Sleator and R. E. Tarjan, Amortized efficiency of list update and paging rules, Comm.
+Assoc. Comput. Mach., 28 (1985), pp. 202–208.
+
+

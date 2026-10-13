@@ -1,0 +1,546 @@
+International Journal of Pure and Applied Mathematics
+Volume 106 No. 6 2016, 43-56
+ISSN: 1311-8080 (printed version); ISSN: 1314-3395 (on-line version)
+url: http://www.ijpam.eu
+doi: 10.12732/ijpam.v106i6.6
+
+AP
+ijpam.eu
+
+BULK SERVICE QUEUEING MODELS – A SURVEY
+S. Sasikala1 , K. Indhira2
+1,2 School of Advanced Sciences
+
+VIT University
+Vellore, Tamil Nadu, 632014, INDIA
+
+Abstract:
+
+In Bulk service queueing models, customers are served in batches, the batches
+
+may be of fixed length or variable length. Sometimes, the service rate may depend on the
+number of customers waiting for service. The motivation of this model rise from manufacturing
+systems, elevators, transport vehicles etc. In this survey, we provide an overview about bulk
+service queueing models.
+Key Words:
+
+bulk service, setup time, vacations, N-policy, breakdown, closedown time,
+
+retrial
+
+1. Introduction
+A detailed work about bulk queues can be found in Chaudhry and Templeton
+[1]. Bulk service queueing models is originated with Bailey [2]. He derived the
+equilibrium distribution of the queue length by using embedded-Markov chain
+technique, he considered fixed-batch service. In fixed-batch service queueing
+models, the server always serve fixed number of customers in batch.
+Embedded Markov-chain technique was introduced by Kendall [3]. In this
+technique, discrete time Markov chain is obtained from non-Markovian process
+Received:
+
+February 15, 2016
+
+Published: April 2, 2016
+
+c 2016 Academic Publications, Ltd.
+url: www.acadpubl.eu
+
+44
+
+S. Sasikala, K. Indhira
+
+by using regeneration points. The regeneration points may be service completion epoch, customers departure epoch, customers arrival epoch etc. The
+stochastic matrix of the obtained Markov chain can be used for finding the
+performance measures of a queueing models.
+General bulk service rule was first introduced by Neuts [4]. General bulk
+service rule states that the server will start to provide service only when atleast
+‘a’ units are present in the queue, and maximum service capacity is ‘b’. On
+completion of a batch of service, if less than ‘a’ customers are present in the
+queue then server has to wait upto the queue length reaches the value ‘a’. If
+less than or equal to ‘b’ and greater than or equal to ‘a’ customers are in the
+queue, then all the existing customers are taken into service. If greater than are
+equal to ‘b’ customers are in the queue, then ‘b’ customers taken into service.
+Downton [5] obtained the waiting time distribution of bulk service queues
+by considering random arrivals and random service time distribution. In bulk
+service queueing problem Jaiswal [6] conformed the result of Downton. He
+derived waiting time distribution using embedded Markov-chain technique. He
+assumed that the batches are either fixed queue length or whole queue, whatever
+is lower. That is, If more than ‘a’ customers are in the queue, then ‘a’ customers
+are taken into service. If lesser than ‘a’ customers are in the queue all the
+existing customers are taken into service.
+This paper is summarised as follows : In Section 2. reviews the models of
+bulk service queues without vacation. In Section 3. is focused on bulk service
+queues with vacation. In Section 4. contains tandem queues with bulk service.
+In Section 5. concludes with uses of queueing models and some useful future
+direction.
+
+2. Bulk service queues without vacation
+2.1. Single server
+
+Figure 1: Single server bulk service queueing model
+A simple single server batch service queue as shown in fig.1. Holman et al.
+
+BULK SERVICE QUEUEING MODELS – A SURVEY
+
+45
+
+[7] analyzed M x /G(a, b)/1 queue using supplementary variable method. The
+supplementary variable technique was introduced by Cox [8]. The supplementary variable method states that at time ‘t’ let N(t) be the number of customers
+in the system and X(t) be the
+ remaining service time of a customer in service.
+It is clear that { N (t), X(t) , t ≥ 0} is discrete time Markov chain. To find stationary distribution either by using Z-transform or Matrix-analytic approach,
+we write Chapman-Kolmogorov equations of the queueing system. Gold and
+Tran-Gia [9] analyzed M/G(a, b)/1 − S queueing system, where ‘S’ is number
+of waiting rooms. Chaudhry and Templeton [10] analyzed bulk service queue
+with single server queueing systems and its ramification.
+Chaudhry and Gupta [11], Gupta and Laxmi [12], Chakravarthy [13], Gupta
+and Goswami [14], Laxmi and Gupta [15] analyzed bulk service queueing system with finite queue length. Jaiswal [16] derived the distribution of the queue
+length by using embedded-Markov chain technique and Phase method, he compared these two techniques. In phase method, service of a customer consisting
+of ‘n’ stages, each stage having exponential service time. Service of a customer is finished, when the customer service is processed all ‘n’ stages. The
+overall service time of a customer has n-phase Erlang distribution is a convolution of n same exponential distribution. Jayaraman et al. [17] studied bulk
+service queueing system with customers arrival rate depends on server breakdown. Miller [18], Borthakur and Medhi [19], Chaudhry et al. [20], Powell
+and Humblet [21], Abolnikov and Dshalalow [22] considered bulk queueing system. Medhi [23], Borthakur [24] investigated M/M (a, b)/1 queueing system.
+Finch [25] studied about bulk service with finite capacity with fixed batch service. Powell [26] studied poisson and non-poisson arrivals with bulk service
+queueing system. Easton and Chaudhry [27] obtained steady state results for
+Ek /M (a, b)/1 queueing system using Erlangian technique. Deb and Serfozo [28]
+analyzed optimal control for bath service queueing system.
+Goswami et al. [29] analyzed discrete time batch service queueing system
+with accessible and non-accessible batches under general bulk service rule. If the
+queue length is lesser than minimum threshold level ‘a’, then the server will be
+in idle state. If the queue length is ‘n’(a ≤ n ≤ d − 1), then the server will take
+all the existing customers into service and late arrivals are allowed to enter the
+ongoing service upto accessible limit ‘d’ is reached this is termed as accessible
+batch. If the length of the queue is ‘n’ (n ≥ d), then the server will take all the
+existing customers into service, and once service started, even if the number of
+customers currently in service is lesser than maximum threshold level ‘b’, newly
+arriving customers are not allowed to enter in the ongoing service this is termed
+as non-accessible batch. Krishnamoorthy and Ushakumari [30] analyzed batch
+
+46
+
+S. Sasikala, K. Indhira
+
+service queue with single departure and accessible batches. Madan et al. [31]
+studied bulk service queue with random breakdown. Unplanned breakdown is
+called random breakdown, once breakdown occur the server immediately will
+enter into repair process, after repair process it resumes service.
+Arumuganathan and Jeyakumar [32] analyzed M x /G(a, c, b)/1 queueing
+system. The server can choose either single service or bulk service, this selection depends on the number of customers in the queue, while entering into
+the service. The service will start only when ‘a’ customers are in the queue. If
+the queue length is ‘a’, the server will choose single service and serves one by
+one. If the queue length is ‘c’(c ≥ a), the server will choose bulk service and
+serves at most ‘b’ customers in a batch. Alfa and He [33], Selim [34] analyzed
+bulk service queueing system with variable service capacity. Zili et al. [35] analyzed bulk service queueing system with priority queue. The server will provide
+service for non-priority customers only after the service completion of priority
+customers.
+Madan [36], Singh and Ram [37] examined bulk service queueing system
+with service interruption. Once breakdown occur, the server will send for repair
+and the service of the current batch will be suspended. After completion of its
+repair, the server will serve suspended batch of customers. Dhas et al. [38]
+considered bulk service with preemptive priority queueing system. Among two
+queues, one queue is for high priority customers and another queue is for low
+priority customers. If the queue length of high priority customers is reached the
+minimum capacity of the server, immediately the server will start serve for high
+priority customers, otherwise the server will serve for low priority customers.
+Banerjee et al.[39, 40], Banerjee and Gupta [41] investigated bulk service
+queueing system with batch size dependent service, service time of a batch is
+depends upon the batch size. Chang et al. [42], Chaudhry and Chang [43],
+Banerjee et al. [44], Germs and Van Foreest [45] analyzed bulk service queue
+with finite queue length and variable server capacity. Chang and Choi [46]
+studied bulk queue with variable server capacity, finite queue length and setuptimes. Muh [47] investigated M x /G(r, R)/1 queueing system with N-policy
+and setuptime. Tadj and Choudhury [48] studied bulk service queueing system with unreliable server. Unpredictable breakdowns will occur in unreliable
+server. Haridass et al. studied [49] analyzed bulk service queue with retrial,
+arriving customers finds the server is in busy they are grouped is termed as
+orbit.
+
+BULK SERVICE QUEUEING MODELS – A SURVEY
+
+47
+
+(a) Mutiple server with single line
+
+(b) Mutiple server with multiple line
+Figure 2: Multiple server bulk service queueing models
+2.2. Multiple server
+A small multiserver bulk service queue with single and multi queue as shown
+in Figure 2(a), Figure 2(b). Arora [50] analysed about two server bulk service
+queueing model. Ghare [51] generalised the result of Arora’s two servers to ‘c’
+servers. Cosmetatos [52], Sim and Templeton [53, 54] considered M/M (a, ∞)/N
+queueing system. When the number of customers exceeds some control limit ‘a’,
+an idle server will take for service all the waiting customers in the queue. Sim
+and Templeton [55], Neuts and Nadarajan [56], Adan and Resing [57] analyzed
+multi server batch service queueing system. Goswami et al. [58], Goswami and
+Mund [59] examined multiserver queueing system with finite buffer and server
+capacity is at-most ‘b’ in a batch.
+
+3. Bulk service queues with vacation
+3.1. Single server
+A detailed survey on server vacation have analyzed by Doshi [60], server vacation models are favourable for the system in which server wants to do secondary job in the idle time. Arumuganathan and Jeyakumar [61] analyzed
+M x /G(a, b)/1 queueing model with multiple vacation and closedown time. In
+closedown time queueing system, on completion of a service, if the queue length
+is lesser than the minimum service capacity of the server, the server performs
+
+48
+
+S. Sasikala, K. Indhira
+
+closedown work. In M x /G(a, b)/1 queueing system with multiple vacation, on
+completion of a service, if the queue size is at-most ‘a − 1’, the server leaves for
+a vacation of random length. After a vacation, if the queue length is less than
+‘a’, then the server leaves for another vacation and so on, this will continue
+until the queue length reaches at least ‘a’. After a vacation, if the queue size
+is greater than or equal to ‘a’ say ξ , then the server serves min(ξ, b), where
+b ≥ a. Lee et al [62] analyzed fixed-length batch service queue with vacations.
+In single vacation queueing model, the server will permit to take exactly one
+vacation on completion of it’s service. After a service, if the queue length is
+fewer than ‘a’, then the server leaves for a vacation of random length. After
+a vacation, if the queue size is more than ‘a’, the server will take into service
+exactly ‘a’ customers. If not, he remains idle upto the queue size reaches ‘a’.
+Lee et al. [63] analyzed bulk service queue with single vacation.
+Arumuganathan and Jeyakumar [64] examined M x /G(a, b)/1 queueing system with multiple vacations, setup times, closedown times and N -policy. Startup
+time or setup time is preparatory work of the server before start to provide service. In N -policy queueing system, the server begins service from idle period
+only when the queue length reaches at least N (N ≥ 1). A survey on queueing
+models with N-policy can be found in Jayachitra and Albert [65]. Jeyakumar
+and Senthilnathan [66] examined M x /G(a, b)/1 queueing system with multiple
+vacations, setuptimes and server breakdown without interruption. The breakdown condition of the service location, defect status and proper maintenance
+are termed as renovation jobs of the server. Arumuganathan and Ramaswami
+[67] studied about M x /G(a, b)/1 queueing system with fast and slow services.
+The service rate is high, when the queue length is greater than are equal to
+N (N ≥ b). The service rate is low, when the queue length is less than N.
+Jeyakumar and Senthilnathan [68] studied M x /G(a, b)/1 queueing system with
+server breakdown without interruption, multiple vacations and closedown times.
+Reddy et al. [69] examined M x /G(a, b)/1 queue with multiple vacation,
+setup times and N-policy. Haridass and Arumuganathan [70] investigated vacation interruption with M x /G(a, b)/1 queueing system. During vacation period,
+if the queue reaches of length ‘a’, the server will start to provide service immediately. A detailed survey on queues with interruption can be found in Krishnamoorthy et al. [71]. Arumuganathan and Malliga [72] analyzed M x /G(a, b)/1
+queueing system with multiple vacation, setuptimes, repair of server on request
+by a leaving bunch of customers. On completion of a service, the system either
+requires repair with probability π or does not require repair with probability
+1− π. Lee et al. [73], Dshalalow and Yellen [74] examined bulk service queueing
+system with multiple vacation.
+
+BULK SERVICE QUEUEING MODELS – A SURVEY
+
+49
+
+Reddy and Anitha [75] analyzed M/M (a, b)/1 queueing system with delayed
+vacation. After a vacation or service, if the queue length is at most ‘a − 1’, the
+server will wait idle in the system this is termed as delay time or changeover
+time. During this delay time, if there is an arrival occur, the server will start
+to provide service else will go for vacation. Jacob and Madhusoodanan [76]
+studied M x /G(a, b)/1 queueing system with multiple vacation and finite waiting room. Nadarajan and Subramaniyam [77] studied M/M (a, b)/1 queueing
+system with server vacation. Gupta and Sikdar [78] studied bulk service queue
+with single vacation. Sikdar [79] analyzed M AP/G(a, b)/1/N queueing system
+with multiple vacation. Laxmi et al. [80] examined bulk service renewal input (a, c, b)-policy with multiple vacations and changeover times. Goswami
+and Laxmi [81] studied bulk service queue with multiple vacation, accessible
+and non accessible batches. Haridass and Arumuganathan [82] analyzed bulk
+service queueing system with variant threshold policy for vacation. Tadj et al.
+[83] studied quorum queue with setup time, N-policy and Bernoulli vacation.
+Bernoulli schedule vacation states that, after each batch of service completion
+epoch the server may go for secondary job or continue its service.
+Haridass and Arumuganathan [84] analyzed bulk service queue with server
+choice of admitting re-service, multiple vacation and setup time. On completion
+of a batch of service, the leaving batch of customers may appeal for re-service
+and this request for re-service may be accept or may not. Balasubramanian
+et al. [85] studied bulk service queueing system with overloading and multiple
+vacation. After a service or vacation, the server finds ‘ξ(a ≤ ξ < N )’ customers
+waiting for service, then the server serves min(ξ, b) customers in a batch, if the
+queue size is greater than ‘N’, then the server will increase its service capacity
+called overload and serves ‘N’ customers in a batch. Balasubramanian and Arumuganathan [86] examined bulk queue with modified M-vacation policy, after
+completing ‘M’ vacations, if the queue size is lesser than minimum threshold
+value, then the server will stay in idle state upto the queue size reaches the
+minimum threshold value of the server. Jeyakumar and Arumuganathan [87]
+analyzed M/G(a, b)/1 queueing system with M-vacation policy.
+Laxmi and Demie [88] analyzed GI/M (a, c, b)/1 queueing system with working vacation and change over time. In bulk service with working vacation
+queueing models, instead of completely idle in the secondary job period, the
+server will work in that period with different rate. Ayyappan et al. [89] studied
+bulk service queueing system with gated service and multiple vacation, once
+enter into service with a batch of ‘k’ customers, each time the server will provide service for ‘k’ customers. Jeyakumar and Arumuganathan [90] considered
+M x /G(a, b)/1 queueing system with control policy for re-service and multiple
+
+50
+
+S. Sasikala, K. Indhira
+
+vacation. After getting service, the leaving batch of customers may request for
+re-service, this request acceptance depend upon the number of customers in the
+queue, this request will accept only when the queue size is less than minimum
+threshold level of the server this is termed as control policy for re-service. Yu
+et al. [91] discussed GI x /M b /1 queueing system with partial batch rejection,
+finite queue length and multiple working vacation. Since the queue length is
+finite and arrivals are in batch, the arriving batch of customers is partly lost
+when the full batch does not fit in buffer space this is called partial rejection of
+the batch.
+Samanta et al. [92] presented Geox /G(a, b)/1/N queueing system with either Partial or whole batch acceptance, single vacation and multiple vacation.
+Chang and Choi [93] studied GeoX /GY /1/K + B queueing system with multiple vacation. Sikdar and Gupta [94] studied bulk queue with variable server
+capacity, finite queue length, single and multiple vacation. Gupta and Sikdar
+[95] studied M/G(a, b)/1 queueing system with single vacation and finite queue
+capacity. Sikdar and Gupta [96] studied M/G(a, b)/1 queueing system with
+single vacation.
+4. Tandem queues with bulk service
+A simple queueing systems connected by a series in one direction is called
+tandem queue, the service of each queueing system in a tandem queue may
+be single or batch. Reddy et al. [97] studied tandem queue with three units,
+each having finite number of parallel servers, bulk service only in third unit. In
+first unite infinite waiting capacity, other two units has finite waiting capacity
+namely ‘M’ and ‘N’. In third unit bulk service will be given by general bulk
+service rule. Ayyappan and Velmurugan [98] examined tandem queue with two
+units, bulk service in unit two accessible and non accessible batch in unit two.
+In first unit customers are served singly, unit two has ‘c’ parallel servers. Dhas
+and Sumitha [99] studied tandem queue with two units, new general bulk service
+rule for unit two. New bulk service rule states that the server will serve not
+lesser than ‘a’ and not higher than ‘b’ in a batch, arriving customers are allowed
+to enter into service upto the maximum capacity of the server without affecting
+its service time. A tandem queue with two units and random breakdown in
+unit two studied by Nadarajan and Dhas [100]. Nadarajan and Jayaraman
+[101] analyzed tandem queue with two units, random breakdown in both the
+units, multiple vacation in unit two. Reddy et al. [102] analyzed tandem queue
+with two types of vacation, service and finite buffer.
+
+BULK SERVICE QUEUEING MODELS – A SURVEY
+
+51
+
+5. Conclusion
+In this paper we studied the overview of bulk service queueing models, this
+models are used to predict the system in advance and we can avoid loss by using
+of these models, here we include a few navigation for further research work. A
+less number of works are done in the field of bulk service queueing models with
+multiserver, bulk service queue with priority queues and bulk service queue
+with working vacations, developing good approximations for these models will
+be useful future work.
+
+References
+[1] M. Chaudhry, J. Templeton, A first course in bulk queues, John Wiley & Sons (1983).
+[2] N. T. Bailey, On queueing processes with bulk service, Journal of the Royal Statistical
+Society. Series B (Methodological), (1954), 80-87.
+[3] D. G. Kendall, Some problems in the theory of queues, Journal of the Royal Statistical
+Society. Series B (Methodological) , (1951) 151-185.
+[4] M. F. Neuts, A general class of bulk queues with poisson input, The Annals of Mathematical Statistics (1967), 759-770.
+[5] F. Downton, Waiting time in bulk service queues, Journal of the Royal Statistical Society.
+Series B (Methodological), (1955), 256-261.
+[6] N. Jaiswal, Bulk-service queuing problem, Operations Research, 8 (1960), 139-143.
+[7] D. Holman, M. Chaudhry, A. Ghosal, Some results for the general bulk service queueing
+system,Bulletin of the Australian Mathematical Society, 23 (1981), 161-179.
+[8] D. R. Cox, The analysis of non-markovian stochastic processes by the inclusion of supplementary variables, Mathematical Proceedings of the Cambridge Philosophical Society,
+51 (1955), 433-441.
+[9] H. Gold, P. Tran-Gia, Performance analysis of a batch service queue arising out of manufacturing system modelling, Queueing Systems, 14(1993), 413-426.
+[10] M. Chaudhry, J. Templeton, The queuing system M/GB /l and its ramifications,European
+Journal of Operational Research, 6 (1981), 56-60.
+[11] M. L. Chaudhry, U. C. Gupta, Modelling and analysis of M/G(a, b)/1/N queue-a simple
+alternative approach, Queueing Systems, 31 (1999), 95-100.
+[12] U. Gupta, P. V. Laxmi, Analysis of the M AP/G(a, b)/1/N queue, Queueing Systems,
+38 (2001), 109-124.
+[13] S. Chakravarthy, A finite capacity GI/P H/1 queue with group services, Naval Research
+Logistics (NRL), 39 (1992), 345-357.
+[14] U. C. Gupta, V. Goswami, Performance analysis of finite buffer discrete-time queue with
+bulk service,Computers & Operations Research, 29 (2002), 1331-1341.
+[15] P. V. Laxmi, U. Gupta, On the finite-buffer bulk-service queue with general independent
+arrivals: GI/M b/1/N , Operations Research Letters, 25 (1999), 241-245.
+
+52
+
+S. Sasikala, K. Indhira
+
+[16] N. Jaiswal, A bulk-service queueing problem with variable capacity, Journal of the Royal
+Statistical Society. Series B (Methodological), (1961), 143-148.
+[17] D. Jayaraman, R. Nadarajan, M. Sitrarasu, A general bulk service queue with arrival rate
+dependent on server breakdowns,Applied mathematical modelling, 18 (1994), 156-160.
+[18] R. G. Miller Jr, A contribution to the theory of bulk queues, Journal of the Royal
+Statistical Society. Series B (Methodological), (1959), 320-337.
+[19] A. Borthakur, J. Medhi, A queueing system with arrival and service in batches of variable
+size,Cahiers du. CERO, 16 (1974), 117-126.
+[20] M. L. Chaudhry, B. Madill, G. Briere, Computational analysis of steady-state probabilities of M/G(a, b)/1 and related non bulk queues,Queueing Systems,2 (1987), 93-114.
+[21] W. B. Powell, P. Humblet, The bulk service queue with a general control strategy: theoretical analysis and a new computational procedure, Operations Research, 34 (1986),
+267-275.
+[22] L. Abolnikov, J. H. Dshalalow, On a multilevel controlled bulk queueing system
+M x /G(r, R)/1, International Journal of Stochastic Analysis, 5(1992), 237-260.
+[23] J. Medhi, Waiting time distribution in a poisson queue with a general bulk service rule,
+Management Science, 21 (1975), 777-782.
+[24] A. Borthakur, A poisson queue with a general bulk service rule,J. Assam Sci. Soc, 14
+(1971), 162-167.
+[25] P. Finch, On the transient behaviour of a queueing system with bulk service and finite
+capacity, The Annals of Mathematical Statistics, (1962), 973-985.
+[26] W. B. Powell, Iterative algorithms for bulk arrival, bulk service queues with poisson and
+non-poisson arrivals, Transportation science, 20 (1986), 65-79.
+[27] G. Easton, M. Chaudhry, The queueing system Ek/M (a, b)/1 and its numerical analysis,
+Computers & Operations Research, 9 (1982), 197-205.
+[28] R. K. Deb, R. F. Serfozo, Optimal control of batch service queues, Advances in Applied
+Probability, (1973), 340-361.
+[29] V. Goswami, J. Mohanty, S. K. Samanta, Discrete-time bulk-service queues with accessible and non-accessible batches, Applied Mathematics and Computation, 182 (2006),
+898-906.
+[30] A. Krishnamoorthy, P. Ushakumari, A queueing system with single arrival bulk service
+and single departure, Mathematical and computer modelling,31 (2000), 99-108.
+[31] K. C. Madan, W. Abu-Dayyeh, M. Gharaibeh, Steady state analysis of two M x /M (a, b)/1
+queue models with random breakdowns, International journal of information and management sciences, 14 (2003), 37-51.
+[32] R. Arumuganathan, S. Jeyakumar, A study on bulk arrival non markovian single service
+queue with state dependent service, Opsearch, 47 (2010), 128-142.
+[33] A. S. Alfa, Q.-M. He, Algorithmic analysis of the discrete time GI X /GY 1 queueing
+system, Performance Evaluation, 65 (2008), 623-640.
+[34] S. Z. Selim, Time-dependent solution and optimal control of a bulk service queue, Journal
+of Applied Probability, (1997), 258-266.
+
+BULK SERVICE QUEUEING MODELS – A SURVEY
+
+53
+
+[35] M. Zili, W. Siming, L. Qinglan, A class of cyclic queue with priority batch service, Applied
+mathematical modelling, 15 (1991), 450-458.
+[36] K. Madan, A single channel queue with bulk service subject to interruptions, Microelectronics Reliability, 29 (1989), 813-818.
+[37] I. Singh, C. Ram, Three-server bulk service queue with service interruptions and exponential repairs, Microelectronics Reliability, 31 (1991), 257-259.
+[38] D. A. M. Dhas, R. Nadarajan, H. W. Lee, A preemptive priority queue with general bulk
+service and heterogeneous arrivals, Computers in industry, 18 (1992), 327-333.
+[39] A. Banerjee, U. Gupta, S. Chakravarthy, Analysis of a finite-buffer bulk-service queue
+under markovian arrival process with batch-size-dependent service, Computers & Operations Research, 60 (2015), 138-149.
+[40] A. Banerjee, U. Gupta, V. Goswami, Analysis of finite-buffer discrete-time batch-service
+queue with batch-size-dependent service, Computers & Industrial Engineering, 75 (2014),
+121-128.
+[41] A. Banerjee, U. Gupta, Reducing congestion in bulk-service finite-buffer queueing system
+using batch-size-dependent service, Performance Evaluation, 69 (2012), 53-70.
+[42] S. Ho Chang, D. Won Choi, T.-S. Kim, Performance analysis of a finite-buffer bulk-arrival
+and bulk-service queue with variable server capacity, Stochastic analysis and applications,
+22 (2004), 1151-1173.
+[43] M. L. Chaudhry, S. H. Chang, Analysis of the discrete-time bulk-service queue
+Geo/GY /1/N + B, Operations Research Letters, 32 (2004), 355-363.
+[44] A. Banerjee, K. Sikdar, U. Gupta, Computing system length distribution of a finite-buffer
+bulk-arrival bulk-service queue with variable server capacity, International Journal of
+Operational Research, 12 (2011), 294-317.
+[45] R. Germs, N. Van Foreest, Loss probabilities for the M x /GY /1/K + B bulk queue,
+Probability in the Engineering and Informational Sciences, 24 (2010), 457-471.
+[46] S. H. Chang, D. W. Choi, Modelling and performance analysis of a finite-buffer queue
+with batch arrivals, batch services, and setup times: The M x /GY /1/K + B queue with
+setup times, INFORMS Journal on Computing, 18 (2006), 218-228.
+[47] D. C. Muh, A bulk queueing system under N-policy with bilevel service delay discipline
+and start-up time, International Journal of Stochastic Analysis, 6 (1993), 359-384.
+[48] L. Tadj, G. Choudhury, A quorum queueing system with an unreliable server, Applied
+Mathematics Letters, 22 (2009), 1710-1714.
+[49] M. Haridass, R. Arumuganathan, M. Senthilkumar, Cost analysis of a bulk service retrial
+queue, International Journal of Operational Research, 14 (2012), 94-119.
+[50] K. Arora, Two-server bulk-service queuing process, Operations Research, 12 (1964), 286294.
+[51] P. Ghare, Multichannel queuing system with bulk service, Operations Research, 16
+(1968), 189-192.
+[52] G. P. Cosmetatos, Closed-form equilibrium results for the M/M (a, ∞)/1/N queue, European Journal of Operational Research, 12 (1983), 203-204.
+
+54
+
+S. Sasikala, K. Indhira
+
+[53] S. Sim, J. Templeton, Computational procedures for steady-state characteristics of unscheduled multi-carrier shuttle systems, European Journal of Operational Research, 12
+(1983), 190-202.
+[54] S. Sim, J. G. C. Templeton, Further results for the M/M (a, ∞)/N batch-service system,
+Queueing Systems, 6 (1990), 277-286.
+[55] S. Sim, J. Templeton, Steady state results for the M/M (a, b)/c batch-service system,
+European journal of operational research, 21 (1985), 260-267.
+[56] M. F. Neuts, R. Nadarajan, A multiserver queue with thresholds for the acceptance of
+customers into service, Operations Research, 30 (1982), 948-960.
+[57] I. Adan, J. Resing, Multi-server batch-service systems, Statistica Neer-landica, 54 (2000),
+202-220.
+[58] V. Goswami, S. Samanta, P. V. Laxmi, U. Gupta, Analyzing a multi-server bulk-service
+finite-buffer queue, Applied Mathematical Modelling, 32 (2008), 1797-1812.
+[59] V. Goswami, G. Mund, Multiserver bulk service discrete-time queue with finite buffer
+and renewal input, Computers & Mathematics with Applications, 57 (2009), 1377-1388.
+[60] B. T. Doshi, Queueing systems with vacations - survey, Queueing systems, 1 (1986),
+29-66.
+[61] R. Arumuganathan, S. Jeyakumar, Analysis of a bulk queue with multiple vacations
+and closedown times, International journal of information and management sciences, 15
+(2004), 45-60.
+[62] H. W. Lee, S. S. Lee, K. Chae, A fixed-size batch service queue with vacations, International Journal of Stochastic Analysis, 9 (1996), 205-219.
+[63] H. W. Lee, S. S. Lee, K. C. Chae, R. Nadarajan, On a batch service queue with single
+vacation, Applied mathematical modelling, 16 (1992), 36-42.
+[64] R. Arumuganathan, S. Jeyakumar, Steady state analysis of a bulk queue with multiple
+vacations, setup times with N-policy and closedown times, Applied Mathematical Modelling, 29 (2005), 972-986.
+[65] P. Jayachitra, A. J. Albert, Recent developments in queueing models under N-policy: A
+short survey, International Journal of Mathematical Archive (IJMA), 5, (2014).
+[66] S. Jeyakumar, B. Senthilnathan, Modelling and analysis of a M x /G(a, b)/1 queue with
+multiple vacations, setup time, closedown time and server breakdown without interruption, International Journal of Operational Research, 19 (2014), 114-139.
+[67] R. Arumuganathan, K. Ramaswami, Analysis of a bulk queue with fast and slow service
+rates and multiple vacations, Asia-Pacific Journal of Operational Research, 22 (2005),
+239-260.
+[68] S. Jeyakumar, B. Senthilnathan, A study on the behaviour of the server breakdown
+without interruption in a M x /G(a, b)/1 queueing system with multiple vacations and
+closedown time, Applied Mathematics and Computation, 219 (2012), 2618-2633.
+[69] G. K. Reddy, R. Nadarajan, R. Arumuganathan, Analysis of a bulk queue with N-policy
+multiple vacations and setup times, Computers & operations research, 25 (1998), 957-967.
+[70] M. Haridass, R. Arumuganathan, Analysis of a M x /G(a, b)/1 queueing system with
+vacation interruption, RAIRO-Operations Research, 46 (2012), 305-334.
+
+BULK SERVICE QUEUEING MODELS – A SURVEY
+
+55
+
+[71] A. Krishnamoorthy, P. Pramod, S. Chakravarthy, Queues with interruptions: a survey,
+22, (2014), 290-320.
+[72] R. Arumuganathan, T. J. Malliga, Analysis of a bulk queue with repair of service station
+and setup time, International Journal of Canadian Applied Math Quarterly, 13 (2006),
+19-42.
+[73] H. W. Lee, D. Chung, S. Lee, K. Chae, Server unavailability reduces mean waiting time
+in some batch service queuing systems, Computers & operations research, 24 (1997),
+559-567.
+[74] J. H. Dshalalow, J. Yellen, Bulk input queues with quorum and multiple vacations,
+Mathematical Problems in Engineering, 2 (1996), 95-106.
+[75] G. K. Reddy, R. Anitha, Markovian bulk service queue with delayed vacations, Computers
+& operations research, 25 (1998), 1159-1166.
+[76] M. Jacob, T. Madhusoodanan, Transient solution for a finite capacity M/G(a, b)/1 queueing system with vacations to the server, Queueing systems, 2 (1987), 381-386.
+[77] R. Nadarajan, A. Subramanian, A general bulk service queue with server’s vacation,
+Operational Research in Management Systems, Academic New York, 1984, 127-135.
+[78] U. Gupta, K. Sikdar, A finite capacity bulk service queue with single vacation and markovian arrival process, International Journal of Stochastic Analysis,(2004), 337-357.
+[79] K. Sikdar, Analysis of the M AP/G(a, b)/1/N queue with multiple vacations, Applied
+Mathematical Modelling, 32 (2008), 1308-1317.
+[80] P. V. Laxmi, V. Goswami, D. Seleshi, Renewal input (a, c, b) policy queue with multiple
+vacations and change over times, International Journal of Mathematics in Operational
+Research, 5 (2013), 466-491.
+[81] V. Goswami, P. V. Laxmi, Discrete-time renewal input multiple vacation queue with
+accessible and non-accessible batches, 48 (2011), 335-354.
+[82] M. Haridass, R. Arumuganathan, Analysis of a batch arrival general bulk service queueing system with variant threshold policy for secondary jobs, International Journal of
+Mathematics in Operational Research, 3 (2010), 56-77.
+[83] L. Tadj, G. Choudhury, C. Tadj, A bulk quorum queueing system with a random setup
+time under N-policy and with bernoulli vacation schedule, An International Journal of
+Probability and Stochastics Processes, 78 (2006), 1-11.
+[84] M. Haridass, R. Arumuganathan, A batch service queueing system with multiple vacations, setup time and servers choice of admitting reservice, International Journal of
+Operational Research, 14 (2012), 156-186.
+[85] M. Balasubramanian, R. Arumuganathan, A. S. Vadivu, Steady state analysis of a nonmarkovian bulk queueing system with overloading and multiple vacations, International
+Journal of Operational Research, 9 (2010), 82-103.
+[86] M. Balasubramanian, R. Arumuganathan, Steady state analysis of a bulk arrival general
+bulk service queueing system with modified M-vacation policy and variant arrival rate,
+International Journal of Operational Research, 11 (2011), 383-407.
+[87] S. Jeyakumar, R. Arumuganathan, Steady state analysis of a non-markovian bulk queue
+with restricted vacations, International Journal of Operational Research, 10 (2011), 307332.
+
+56
+
+S. Sasikala, K. Indhira
+
+[88] P. V. Laxmi, S. Demie, Performance analysis of renewal input (a, c, b) policy queue with
+multiple working vacations and change over times, Management, 10 (2014), 839-857.
+[89] G. Ayyappan, G. Devipriya, A. M. G. Subramanian, Analysis of single server fixed batch
+service queueing system under multiple vacations with gated service, International Journal of Computer Applications, 89, (2014).
+[90] S. Jeyakumar, R. Arumuganathan, A non-markovian bulk queue with multiple vacations and control policy on request for re-service, Quality Technology and Quantitative
+Management, 8 (2011), 253-269.
+[91] M. M. Yu, Y. H. Tang, Y. H. Fu, Steady state analysis and computation of the
+GI[x]/M (b)/1/L queue with multiple working vacations and partial batch rejection, Computers & Industrial Engineering, 56 (2009), 1243-1253.
+[92] S. K. Samanta, M. L. Chaudhry, U. C. Gupta, Discrete-time GeoX/G(a, b)/1/N queues
+with single and multiple vacations, Mathematical and Computer Modelling, 45 (2007),
+93-108.
+[93] S. H. Chang, D. W. Choi, Performance analysis of a finite-buffer discrete-time queue with
+bulk arrival, bulk service and vacations, Computers & operations research, 32 (2005),
+2213-2234.
+[94] K. Sikdar, U. Gupta, On the batch arrival batch service queue with finite buffer under
+servers vacation: M x /GY /1/N queue, Computers & Mathematics with Applications, 56
+(2008), 2861-2873.
+[95] U. Gupta, K. Sikdar, The finite-buffer M/G/1 queue with general bulk-service rule and
+single vacation, Performance Evaluation, 57 (2004), 199-219.
+[96] K. Sikdar, U. Gupta, Analytic and numerical aspects of batch service queues with single
+vacation, Computers & operations research, 32 (2005), 943-966.
+[97] G. K. Reddy, R. Nadarajan, P. Kandasamy, Tandem queue with three multiserver units
+and bulk service in unit III, Microelectronics Reliability, 33 (1993), 513-519.
+[98] G. Ayyappan, S. Velmurugan, Queues with two units connected in series with a multiserver bulk service with accessible and non accessible batch in unit II, Malaysian Journal
+of Fundamental and Applied Sciences, 4, (2014).
+[99] D. A. M. Dhas, J. Sumitha, Two units connected in series with general bulk service of
+accessible batches in unit 2, Computers in industry, 23 (1993), 223-226.
+[100] R. Nadarajan, D. A. M. Dhas, Two units connected in series with general bulk service
+and random breakdown in unit 2, Microelectronics Reliability, 29 (1989), 761-763.
+[101] R. Nadarajan, D. Jayaraman, Series queue with general bulk service, random breakdown
+and vacation, Microelectronics Reliability, 31 (1991), 861-863.
+[102] G. K. Reddy, R. Nadarajan, P. Kandasamy, A tandem queue with general bulk service
+and servers vacation, Computers in industry, 20 (1992), 345-354.
+
+

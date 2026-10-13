@@ -1,0 +1,2862 @@
+Scheduling a single parallel-batching machine with non-identical
+job sizes and incompatible job families
+Fan Yanga , Morteza Davarib , Wenchao Weic , Ben Hermansa , Roel Leusa ∗
+a
+
+arXiv:2102.02002v1 [math.OC] 3 Feb 2021
+
+ORSTAT, Faculty of Economics and Business, KU Leuven, Belgium
+b
+SKEMA Business School, Université Côte d’Azur, Lille, France
+c
+School of Economics and Management, Beijing Jiaotong University, China
+
+Abstract
+We study the scheduling of jobs on a single parallel-batching machine with non-identical job
+sizes and incompatible job families. Jobs from the same family have the same processing time
+and can be loaded into a batch, as long as the batch size respects the machine capacity. The
+objective is to minimize the total weighted completion time. The problem combines two classic
+combinatorial problems, namely bin packing and single machine scheduling. We develop three new
+mixed-integer linear-programming formulations, namely an assignment-based formulation, a timeindexed formulation (TIF), and a set-partitioning formulation (SPF). We also propose a column
+generation (CG) algorithm for the SPF, which is the basis for a branch-and-price (B&P) algorithm
+and a CG-based heuristic. We develop a preprocessing method to reduce the formulation size. A
+heuristic framework based on proximity search is also developed using the TIF. The SPF and B&P
+can solve instances with non-unit and unit job durations to optimality with up to 80 and 150 jobs
+within reasonable runtime limits, respectively. The proposed heuristics perform better than the
+methods from the literature.
+Keywords: scheduling, batch processing, non-identical job sizes, incompatible job families, integer
+programming
+
+1
+
+Introduction
+
+Batch processing is a production mode that occurs widely in practice, such as in semiconductor manufacturing (Uzsoy, 1994; Ham et al., 2017), hospital sterilization (Ozturk et al., 2014), and 3D printing (Kucukkoc, 2019). Two categories are generally distinguished (Mathirajan and Sivakumar, 2006), namely
+∗ Corresponding author. E-mail address: Roel.Leus@kuleuven.be, tel.: +32 16 32 69 67, ORCID: 0000-0002-9215-3914.
+
+1
+
+serial batching and parallel batching. In serial batching, jobs can be batched on a machine in case they
+require the same setups; the machine handles jobs in a batch in a serial manner. In parallel batching,
+multiple jobs can be processed simultaneously on machines by grouping them into batches. This paper
+considers parallel batching; for the serial case we refer the reader to Shen and Buscher (2012) and Pei
+et al. (2019).
+This study is motivated by a quality inspection of metering devices in an electricity company. The
+company provides different types of metering devices to measure electricity consumption in various settings (both for families as well as for factories). We will refer to a meter type as a job family. To ensure
+their accuracy, the meters need testing on a parallel-batching machine before installation, and each meter
+type has its own testing configuration, such that different types cannot be tested together (incompatibility). The company does not produce the meters itself, but orders them from third-party suppliers. Each
+order (below also referred to as a “job”) has a specific size (number of meters) and cannot be split: each
+order needs to be tested in the same test run so that, if a meter has a problem in use, it can be easily
+traced back to its source and the remainder of the order can be recalled. Multiple jobs of the same type
+can be tested together in one batch, as long as their total size respects the machine capacity. We consider
+a single parallel-batching machine, which means that all jobs in a batch start and complete processing
+together. All jobs from one family have the same processing duration. The objective is to minimize the
+total weighted completion time. Our main motivation for choosing this objective rather than, for example,
+minimizing the makespan is that inventory costs, which are driven by the jobs’ weighted completion times
+(Pinedo, 2016), form an important KPI for the electricity company. In the three-field notation of Graham
+et al. (1979), the problem studied in this paper can be denoted as 1|p-batch, vi , incompatible|
+
+P
+
+wi Ci ,
+
+where p-batch refers to parallel batching, vi is the size of job i, incompatible stands for incompatibilities
+among job families, and wi and Ci denote the job weight and the completion time of job i, respectively.
+Dobson and Nambimadom (2001) study the same problem and refer to it as the “batch loading and
+scheduling problem” (BLSP). Batch loading refers to grouping jobs from the same family into batches,
+and batch scheduling is the sequencing of the batches to minimize the total weighted completion time.
+Dobson and Nambimadom point out that the problem is NP-hard even if there is only a single family
+and if all job weights are proportional to the job sizes. The authors also show that if for every two
+jobs i and j within the same family the job size vi is an integer multiple of vj whenever vi ≥ vj , and
+
+2
+
+if the machine capacity and job sizes satisfy additional restrictions, then the problem is polynomially
+solvable. Dobson and Nambimadom further propose a non-linear mixed-integer formulation, a lower
+bound, and three heuristics.Azizoglu and Webster (2001) develop a branch-and-bound (B&B) algorithm
+for this problem, which can solve up to 25 jobs in reasonable computation times. Koh et al. (2005) model
+a bottleneck operation in the production of a multi-layer ceramic capacitor as a BLSP, with objectives
+of makespan, total completion time, and total weighted completion time. They design a number of
+heuristics, including a hybrid genetic algorithm. In fact, makespan minimization in this setting simply
+equates with minimizing the number of batches for each family separately, such that minimizing the
+makespan can be achieved by solving a bin packing problem for each family. The makespan objective
+is therefore not the most interesting objective from an optimization viewpoint, because the batching
+decision can be made via bin packing, while sequencing choices are irrelevant for this objective. More
+generally, BLSP can be seen as a suitable combination of two classic combinatorial problems, namely
+bin packing and single machine scheduling, and in this way this study also adheres to a recent trend in
+literature in which this type of combinations is studied (see, for example, Wang and Cui (2012) or Nip
+et al. (2015)).
+In follow-up work on BLSP, Kashan and Karimi (2008) propose a series of ant colony frameworks
+embedded with heuristic information, which perform better than the hybrid genetic algorithm of Koh et al.
+(2005). Kempf et al. (1998) also include secondary resource constraints related to a burn-in operation
+from the testing stage in semiconductor industry. They develop heuristics to minimize makespan and
+total completion time on a single parallel-batching machine. As the discussion above demonstrates,
+multiple (meta)heuristics have been developed for the BLSP, while exact solution methods are only
+rarely considered. In this paper, we introduce a number of mixed-integer programming formulations to
+solve the BLSP exactly.
+The BLSP has also been extended from a single machine to parallel machines. Koh et al. (2004), for
+example, design heuristics, including a genetic algorithm, for minimization of makespan, total completion
+time, and total weighted completion time. To minimize the makespan, Jia et al. (2016) use ant colony
+optimization to form batches and a multi-fit algorithm (Coffman et al., 1978) to schedule the batches,
+which outperforms the methods in Koh et al. (2004). Cakici et al. (2013) include job release dates
+and develop a variable neighborhood search scheme. Ham et al. (2017) consider a batch processing
+
+3
+
+problem with job release dates, non-identical job sizes and incompatible families on parallel batching
+machines. The authors show that, with a fixed time limit, a constraint programming model can provide
+better solutions than two MILP models and a variable neighborhood search. Many other scheduling
+environments and other objectives have also been studied for batch processing; surveys can be found in
+Potts and Kovalyov (2000), Mathirajan and Sivakumar (2006), and Mönch et al. (2011).
+The main contributions of this paper are in three dimensions. First, we present three new linear
+formulations for the BLSP: an assignment-based formulation (ABF), a time-indexed formulation (TIF)
+and a set-partitioning formulation (SPF). Among these formulations, the SPF performs best and can solve
+up to 150 jobs with unit durations and 80 jobs with non-unit durations within reasonable runtime limits.
+Second, a column generation (CG) algorithm is proposed for the SPF, which is the basis of a branch-andprice (B&P) method and a CG-based heuristic. Third, a preprocessing method and a proximity search
+heuristic are developed.
+The remainder of this paper is structured as follows. Section 2 contains the problem statement and
+three formulations. In Section 3 we introduce the CG, the B&P, and a CG-based heuristic. Section 4
+provides a preprocessing method to reduce the formulation size. In Section 5 we describe the proximity
+search. The computational results are reported in Section 6, and in Section 7 we give a summary and
+some conclusions.
+
+2
+
+Problem statement and linear formulations
+
+We first provide some definitions and a problem statement in Section 2.1. Subsequently, an assignmentbased formulation, a time-indexed formulation and a set-partitioning formulation are introduced in Sections 2.2, 2.3 and 2.4, respectively.
+
+2.1
+
+Definitions and problem statement
+
+We schedule a set N = {1, . . . , n} of n independent jobs partitioned in m job families. Each family j is
+in the set F = {1, . . . , m}, and coincides with a set of jobs Nj ⊆ N , where ∪m
+j=1 Nj = N and Ni ∩ Nj = ∅
+for all {i, j} ⊂ F . Each job i has a weight wi , a size vi , and a processing time pi . The processing time
+is the same for all jobs in each family j ∈ F : we have pi = qj for all i ∈ Nj . There is a single parallelbatching machine with capacity V , which can process several jobs from the same family simultaneously.
+We assume 0 ≤ vi ≤ V for all i ∈ N . The total size of the jobs in one batch cannot exceed the machine
+
+4
+
+Table 1: Job data for Example 1
+job i
+1
+2
+3
+4
+5
+6
+Solution 1
+
+1 2
+
+Solution 2
+
+1
+
+Solution 3
+
+1
+
+family
+A
+A
+A
+A
+B
+B
+
+processing time pi
+1
+1
+1
+1
+1
+1
+5
+
+3
+
+2
+2
+
+6
+4
+
+3
+5
+6
+
+weight wi
+20
+20
+11
+10
+10
+20
+
+size vi
+1
+1
+3
+3
+2
+2
+
+4
+6
+3
+
+4
+
+5
+
+Figure 1: Three feasible solutions for Example 1
+capacity. The processing time of a batch containing jobs from family j is qj , and the completion time of
+all jobs in a batch equals the completion time of the batch. Once the processing of a batch starts, there
+is no interruption and other jobs cannot be added to the batch before completion. A job cannot be split
+across batches. The objective is to minimize the total weighted completion time.
+Example 1 Consider an instance with two job families A and B (m = 2), and six jobs (n = 6). The
+machine capacity is V = 4. The job data are in Table 1. Figure 1 depicts several feasible solutions in a
+Gantt-chart setup, in which time is the horizontal dimension. Each large box represents the execution of a
+(possibly empty) batch, while the gray boxes correspond to jobs (identified by their number). Solution 1,
+for example, starts with the processing of the first batch, which contains jobs 1 and 2. Both families have
+the same (unit) processing time, so that the completion time of the k-th batch simply equals k. The
+total weight of the non-empty batches is 40, 30, 11, and 10, respectively, so that the objective value of
+solution 1 equals 1 × 40 + 2 × 30 + 3 × 11 + 4 × 10 = 173. Similarly, we obtain the objective values of
+solutions 2 and 3 as 181 and 274.
+This example illustrates that an intuitive two-stage approach to BLSP consisting in first running a
+bin packing routine per family (where a bin equates with a batch) and then sequencing the batches, can
+miss the optimum: despite the lower number of batches, solution 2 is not as good as solution 1. In fact,
+solution 1 is an optimal solution for this instance. The three solutions are all three optimal for the given
+batching choice; the remaining sequencing problem is optimally solved following the weighted shortest
+processing time (WSPT) rule (Smith, 1956), which in this case simply puts the batches with largest
+
+5
+
+total weight first. This shows that an algorithm for this problem needs to coordinate the batching and
+sequencing decisions.
+Moreover, solving the problem for each family separately and then combining the resulting batches
+into a single schedule by using the WSPT rule can also be sub-optimal. Combining jobs 1 and 3 in a first
+batch and jobs 2 and 4 in a second batch, for instance, constitutes an optimal solution when considering
+family A only; and combining jobs 5 and 6 is also trivially optimal when considering family B only.
+Applying the WSPT rule to these batches, however, leads to the sub-optimal solution 2. Conversely,
+adopting the batching choices for one family for the joint problem with two families can also be suboptimal for the instance where only one family is considered. For example, the job combinations of
+family A in solution 1 cannot form an optimal solution when only considering family A.
+In previous literature, Dobson and Nambimadom (2001) and Koh et al. (2005) both describe a nonlinear formulation for BLSP. Ham et al. (2017) study the generalization of BLSP to parallel machines,and
+present a linear assignment-based formulation as well as a time-indexed formulation, where big-M-type
+constraints are used to obtain a linear formulation. Below, we give a linear assignment-based and timeindexed formulation that avoid such big-M constraints. Additionally, we describe a set-partitioning
+formulation that exploits the link between BLSP and the bin packing problem (Delorme et al., 2016).
+
+2.2
+
+Assignment-based formulation
+
+We first propose an assignment-based formulation. Let batch k be in the k-th position of the sequence.
+We work with a set of batches Ω = {1, . . . , n}. Let the (n + 1)-th batch be a dummy batch and define
+the set Ω∗ = Ω ∪ {n + 1} . Clearly, there are at most n non-empty batches in a solution. We introduce
+binary variables xik , which are one if job i is assigned to one of the batches k, k + 1, . . . , n, and zero if
+job i is assigned to one of the batches 1, 2, . . . , k − 1, with i ∈ N and k ∈ Ω∗ . Thus, job i is in batch k if
+xik − xi(k+1) = 1. We also introduce binary variables yjk , which are one if jobs of family j are assigned to
+batch k, and zero otherwise, for j ∈ F , k ∈ Ω. Let φi denote the family of job i, i.e., φi = j if i ∈ Nj . We
+define the continuous variables uk ∈ [0, 1], which will be one if one or more jobs are assigned to batch k,
+and zero otherwise, for all k ∈ Ω. Finally, Ci is the completion time of job i ∈ N .
+min
+
+X
+
+wi Ci
+
+(1)
+
+i∈N
+
+s.t.
+
+X
+
+∀k ∈ Ω,
+
+yjk = 1,
+
+j∈F
+
+6
+
+(2)
+
+X
+
+yjk = |Nj |,
+
+∀j ∈ F ,
+
+(3)
+
+xi1 = 1,
+
+∀i ∈ N,
+
+(4)
+
+xi(n+1) = 0,
+
+∀i ∈ N,
+
+(5)
+
+xik ≥ xi(k+1) ,
+
+∀i ∈ N, k ∈ Ω,
+
+(6)
+
+yφi ,k ≥ xik − xi(k+1) ,
+
+∀i ∈ N, k ∈ Ω,
+
+(7)
+
+X
+
+
+vi xik − xi(k+1) ≤ V,
+
+∀k ∈ Ω,
+
+(8)
+
+XX
+
+∀i ∈ N,
+
+(9)
+
+∀i ∈ N, k ∈ Ω,
+
+(10)
+
+∀k ∈ Ω,
+
+(11)
+
+∀k ∈ Ω \ {n}.
+
+(12)
+
+k∈Ω
+
+i∈N
+
+Ci ≥
+
+qj xik yjk ,
+
+k∈Ω j∈F
+
+uk ≥ xik − xi(k+1) ,
+uk ≤
+
+X
+
+
+xik − xi(k+1) ,
+
+i∈N
+
+uk ≥ uk+1 ,
+
+In the above formulation, the set of constraints (2) imposes that each batch be associated with exactly
+one family. Constraints (3) assign |Nj | batches to each family. Constraints (4)–(6) ensure that each job
+is assigned to exactly one batch. Constraints (7) associate batch k to family φi if job i has been assigned
+to batch k. Constraints (8) impose the capacity constraint on each batch, and constraints (9) compute
+the job completion times. Constraints (10) ensure that uk = 1 if at least one job i is assigned to batch k.
+Constraints (11) make sure that if no job is assigned to batch k, then uk = 0. Constraints (12) guarantee
+that no empty batch exists between two used batches. The constraints (10)–(12) are not strictly necessary,
+but help to restrict the solution space.
+Note that in the above formulation, the term xik yjk in constraints (9) is not linear. The formulation
+can be linearized by introducing the auxiliary variables τikj ∈ [0, 1]. With these, constraints (9) are
+replaced by the following constraints:
+Ci ≥
+
+XX
+
+∀i ∈ N,
+
+(13)
+
+τikj ≤ xik ,
+
+∀i ∈ N, k ∈ Ω, j ∈ F ,
+
+(14)
+
+τikj ≤ yjk ,
+
+∀i ∈ N, k ∈ Ω, j ∈ F ,
+
+(15)
+
+τikj ≥ xik + yjk − 1,
+
+∀i ∈ N, k ∈ Ω, j ∈ F .
+
+(16)
+
+qj τikj ,
+
+k∈Ω j∈F
+
+7
+
+2.3
+
+Time-indexed formulation
+
+Based on the work by Cakici et al. (2013) and Ham et al. (2017), we obtain an adapted TIF for BLSP
+which contains ‘big-M’ type constraints; this formulation, henceforth referred to as TIFM, is given in
+Appendix A. In this subsection we present a new TIF, which will turn out to perform better in our
+computational experiments. We define the time horizon H = {1, . . . , Hmax }, where H contains Hmax =
+P
+
+i∈N pi time periods and time period t runs from time t − 1 to t. We use binary variables xit , which are
+
+one if the processing of job i starts at time period t, and zero otherwise, for i ∈ N and t ∈ Hφi , where
+Hj = {1, . . . , Hmax − qj + 1} is the set of relevant starting periods for family j. The binary variables yjt
+are 1 if jobs in family j start processing at time period t, and zero otherwise, for t ∈ Hj and j ∈ F .
+min
+s.t.
+
+X
+
+X
+
+wi
+
+xit (t + pi − 1)
+
+i∈N
+
+t∈Hφi
+
+X
+
+xit = 1,
+
+(17)
+∀i ∈ N,
+
+(18)
+
+∀t ∈ H,
+
+(19)
+
+∀t ∈ Hj , j ∈ F .
+
+(20)
+
+t∈Hφi
+min{t,|Hj |}
+
+X
+
+X
+
+yjτ ≤ 1,
+
+j∈F τ =max{t−qj +1,1}
+
+X
+
+xit vi ≤ V yjt ,
+
+i∈Nj
+
+The objective (17) is to minimize the total weighted completion time. Constraints (18) ensure each job
+is scheduled exactly once. Constraints (19) make sure that, at each time period t, there is only one job
+family that can be handled. Constraints (20) verify whether each batch respects the machine capacity.
+A variant TIFV is adapted from Tamer Ünal et al. (2020) and will also be tested in Section 6; it
+replaces the constraints (20) of TIF by
+min{t,|Hφi |}
+
+X
+
+X
+
+xiτ vi ≤ V,
+
+∀t ∈ H,
+
+(21)
+
+∀i ∈ Nj , t ∈ Hj , j ∈ F .
+
+(22)
+
+i∈N τ =max{t−pi +1,1}
+
+yjt ≥ xit ,
+
+Constraints (21) impose the machine capacity in each time period, while constraints (22) ensure the
+relationship between family j and its job i at time period t.
+
+2.4
+
+Set-partitioning formulation
+
+We generate a set of batches (patterns) Sj = {1, . . . , |Sj |} for each family j, and ∪m
+j=1 Sj = S. Each
+batch s consists of a subset Js ⊆ Nj of jobs for which
+
+P
+
+is the cost of batch s ∈ Sj if it starts at time period t.
+8
+
+i∈Js vi ≤ V . The value wst =
+
+P
+
+i∈Js wi (t + pi − 1)
+
+As before, we consider the time horizon H = {1, . . . , Hmax }. Each batch s ∈ Sj of family j has a set
+Hs = {1, . . . , Hmax − qj + 1} of potential start periods. Let variable zst be one if batch s starts in time
+period t, and zero otherwise, for t ∈ Hs , s ∈ S.
+min
+
+XX
+
+wst zst
+
+(23)
+
+s∈S t∈Hs
+min{t,|Hs |}
+
+s.t.
+
+XX
+
+X
+
+zsτ ≤ 1,
+
+∀t ∈ H,
+
+(24)
+
+∀i ∈ N.
+
+(25)
+
+j∈F s∈Sj τ =max{t−qj +1,1}
+
+X
+
+X
+
+zst = 1,
+
+s∈S:i∈Js t∈Hs
+
+The objective is to minimize the total weighted completion time. Constraints (24) ensure the machine
+executes at most one batch at each time period, and constraints (25) schedule each job once. This
+formulation can be seen as a Dantzig-Wolfe decomposition of the TIF. Appendix B describes a method
+to generate all feasible batches for a family.
+
+3
+
+Column generation
+
+This section considers a CG algorithm with the linear-programming (LP) relaxation of the SPF as a
+master problem (MP). We discuss each of the main ingredients of the algorithm below.
+The dual problem We introduce continuous dual variables ut ≤ 0 for each t ∈ H and πi for each i ∈ N ,
+corresponding to constraints (24) and (25), respectively. The dual problem of the LP is then:
+max
+
+X
+
+ut +
+
+t∈H
+
+X
+
+πi
+
+(26)
+
+i∈N
+
+t+qj −1
+
+s.t.
+
+X
+τ =t
+
+uτ +
+
+X
+
+πi ≤ wst ,
+
+∀s ∈ Sj , t ∈ Hs , j ∈ F .
+
+(27)
+
+i∈Js
+
+The reduced cost of a non-basic variable in the relaxed SPF is wst −
+
+P
+
+i∈Js πi −
+
+Pt+qj −1
+τ =t
+
+uτ . If this
+
+value is less than zero, we add a new column.
+Decomposition and pricing In the pricing problem, we check whether a new variable can be added
+to the MP with negative reduced cost by searching for a family j and period t for which the
+constraint (27) is violated the most. This leads to a separate pricing problem for each family j and
+period t as follows:
+
+t+qj −1
+
+min (t + qj − 1)
+
+X
+
+wi xi −
+
+i∈Nj
+
+X
+i∈Nj
+
+9
+
+πi xi −
+
+X
+τ =t
+
+uτ
+
+(28)
+
+s.t.
+
+X
+
+xi vi ≤ V,
+
+(29)
+
+i∈Nj
+
+xi ∈ {0, 1},
+
+(30)
+
+where binary variable xi = 1 if job i is loaded into this batch, 0 otherwise. The constraint (29)
+verifies the total machine capacity. Consequently, each pricing problem for family j and time
+period t is a 0-1 knapsack problem with profit values πi − (t + qj − 1)wi for each item i ∈ Nj , which
+we can solve using standard dynamic programming (see Wolsey (1998), Section 5.4.1).
+Column selection In each CG round, many columns might be added (one for each period/family combination). In order to control the formulation size, we define a parameter Col number: in each
+round we only include the first Col number columns with lowest reduced costs (or the total number,
+if it is less).
+Initial feasible solution We use a successive knapsack (SK) heuristic from Dobson and Nambimadom
+(2001) to generate an initial feasible solution for the restricted MP (RMP). The SK consists of
+two steps: first, for each family, successively solve knapsack problems for the maximization of job
+weights, until all jobs are batched (each constructed batch is iteratively removed from Nj ). Second,
+sequence all the batches according to the WSPT rule. Additionally, in order to guarantee feasibility
+in every step of the B&P procedure to be described below, we add |N | super columns: one for every
+constraint (25). Each of these columns then has a large coefficient in the objective function, a
+coefficient equal to one for its associated row in constraints (25), and a coefficient equal to zero for
+all other rows.
+The overall scheme of the CG procedure is described in Algorithm 1.
+Algorithm 1 Column generation
+1: Generate initial columns for RMP
+2: repeat
+
+Solve RMP by an LP solver and obtain the dual solutions πi , i ∈ N , and ut , t ∈ H
+Solve the pricing problems
+Add up to Col number new columns
+6: until no negative reduced cost is found
+
+3:
+
+4:
+5:
+
+Based on this CG routine, we develop a B&P algorithm and a CG-based heuristic (CGH). The CGH
+simply solves the MIP formulation with all the columns added for finding the LP optimum. For the B&P,
+at each node of the B&B tree, we solve the LP relaxation of the RMP of the SPF and obtain an optimal
+10
+
+solution z ∗ . If z ∗ is fractional, we need to branch at the corresponding node. For this purpose, we use
+a hybrid branching framework based on the method of Ryan and Foster (1981). Firstly, we search for a
+pair of jobs i and i′ with
+X
+
+0<
+
+X
+
+zst < 1,
+
+(31)
+
+s∈S ′ :i,i′ ∈Js t∈Hs
+
+where S ′ is the set of current batches (columns) in the RMP. Then we can create two new subproblems
+(child nodes) in the B&B tree. In the first subproblem, we only consider columns with i and i′ in the
+same batch. In the second subproblem, jobs i and i′ are assigned to different batches. As a result, the
+pricing problem will become a knapsack problem with conflicts, which we solve using the B&B algorithm
+of Sadykov and Vanderbeck (2013). When family j has no conflicts (yet) among its jobs, we solve the
+pricing problem by dynamic programming.
+If there is no pair of jobs that satisfies equation (31), we branch directly on a variable zst with a
+fractional value, and two subproblems with zst = 1 and zst = 0 are then created. In the subproblem with
+zst = 1 and its child nodes, we will not consider jobs i ∈ Js anymore, because they are already decided
+to be in batch s, and the time periods t to t + qj − 1 are set to be occupied by batch s, where qj is the
+processing time of family j if s ∈ Sj , so no further pricing problems are needed for those periods. For
+the subproblem with zst = 0, we need to prevent the generation of the same column at time period t for
+family j if s ∈ Sj . Consequently, for pricing problems of the subproblem with zst = 0 and its child nodes,
+we use a solver to solve the model (28)–(30) with the following additional constraints:
+X
+
+xi ≤ |s| − 1 + (1 − y)M,
+
+(32)
+
+xi ≥ 1 − yM,
+
+(33)
+
+i∈Js
+
+X
+i∈J
+/ s
+
+y ∈ {0, 1},
+
+(34)
+
+at time period t for family j. Variables y is a binary variable and M is a large number.
+Example 2 below shows an instance for which, in the context of our problem, the branching rule
+of Ryan and Foster (1981) fails to find a pair of jobs to branch on. That is, there might be a fractional
+solution for the LP relaxation of SPF for which there does not exist a pair of jobs i and i′ for which
+inequalities (31) are satisfied. The reason is that our SPF might produce duplicate columns that start at
+different time periods. A related result about the branching rule of Ryan and Foster (1981) can be found
+in Vance et al. (1994), who study a cutting stock problem.
+11
+
+Table 2: Data for Example 2
+variable
+zs1
+zs′ 1
+zs2
+zs′ 2
+
+jobs
+i
+i′
+i
+i′
+
+weight
+1
+1
+1
+1
+
+processing time
+1
+1
+1
+1
+
+zs1 = 0.5
+
+zs2 = 0.5
+
+zs′ 1 = 0.5
+
+zs′ 2 = 0.5
+
+1
+
+2
+
+Figure 2: Gantt chart for Example 2
+
+Example 2 Consider an instance with two jobs i and i′ with wi = wi′ = 1 and pi = pi′ = 1 , which are
+from the same family. Let s and s′ be the batches that contain job i and i′ , respectively. Let z ∗ be a
+∗
+∗
+fractional optimal solution of the LP relaxed SPF, and assume there are only non-zero variables zs1
+, zs2
+,
+
+zs∗′ 1 and zs∗′ 2 , which all have the value 0.5. The variables zs1 and zs′ 1 pertain to a start at time period 1,
+while the variables zs2 and zs′ 2 start at time period 2. The detailed data and Gantt chart are shown in
+Table 2 and Figure 2, respectively. One can easily verify that inequalities (31) are not satisfied for jobs i
+and i′ , and that, despite the fractional solution, the branching rule does not provide a pair of jobs to
+branch on.
+To choose a pair of jobs for branching, we use the method of Held et al. (2012) as follows. For each
+pair of jobs i and i′ , define
+P
+
+P
+
+t∈H zst
+P
+P s
+P
+.
+q(i, i ) = 1 P
+t∈Hs zst )
+s∈S ′ :i′ ∈Js
+t∈Hs zst +
+2 ( s∈S ′ :i∈Js
+′
+
+s∈S ′ :i,i′ ∈Js
+
+(35)
+
+If q(i, i′ ) is close to zero, jobs i and i′ are more likely to be batched separately in this fractional solution,
+while they are mostly batched together when q(i, i′ ) is close to one. In any one of these two cases, one
+child node’s lower bound will be similar to the parent node’s lower bound. Thus, we choose a job pair i
+and i′ for which q(i, i′ ) is closest to 0.5. We first explore the child node with jobs i and i′ together, since
+this increases the probability of obtaining an integer solution. When branching directly on a variable, we
+choose the variable with its value closest to 0.5, and we explore the child node with zst = 1 firstly. The
+B&B tree is explored in a depth-first manner.
+
+4
+
+Preprocessing
+
+This section introduces a preprocessing procedure to decrease the formulation size. For each family j,
+at most |Nj | batches are formed. Obviously, more batches lead to a potentially longer schedule, which
+increases the formulation size. We therefore set up a preprocessing procedure to obtain an upper bound
+
+12
+
+Bj ≤ |Nj | on the required number of batches for each family j.
+Firstly, for family j ∈ F , we order the jobs in non-increasing order of their sizes, and iteratively load
+them until the remaining machine capacity is not sufficient for the next job. Let Njb stand for the number
+of jobs in the loaded batch. We observe that any subset of Njb jobs from set Nj will constitute a batch
+that respects the machine capacity. Next, let Bj = ⌈|Nj |/Njb ⌉, where ⌈·⌉ is the ceiling function.
+Lemma 1 In the problem 1|p-batch, vi , incompatible|
+
+P
+
+wi Ci , there is at least one optimal solution in
+
+which the batch number for each family j ∈ F is less than or equal to Bj .
+Proof:
+
+By contradiction. Assume that in each optimal solution, there is at least one family j with
+
+strictly more than Bj batches. This family j then has at least has two batches k and k ′ that contain
+strictly less than Njb jobs. Let k be batch with the earliest completion time. At least one job in batch k ′
+can be moved to batch k, which means that the total weighted completion time can be improved. This
+contradicts the hypothesis.
+In a preprocessing step, the value of |Ω| in ABF can be set to
+
+P
+
+j∈F Bj , and the right-hand side of
+
+constraints (3) can be replaced by Bj . The value Hmax in TIF and SPF can be chosen as
+
+5
+
+P
+
+j∈F Bj qj .
+
+Proximity search
+
+Proximity search was first proposed by Fischetti and Monaci (2014). It is a general framework for
+iteratively refining a given reference solution to an optimization problem. Consider a 0-1 integer program
+of the general form
+
+min cT x
+s.t. Ax ≥ b,
+xj ∈ {0, 1}, j ∈ B,
+where A is an m × n input matrix, b and c are input vectors of dimension m and n, and B is the index
+set of the binary variables. Proximity search improves a given reference solution x̃ iteratively. At each
+iteration, to improve x̃, an explicit cutoff constraint
+cT x ≤ cT x̃ − θ
+
+13
+
+(36)
+
+is added to the original formulation, where θ > 0 is a given tolerance that ensures a minimum improvement
+in the objective. The original objective function is replaced by the proximity function
+min △(x, x̃) =
+
+X
+
+X
+
+xj +
+
+x̃j =0
+
+(1 − xj ),
+
+(37)
+
+x̃j =1
+
+which is to minimize the Hamming distance between x and x̃. A generic solver can work as a black box
+to solve the thus-modified formulation in the hope of improving the reference solution within a short
+Hamming distance.
+In this work we apply the version from Fischetti and Monaci (2014) called “proximity search with
+an incumbent”. When providing a reference solution x̃, the cutoff constraint may lead to infeasibility if
+the tolerance θ is too aggressive. Fischetti and Monaci (2014) therefore introduce a continuous variable
+ω ≥ 0 and weaken the cutoff constraint (36) to a soft version:
+cT x ≤ cT x̃ − θ(1 − ω),
+
+(38)
+
+△(x, x̃) + M ω
+
+(39)
+
+while minimizing
+
+instead of objective (37), where M is a positive number that is sufficiently large compared to △(x, x̃). We
+apply the framework provided by proximity search to the TIF, and refer to it as PS. The SK heuristic
+is used to generate an initial reference solution. Algorithm 2 gives a basic structure that we implement;
+more details can be found in Fischetti and Monaci (2014).
+Algorithm 2 Proximity search (PS)
+1: Generate a reference solution x̃ by SK
+2: repeat
+3:
+add cutoff constraint (38) to the model
+
+Replace original objective function by (39) to be minimized
+Run the modified model on the solver until a termination criterion is reached; let x∗ be the best
+feasible solution found
+6:
+if cT x∗ < cT x̃ then
+7:
+Recenter △(x, ·) by setting x̃ = x∗
+8:
+else
+9:
+update θ
+10: until an overall termination criterion is reached
+4:
+
+5:
+
+6
+
+Computational results
+
+This section reports on the computational performance of our proposed models and algorithms. We first
+introduce the experimental setup in Section 6.1, and subsequently, Section 6.2 presents the computational
+14
+
+results for both the exact methods (i.e., ABF, TIF, TIFV, TIFM, SPF, and B&P) as well as the lower
+bounds. Section 6.3, finally, compares the heuristic performance of CGH, PS, and a truncated B&P
+(tB&P) with previous methods from the literature.
+
+6.1
+
+Experimental setup
+
+To assess the computational performance of our methods, we generate three sets of test instances. For
+each set, the processing times, job weights, and job sizes are drawn randomly from a discrete uniform
+distribution on a given range [a, b]. Table 3 summarizes the parameter settings for each of the three
+instance sets.
+Table 3: Experimental settings used to generate the
+sets K2008, K2008u, and H2017 of test instances
+Set
+n
+m
+qj
+wi
+vi
+V
+
+K2008
+20, 40, 60, 80, 100
+2, 4, 6, 10
+[10j, 10j + 10]
+[1, 10]
+[1, 10], [2, 4], [4, 8]
+10
+
+K2008u
+120, 150
+2, 4, 6, 10
+1
+[1, 10]
+[1, 10], [2, 4], [4, 8]
+10
+
+H2017
+80, 100
+3, 5
+[1, 15]
+[1, 10]
+[1, 50]
+50
+
+The first set of test instances, which we refer to as K2008, is generated analogously to the instances
+described in Kashan and Karimi (2008). For n ∈ {20, 40, . . . , 100} and m ∈ {2, 4, 6, 10}, the number
+of jobs in a family equals |Nj | = ⌊n/m⌋ for j ∈ {1, 2, . . . , m − 1} (with ⌊·⌋ the floor function), and
+|Nm | = n −
+
+Pm−1
+j=1
+
+|Nj |. For each family j ∈ F and job i ∈ N , a processing time qj and a job weight wi
+
+are drawn randomly from the range [10j, 10j+10] and [1, 10], respectively. Depending on the experimental
+setting, we draw a job size vi for job i ∈ N from the interval [1, 10], [2, 4], or [4, 8]. The machine capacity
+equals V = 10. For each of the parameter settings, ten instances are generated, leading to a total of
+600 instances. The second set of test instances, which we refer to as K2008u, is generated in exactly
+the same way as the K2008 set, except that n ∈ {120, 150} and all families j ∈ F have unit processing
+times qj = 1. The third set of test instances, finally, is referred to as H2017, and is generated analogously
+to the instances of Ham et al. (2017). It contains instances with n ∈ {80, 100} and m ∈ {3, 5}, and the
+number of jobs |Nj | of each family j ∈ F is obtained in the same way as for the K2008 instances. The
+processing times, job weights and sizes are generated from ranges [1, 15], [1, 10], and [1, 50], respectively.
+The machine capacity equals V = 50. Again, ten instances are generated for each of the experimental
+settings, leading to a total of 40 instances.
+15
+
+All our algorithms are implemented in the C++ programming language, and we use Gurobi 9.0.2 as
+the LP and MILP solver. The experiments are performed on a computer with an Intel i7-4790 @ 3.60GHz
+processor using a single thread and 32GB of RAM.
+
+6.2
+
+Exact methods and lower bounds
+
+In this subsection, we first look into the tests of ABF, TIF, TIFV, TIFM, SPF, and B&P on instances
+with n = 20 from K2008; the results are depicted in Table 4. Based on this table, we choose TIF, SPF
+and B&P, which perform better, to test further instances from the set K2008 with n ∈ {40, 60, 80}, and
+the set K2008u. Finally, we compare the lower bound obtained by the LP relaxation of SPF with previous
+ones from the literature.
+In all these experiments, we set a time limit of 1200 seconds. For SPF, the computational time
+includes the time for batch generation. We set the number Col number for B&P as 20 × m and 10 × m
+at the root node and non-root nodes, respectively. To guarantee a fair comparison with B&P, we use the
+SK heuristic, which requires only very limited computational effort, to obtain an initial solution for each
+method. The preprocessing from Section 4 is applied for each method. In all tables of this subsection,
+the average CPU time and the node number for B&P are only calculated with the instances solved to
+guaranteed optimality.
+Table 4 reports on the computational performance of all the discussed exact solution methods for the
+K2008 instances with n = 20. For each method, the table contains the average CPU time in seconds as
+well as the number of instances solved within the time limit. We find that:
+• SPF and B&P display the best performance since these methods can solve all K2008 instances with
+n = 20 to guaranteed optimality within the time limit. Moreover, B&P requires significantly less
+time to solve these small instances.
+• ABF can solve the least instances of all solution methods. Its performance is especially poor when
+the job size vi ∈ [4, 8].
+• Among the time-indexed formulations, TIF outperforms TIFV and TIFM. One possible explanation
+for this is that, for TIFV, constraints (22) increase the model size and slow down the computation
+time. The relatively poor performance of TIFM, in turn, can be explained by the big-M constraints.
+Given the superior performance of TIF, SPF, and B&P, we focus only on these methods in the
+16
+
+Table 4: Computational performance of exact solution methods for K2008 instances with n = 20;
+‘time’ indicates the average CPU times in seconds, ‘opt’ the number of solved instances (out of
+10) within the 1200-seconds time limit, and ‘nodes’ the average number of nodes computed by
+B&P
+ABF
+
+TIF
+
+TIFV
+
+TIFM
+
+B&P
+
+m
+
+vi
+
+time
+
+opt
+
+time
+
+opt
+
+time
+
+opt
+
+opt time opt
+
+time
+
+opt
+
+nodes
+
+2
+4
+6
+10
+
+[1, 10]
+[1, 10]
+[1, 10]
+[1, 10]
+
+79.40
+257.02
+554.03
+204.09
+
+10
+6
+5
+7
+
+20.87
+35.55
+67.32
+23.76
+
+10
+10
+10
+10
+
+104.22
+171.68
+188.54
+336.64
+
+10 63.13
+10 410.64
+9 267.84
+10 361.13
+
+10
+9
+9
+9
+
+0.79
+0.75
+1.25
+1.60
+
+10
+10
+10
+10
+
+11.60
+2.80
+1.80
+1.00
+
+2
+4
+6
+10
+
+[2, 4]
+[2, 4]
+[2, 4]
+[2, 4]
+
+0.83
+2.73
+4.53
+3.28
+
+10
+7.13
+10 104.48
+10 39.89
+10 15.71
+
+10 21.61
+10 243.37
+9 102.20
+10
+8.68
+
+10 240.06
+9 37.29
+9 11.61
+10
+0.61
+
+6 3.80
+10 2.54
+10 2.23
+10 2.04
+
+10 14.66
+10 3.18
+10 1.06
+10 1.03
+
+10 258.20
+10 37.60
+10
+4.40
+10
+1.00
+
+2
+4
+6
+10
+
+[4, 8]
+[4, 8]
+[4, 8]
+[4, 8]
+
+116.41
+768.34
+—
+108.10
+
+10
+4
+0
+2
+
+6.45
+20.21
+14.39
+35.78
+
+10
+9
+10
+10
+
+10 76.44
+6 187.82
+10 191.14
+4 335.19
+
+10
+10
+10
+3
+
+10
+10
+10
+10
+
+10
+10
+10
+10
+
+9.40
+1.60
+1.00
+1.00
+
+average/total 132.17
+
+84
+
+32.67 118 178.88 107 164.93 106
+
+2.40 120
+
+27.62
+
+173.85
+289.73
+255.51
+468.22
+
+time
+
+SPF
+2.53
+1.98
+3.86
+4.34
+
+1.67
+1.56
+2.76
+4.87
+
+10
+10
+10
+10
+
+2.85 120
+
+0.71
+0.68
+1.14
+1.96
+
+remainder of this subsection. Table 5 summarizes the outcome of these experiments on instances from
+K2008 (n ∈ {20, 40, 60, 80}) and K2008u (n ∈ {120, 150}), where the results are split up according to the
+number of jobs n, the job size vi , and the number of families m. For more detailed computational results,
+we refer to Tables 11-12 in Appendix C. We find that:
+• SPF performs best overall, as it solves the most instances. As n increases and m decreases, however,
+the performance deteriorates, since the formulation size increases exponentially with the number of
+jobs in each family. For some instances, the large model size even results in a failure to build the
+model within the time and memory limits (see also Tables 11-12 in Appendix C).
+• B&P only seems to perform really well for instances with n = 20. Yet, it can be a good alternative
+optimal procedure when the SPF runs out of memory.
+• The “packability” of jobs, i.e., the degree to which jobs can be batched within the machine capacity,
+impacts the performance of SPF and B&P. One possible explanation for this is that a higher
+packability due to the job size (e.g., vi ∈ [2, 4]) implies that there are more possible combinations
+to form a batch. This, in turn, increases the formulation size, and thus harms the performance.
+• TIF manages to outperform SPF and B&P for some specific settings with low m and easily packable
+job sizes vi (see Tables 11 and 12 in Appendix C), making it an interesting alternative solution
+method for some scenarios.
+
+17
+
+Table 5: Computational performance of TIF, SPF, and B&P for K2008 and K2008u instances, split up
+according to number of jobs n, size of jobs vi , and number of families m; ‘time’ indicates the average
+CPU times in seconds, ‘opt’ the number of solved instances (out of 120, 240 and 180, respectively) within
+the 1200-seconds time limit
+TIF
+
+SPF
+opt
+
+n
+
+time
+
+20
+40
+60
+80
+120
+150
+
+32.67 118
+2.85 120
+2.40 120
+347.37 36 76.67 120 91.05 106
+589.49
+8 376.45
+80 301.74
+65
+—
+0 531.20
+24 571.39
+21
+442.85 20 85.14 108 235.27
+32
+79.01
+3 66.48 85 310.44
+17
+
+total
+
+time
+
+B&P
+
+185
+
+opt
+
+time
+
+opt
+
+361
+
+537
+
+(a) Number of jobs n
+TIF
+
+SPF
+
+TIF
+
+B&P
+
+m
+
+time
+
+opt
+
+time
+
+opt
+
+2
+4
+6
+10
+
+217.06
+151.05
+129.13
+85.73
+
+78
+39
+35
+33
+
+121.62
+160.97
+103.71
+114.69
+
+115 93.76 69
+137 142.50 86
+134 145.32 96
+151 197.11 110
+
+total
+
+185
+
+time
+
+537
+
+vi
+
+opt
+
+time
+
+[1, 10] 189.80
+
+361
+
+time
+
+B&P
+opt
+
+time
+
+opt
+
+60 131.81 187 144.30 126
+
+[2, 4]
+
+149.57
+
+64 163.32 137
+
+[4, 8]
+
+150.98
+
+61
+
+total
+
+(b) Number of families m
+
+SPF
+opt
+
+90.13
+
+68
+
+94.98 213 179.92 167
+
+185
+
+537
+
+361
+
+(c) Job size vi
+
+Figure 3 shows the number of K2008 and K2008u instances (out of 720) solved by TIF, SPF, and
+B&P as a function of the allocated computation time (in seconds). The figure indicates that for all
+reported computation times, SPF outperforms B&P, which in turn performs better than TIF. Moreover,
+for both SPF and B&P, the number of solved instances increases significantly especially during the first
+600 seconds, after which it seems to stagnate. For TIF, on the other hand, the increase occurs slower
+and more gradually.
+Table 7 reports on the quality of the different lower bounds for K2008 instances with n ∈ {20, 40}.
+Here, LBDN, LBAW, and LBKK refer to the lower bounds from Dobson and Nambimadom (2001),
+Azizoglu and Webster (2001), and Kashan and Karimi (2008), respectively. The lower bound obtained
+by the LP relaxation of SPF is referred to as LBLP. For a given lower bound LB and an optimal solution
+value OPT, we measure the quality of the lower bound by the ratio LB/OPT × 100%. Hence, a higher
+value means a tighter bound. Table 7 shows that LBLP achieves the best quality, with a ratio that is on
+average around three to nine percentage points better than the other bounds.
+
+18
+
+Number of solved instances (out of 720)
+
+550
+500
+450
+400
+350
+300
+250
+200
+150
+100
+50
+
+SPF
+B&P
+TIF
+0
+
+100
+
+200
+
+300
+
+400
+
+500
+
+600
+
+700
+
+800
+
+900 1,000 1,100 1,200
+
+Computation time (in seconds)
+Figure 3: Number of K2008 and K2008u instances (out of 720) solved by TIF, SPF, and B&P as a
+function of the allocated computation time
+Table 7: Quality of the lower bounds, measured by the ratio LB/OPT × 100%,
+for K2008 instances with n ∈ {20, 40}
+n = 20
+
+6.3
+
+LBKK
+
+n = 40
+
+m
+
+vi
+
+LBDN
+
+LBAW
+
+LBDN
+
+LBAW
+
+LBKK
+
+LBLP
+
+2
+4
+6
+10
+
+[1, 10]
+[1, 10]
+[1, 10]
+[1, 10]
+
+87.98%
+88.39%
+86.96%
+88.96%
+
+82.02% 89.79% 98.69% 93.23%
+84.97% 93.55% 99.42% 91.21%
+87.24% 94.99% 99.47% 88.97%
+100% 100%
+100% 89.65%
+
+LBLP
+
+74.73%
+77.24%
+82.40%
+89.73%
+
+93.39%
+91.83%
+91.54%
+95.38%
+
+99.32%
+98.47%
+97.90%
+99.08%
+
+2
+4
+6
+10
+
+[2, 4]
+[2, 4]
+[2, 4]
+[2, 4]
+
+96.33% 92.81% 96.33% 98.55% 98.70% 89.20%
+94.75% 94.19% 94.75% 97.22% 96.95% 91.85%
+93.50% 99.01% 93.50% 98.25% 95.82% 92.42%
+100%
+100% 100%
+100% 93.83% 98.60%
+
+98.70% 99.29%
+96.95% 98.18%
+95.82% 96.86%
+93.83% 96.51%
+
+2
+4
+6
+10
+
+[4, 8]
+[4, 8]
+[4, 8]
+[4, 8]
+
+86.88%
+81.75%
+79.62%
+83.58%
+
+83.36% 94.97% 99.30% 86.70%
+81.67% 98.45% 99.19% 83.91%
+82.25% 99.78%
+100% 83.96%
+100% 100%
+100% 82.44%
+
+77.94%
+79.44%
+80.75%
+83.97%
+
+96.91%
+95.83%
+96.13%
+98.06%
+
+average
+
+89.06%
+
+90.63% 96.34% 99.17% 90.45%
+
+84.86% 95.36% 98.52%
+
+99.67%
+99.13%
+99.40%
+98.47%
+
+Heuristics
+
+In this subsection we first report the results for tB&P, CGH, and PS on instances with n ∈ {80, 100}
+from set K2008. We compare with a hybrid ant colony framework called HACF2, which achieves a better
+overall performance than previous methods in Kashan and Karimi (2008). Subsequently, we compare with
+a truncated constraint programming (CP) procedure on instances with n ∈ {80, 100} from set H2017;
+the CP model is taken from Ham et al. (2017), who apply CP to a generalization of BLSP for a problem
+from the semiconductor industry.
+For tB&P we use the same parameter settings as in Section 6.2, and for CGH we set Col number
+
+19
+
+equal to 50 × m. For PS, we use a tolerance θ = α ∗ cT x̃, where x̃ is the reference solution and, initially,
+α = 0.02. The initial reference solution for PS is produced by the SK heuristic. In each iteration of PS, if
+the incumbent solution does not improve within a time limit of 100 seconds, then we update α = α × 0.5.
+We choose M = 100, 000 in objective function (39) and set the solver tolerance to 0.2 × M (so the solver
+halts if the gap between upper and lower bound is less than this value). The CP model is solved using
+the CP Optimizer of IBM ILOG CPLEX Optimization Studio 12.10, with one thread. For tB&P, CGH
+and PS, the preprocessing described in Section 4 is applied. Unless mentioned otherwise, we impose a
+time limit of 600 seconds.
+Table 8 reports on the performance of CGH, tB&P, PS, and HACF2 for K2008 instances with n ∈
+{80, 100}. Following Kashan and Karimi (2008), we measure the performance of each heuristic by the
+ratio OBJ/LB, where OBJ is the objective value provided by the corresponding heuristics and LB =
+max{LBKK, LBAW}. The choice of these latter lower bounds is made to ensure that our results are
+comparable with the ones of Kashan and Karimi (2008). Indeed, the results for HACF2 are taken
+directly from Tables 5 and 6 of Kashan and Karimi (2008), while we test our own heuristics on instances
+generated by ourselves. In Kashan and Karimi (2008), HACF2 is implemented in MATLAB 6.5.1 and
+run on a Pentium III 800MHz computer with 128MB RAM using a stopping criterion of 40 generations.
+Since Kashan and Karimi (2008) did not test instances with m = 10, we report the computational results
+for these instances separately in Table 9.
+To compare our heuristics with CP, we apply our methods to the instances from H2017 with n ∈
+{80, 100}. Table 10 displays the results of this experiment, where we measure the performance of each
+method by the quantity (OBJ − LBLP)/LBLP × 100%.
+Tables 8-10 yield the following insights:
+• Table 8 shows that PS performs best on average. In particular, for those instances with a low
+number of families m or with a high packability in the job size vi , PS outperforms HACF2 both in
+terms of solution quality and computation time. As the number of families m increases, however,
+HACF2 regularly becomes better than PS.
+• Table 10 shows that PS and CP are the two best performing methods. One possible explanation
+of the better performance of PS when m = 3 is that the size of TIF, which forms the basis of PS,
+increases with the family number m.
+20
+
+Table 8: Ratio OBJ/LB for the heuristics tB&P, CGH, PS, and HACF2, and average CPU times in
+seconds for HACF2 (a 600-second time limit was used for all other heuristics) for K2008 instances
+with n ∈ {80, 100} and m ∈ {2, 4, 6}
+
+m
+
+vi
+
+tB&P
+ratio
+
+CGH
+ratio
+
+n = 80
+PS
+ratio
+
+HACF2
+ratio
+time
+
+tB&P
+ratio
+
+n = 100
+CGH
+PS
+ratio
+ratio
+
+2 [1, 10] 1.0477 1.0508 1.0444 1.0515 1514.2 1.0424 1.0505
+4 [1, 10] 1.0675 1.0765 1.0701 1.0684 657.7 1.0622 1.0699
+6 [1, 10] 1.0861 1.0956 1.0898 1.0887 454.7 1.0890 1.0965
+2 [2, 4] 1.0067 1.0067 1.0060 1.0229 1219.5 1.0061 1.0061
+4 [2, 4] 1.0203 1.0201 1.0155 1.0260 571.0 1.0163 1.0163
+6 [2, 4] 1.0325 1.0325 1.0274 1.0330 403.0 1.0250 1.0257
+2 [4, 8] 1.0266 1.0268 1.0258 1.0271 1063.4 1.0256 1.0275
+4 [4, 8] 1.0378 1.0391 1.0410 1.0348 524.5 1.0346 1.0360
+6 [4, 8] 1.0483 1.0501 1.0499 1.0522 391.5 1.0418 1.0505
+average
+1.0415 1.0442 1.0411 1.0450 755.5 1.0381 1.0421
+
+HACF2
+ratio
+time
+
+1.0396 1.0488 2862.0
+1.0611 1.0645 1358.3
+1.0837 1.0774 903.3
+1.0049 1.0220 2396.3
+1.0139 1.0269 1160.4
+1.0199 1.0319 760.8
+1.0261 1.0207 2003.0
+1.0363 1.0343 993.1
+1.0439 1.0562 716.0
+1.0366 1.0425 1461.5
+
+Table 9: Ratio OBJ/LB for the heuristics tB&P, CGH, and PS for
+K2008 instances with n ∈ {80, 100} and m = 10
+
+7
+
+vi
+
+tB&P
+
+n = 80
+CGH
+
+[1, 10]
+[2, 4]
+[4, 8]
+average
+
+1.1070
+1.0508
+1.0332
+1.0637
+
+1.1020
+1.0498
+1.0342
+1.0620
+
+PS
+1.1007
+1.0465
+1.0396
+1.0622
+
+tB&P
+
+n = 100
+CGH
+
+PS
+
+1.1021
+1.0449
+1.0521
+1.0664
+
+1.0987
+1.0445
+1.0497
+1.0643
+
+1.0989
+1.0409
+1.0584
+1.0661
+
+Conclusions
+
+In this paper, we present new models and algorithms for the BLSP, which allow us to solve mediumsized and large instances to optimality. Specifically, the proposed SPF performs best, while the B&P
+cannot equalize the performance of SPF. One possible direction for future research is to explore how
+one can improve the performance of B&P by examining different branching strategies or by introducing
+heuristics to solve the pricing problem more efficiently. The TIF and SPF can also be extended to other
+scheduling problems of batch processing machines with incompatible families and other objectives (e.g.,
+total weighted tardiness). We also find that, on average, our proximity search heuristic performs better
+Table 10: Ratio (OBJ − LBLP)/LBLP × 100% for tB&P, CGH, PS, and CP for H2017 with
+n ∈ {80, 100}
+
+m
+
+vi
+
+tB&P
+
+n = 80
+CGH
+PS
+
+3
+5
+
+[1, 50]
+[1, 50]
+
+1.54%
+1.43%
+
+1.65%
+2.01%
+
+1.49%
+
+1.83%
+
+average
+
+CP
+
+tB&P
+
+n = 100
+CGH
+PS
+
+0.95%
+1.37%
+
+1.22%
+1.28%
+
+1.12%
+1.21%
+
+0.91%
+1.48%
+
+0.80%
+1.44%
+
+1.16%
+1.09%
+
+1.16%
+
+1.25%
+
+1.16%
+
+1.19%
+
+1.12%
+
+1.13%
+
+21
+
+CP
+
+than previously proposed heuristics from the literature. We hope that the findings of this paper can
+contribute to increasing the popularity of and progress in the scheduling of batch processing machines.
+
+Acknowledgments
+Fan Yang is funded by the China Scholarship Council. Ben Hermans is funded by a Postdoctoral Fellowship of the Research Foundation – Flanders (Fonds Wetenschappelijk Onderzoek). This work is partly
+supported by the National Natural Science Foundation of China 71801013 and the Beijing Social Science
+Foundation 18GLC078.
+
+References
+Azizoglu, M. and Webster, S. (2001). Scheduling a batch processing machine with incompatible job
+families. Computers & Industrial Engineering, 39(3-4):325–335.
+Cakici, E., Mason, S. J., Fowler, J. W., and Geismar, H. N. (2013). Batch scheduling on parallel machines
+with dynamic job arrivals and incompatible job families. International Journal of Production Research,
+51(8):2462–2477.
+Coffman, Jr., E. G., Garey, M. R., and Johnson, D. S. (1978). An application of bin-packing to multiprocessor scheduling. SIAM Journal on Computing, 7(1):1–17.
+Delorme, M., Iori, M., and Martello, S. (2016). Bin packing and cutting stock problems: Mathematical
+models and exact algorithms. European Journal of Operational Research, 255(1):1–20.
+Dobson, G. and Nambimadom, R. S. (2001). The batch loading and scheduling problem. Operations
+Research, 49(1):52–65.
+Fischetti, M. and Monaci, M. (2014). Proximity search for 0-1 mixed-integer convex programming.
+Journal of Heuristics, 20:709–731.
+Graham, R. L., Lawler, E. L., Lenstra, J. K., and Rinnooy Kan, A. H. G. (1979). Optimization and
+approximation in deterministic sequencing and scheduling: a Survey. Annals of Discrete Mathematics,
+5:287–326.
+
+22
+
+Ham, A., Fowler, J. W., and Cakici, E. (2017). Constraint programming approach for scheduling jobs
+with release times, non-identical sizes, and incompatible families on parallel batching machines. IEEE
+Transactions on Semiconductor Manufacturing, 30(4):500–507.
+Held, S., Cook, W., and Sewell, E. C. (2012). Maximum-weight stable sets and safe lower bounds for
+graph coloring. Mathematical Programming Computation, 4:363–381.
+Jia, Z., Wang, C., and Leung, J. Y.-T. (2016). An ACO algorithm for makespan minimization in parallel
+batch machines with non-identical job sizes and incompatible job families. Applied Soft Computing,
+38:395–404.
+Kashan, A. H. and Karimi, B. (2008). Scheduling a single batch-processing machine with arbitrary job
+sizes and incompatible job families: An ant colony framework. Journal of the Operational Research
+Society, 59(9):1269–1280.
+Kempf, K. G., Uzsoy, R., and Wang, C.-S. (1998). Scheduling a single batch processing machine with
+secondary resource constraints. Journal of Manufacturing Systems, 17(1):37–51.
+Koh, S.-G., Koo, P.-H., Ha, J.-W., and Lee, W.-S. (2004). Scheduling parallel batch processing machines
+with arbitrary job sizes and incompatible job families. International Journal of Production Research,
+42(19):4091–4107.
+Koh, S.-G., Koo, P.-H., Kim, D.-C., and Hur, W.-S. (2005). Scheduling a single batch processing machine
+with arbitrary job sizes and incompatible job families. International Journal of Production Economics,
+98(1):81–96.
+Kucukkoc, I. (2019). MILP models to minimise makespan in additive manufacturing machine scheduling
+problems. Computers & Operations Research, 105:58–67.
+Mathirajan, M. and Sivakumar, A. I. (2006). A literature review, classification and simple meta-analysis
+on scheduling of batch processors in semiconductor. The International Journal of Advanced Manufacturing Technology, 29:990–1001.
+Mönch, L., Fowler, J. W., Dauzere-Peres, S., Mason, S. J., and Rose, O. (2011). A survey of problems, solution techniques, and future challenges in scheduling semiconductor manufacturing operations. Journal
+of Scheduling, 14:583–599.
+23
+
+Nip, K., Wang, Z., Talla Nobibon, F., and Leus, R. (2015). A combination of flow shop scheduling and
+the shortest path problem. Journal of Combinatorial Optimization, 29:36–52.
+Ozturk, O., Begen, M. A., and Zaric, G. S. (2014). A branch and bound based heuristic for makespan
+minimization of washing operations in hospital sterilization services. European Journal of Operational
+Research, 239(1):214–226.
+Pei, J., Cheng, B., Liu, X., Pardalos, P. M., and Kong, M. (2019). Single-machine and parallel-machine
+serial-batching scheduling problems with position-based learning effect and linear setup time. Annals
+of Operations Research, 272:217–241.
+Pinedo, M. (2016). Scheduling: Theory, Algorithms, and Systems. Springer, Cham.
+Potts, C. N. and Kovalyov, M. Y. (2000). Scheduling with batching: A review. European Journal of
+Operational Research, 120(2):228–249.
+Ryan, D. M. and Foster, B. A. (1981). An integer programming approach to scheduling. In Wren, A.,
+editor, Computer Scheduling of Public Transport Urban Passenger Vehicle and Crew Scheduling, pages
+269–280, North Holland, Amsterdam.
+Sadykov, R. and Vanderbeck, F. (2013). Bin packing with conflicts: a generic branch-and-price algorithm.
+INFORMS Journal on Computing, 25(2):244–255.
+Shen, L. and Buscher, U. (2012). Solving the serial batching problem in job shop manufacturing systems.
+European Journal of Operational Research, 221(1):14–26.
+Smith, W. E. (1956). Various optimizers for single-stage production. Naval Research Logistics Quarterly,
+3:59–66.
+Stork, F. (2001). Stochastic resource-constrained project scheduling. Doctoral thesis, Technische Universität Berlin, Fakultät II - Mathematik und Naturwissenschaften, Berlin.
+Tamer Ünal, A., Ağralı, S., and Caner Taşkın, Z. (2020). A strong integer programming formulation for
+hybrid flowshop scheduling. Journal of the Operational Research Society, 71(12):2042–2052.
+Uzsoy, R. (1994). Scheduling a single batch processing machine with non-identical job sizes. International
+Journal of Production Research, 32(7):1615–1635.
+24
+
+Vance, P. H., Barnhart, C., Johnson, E. L., and Nemhauser, G. L. (1994). Solving binary cutting stock
+problems by column generation and branch-and-bound. Computational Optimization and Applications,
+3:111–130.
+Wang, Z. and Cui, Z. (2012). Combination of parallel machine scheduling and vertex cover. Theoretical
+Computer Science, 460:10–15.
+Wolsey, L. A. (1998). Integer Programming. Wiley, New York.
+
+Appendix A
+
+A time-indexed formulation with big-M constraints
+
+We describe an adapted time-indexed formulation with ‘big-M’ type constraints for the BLSP based
+on Cakici et al. (2013) and Ham et al. (2017). We use the definitions of H, Hj and Ω as before. Let
+Γj be the batch set for family j ∈ F , containing |Nj | batches that can be loaded by jobs of family j.
+The sets Γj constitute a partition of Ω, meaning that ∪m
+j=1 Γj = Ω and Γi ∩ Γj = ∅ for all {i, j} ⊂ Ω.
+For any j ∈ F , we introduce binary variables xkt that are one if batch k ∈ Γj starts processing at time
+period t ∈ Hj , and zero otherwise, and we also use variables yik that equal one if job i ∈ Nj is assigned
+to batch k ∈ Γj , and zero otherwise. Finally, Ci is a non-negative continuous variable that represents the
+completion time of job i, for i ∈ N .
+min
+
+X
+
+wi Ci
+
+(40)
+
+i∈N
+
+s.t.
+
+X
+
+yik = 1,
+
+∀i ∈ Nj , j ∈ F ,
+
+(41)
+
+vi yik ≤ V,
+
+k ∈ Γj , j ∈ F ,
+
+(42)
+
+xkt = 1,
+
+k ∈ Γj , j ∈ F ,
+
+(43)
+
+t ∈ H,
+
+(44)
+
+i ∈ N j , k ∈ Γj , j ∈ F .
+
+(45)
+
+k∈Γj
+
+X
+i∈Nj
+
+X
+t∈Hj
+
+min{t,|Hj |}
+
+X X
+
+X
+
+xkτ ≤ 1,
+
+j∈F k∈Γj τ =max{t−qj +1,1}
+
+Ci ≥
+
+X
+
+(t + qj − 1)xkt − M (1 − yik ),
+
+t∈Hj
+
+The objective is to minimize the total weighted completion time. Constraints (41) ensure that each job
+is assigned to one batch. Constraints (42) impose the machine capacity on each batch. Constraints (43)
+schedule each batch exactly once. Constraints (44) guarantee that the machine will handle at most one
+
+25
+
+batch at each time period. Constraints (45) compute the job completion times, with M a suitably large
+number.
+
+Appendix B
+
+Batch generation
+
+We present a method to generate all feasible batches per family (that is, those that respect the capacity
+constraints), which is loosely based on Stork (2001)’s method for generating minimal forbidden sets in
+resource-constrained project scheduling. For a given family j, we enumerate all feasible subsets of Nj by
+means of a tree T , where each node w of T corresponds to a job i ∈ Nj , except for the root node. If
+node w corresponds to job i then it will have a potential child node for each job i′ = i + 1, . . . , |Nj |. The
+root node has |Nj | potential child nodes, corresponding to |Nj | jobs. Each node w defines a batch s ∈ Sj
+that is obtained by traversing the tree from node w to the root, such that the batch s includes all jobs
+associated with the nodes along the path.
+During the construction of the tree, we prune a node as soon as the total size of the jobs in the
+corresponding batch violates the machine capacity. The enumeration uses a depth-first strategy. Upon
+creating a node, we first check the capacity constraint. If it is violated then we prune, otherwise the
+batch is feasible and we branch into the child nodes. If a node is feasible and has no further descendants,
+it is a leaf node.
+We refer to this procedure as BG, and provide a pseudocode description in Algorithm 3. Here, let
+xi = 1 if the batch s includes job i ∈ Nj , 0 otherwise. The value Vs keeps track of the total size of all
+jobs in batch s. We initialize xk = 0 for all k ∈ Nj , i = 1 and Vs = 0. An example is included in Figure 4
+for job set Nj = {1, 2, 3, 4}, assuming job size vk = k for k ∈ Nj (i.e., job 1 has v1 = 1) and the machine
+capacity V = 5.
+
+Appendix C
+
+Computational performance of TIF, SPF, and B&P
+on K2008 and K2008u instances
+
+The results are in the Tables 11-12.
+
+26
+
+Algorithm 3 BG
+1: if i > |Nj | then
+
+Create new pattern s
+for k ∈ Nj do
+4:
+if xk = 1 then
+5:
+add job k to s
+6:
+end if
+7:
+end for
+8:
+if s is not empty then
+9:
+add s to Sj
+10:
+end if
+11: else
+12:
+if Vs + vi > V then
+13:
+xi = 0
+14:
+BG(i + 1, Vs )
+15:
+else
+16:
+xi = 1
+17:
+Vs = Vs + vi
+18:
+BG(i + 1, Vs )
+19:
+xi = 0
+20:
+Vs = Vs − vi
+21:
+BG(i + 1, Vs )
+22:
+end if
+23: end if
+2:
+3:
+
+∅
+
+∅
+
+1
+
+3
+
+2
+
+3
+
+4
+
+4
+
+2
+
+4
+
+3
+
+3
+
+4
+
+1
+
+4
+
+2
+
+4
+
+3
+
+2
+
+4
+
+3
+
+3
+
+4
+
+(a) The complete tree for Nj before pruning
+
+(b) The tree of all feasible batches
+
+Figure 4: Trees for the example
+
+27
+
+4
+
+Table 11: Computational performance of TIF, SPF, and B&P on K2008 instances with n ∈ {40, 60, 80}; ‘time’ indicates the average CPU times in
+seconds, ‘opt’ the number of solved instances (out of 10) within the 1200-seconds time limit, and ‘nodes’ the average number of nodes computed
+by B&P. In the ‘opt’-columns, the numbers in brackets indicate the number of instances that cannot be solved because of memory problems, or
+because the time required to build the model exceeds the time limit.
+n = 40
+TIF
+
+n = 60
+
+SPF
+
+B&P
+
+TIF
+
+n = 80
+
+SPF
+
+B&P
+
+28
+
+m
+
+vi
+
+time
+
+opt
+
+time
+
+opt
+
+time
+
+opt
+
+nodes
+
+time
+
+opt
+
+time
+
+opt
+
+2
+4
+6
+10
+
+[1, 10]
+[1, 10]
+[1, 10]
+[1, 10]
+
+373.05
+449.12
+1181.51
+—
+
+7
+3
+1
+0
+
+50.11
+68.26
+52.28
+41.98
+
+10
+10
+10
+10
+
+31.87
+69.19
+68.50
+39.49
+
+9
+10
+10
+10
+
+107.67
+80.80
+29.00
+5.00
+
+692.57
+—
+—
+—
+
+2
+0
+0
+0
+
+399.95
+455.03
+433.01
+349.12
+
+9 415.48
+7 335.07
+7 404.44
+10 271.12
+
+2
+4
+6
+10
+
+[2, 4]
+[2, 4]
+[2, 4]
+[2, 4]
+
+84.71
+643.80
+—
+—
+
+10 163.41
+3 228.45
+0 121.26
+0 36.25
+
+10 244.20
+10 152.84
+10 262.69
+10 144.47
+
+3 1095.67
+6 377.00
+9 281.22
+9
+60.33
+
+451.57
+—
+—
+—
+
+2
+4
+6
+10
+
+[4, 8]
+[4, 8]
+[4, 8]
+[4, 8]
+
+334.77
+364.50
+504.73
+—
+
+7
+2
+3
+0
+
+17.90
+76.69
+29.07
+34.36
+
+10 118.61
+10 40.18
+10 22.87
+10 46.19
+
+10
+10
+10
+10
+
+347.37
+
+36
+
+76.67 120
+
+average/total
+
+91.05 106
+
+time
+
+TIF
+
+SPF
+
+opt nodes time opt
+
+time
+
+B&P
+opt
+
+time
+
+—
+—
+—
+—
+
+0
+—
+0 286.25
+0 856.81
+0 885.55
+
+5
+— 0(6)
+—
+0 1117.07
+1
+—
+0 447.32
+3
+—
+0 664.06
+9 615.69
+
+0
+0
+0
+1
+
+—
+—
+—
+85.00
+
+—
+—
+—
+—
+
+0
+0
+0
+0
+
+433.60 1072.97
+43.00
+—
+8.00
+—
+4.00
+—
+
+1
+0
+0
+0
+
+142.47
+341.54
+230.80
+289.80
+
+10 142.07
+9 390.61
+8 139.66
+7 324.47
+
+8 206.50
+9 152.33
+9 21.89
+10 11.80
+
+—
+—
+—
+—
+
+0 509.66
+0 475.61
+0 280.36
+0 608.52
+
+6
+8
+1
+4
+
+51.80
+544.49
+599.89
+681.93
+
+1 13.00
+6 111.67
+4 39.00
+6 11.00
+
+147.42
+
+8
+
+376.45
+
+80 301.74
+
+65 115.75
+
+—
+
+0 531.20
+
+24
+
+571.39
+
+21
+
+589.49
+
+0(7)
+—
+2
+51.39
+2 556.66
+1 1024.56
+
+opt nodes
+
+6 418.17
+5 181.80
+8 69.50
+9 14.11
+
+— 0(10)
+— 0(5)
+—
+0
+—
+0
+
+—
+—
+—
+—
+
+0
+1
+2
+1
+
+—
+7.00
+39.00
+19.00
+
+0
+0
+0
+0
+
+—
+—
+—
+—
+
+48.05
+
+Table 12: Computational performance of TIF, SPF, and B&P on K2008u instances; ‘time’ indicates
+the average CPU times in seconds, ‘opt’ the number of solved instances (out of 10) within the 1200seconds time limit, and ‘nodes’ the average number of nodes computed by B&P. In the ‘opt’-columns,
+the numbers in brackets indicate the number of instances that cannot be solved because of memory
+problems, or because the time required to build the model exceeds the time limit.
+n = 120
+TIF
+
+n = 150
+
+SPF
+time
+
+opt
+
+time
+
+nodes
+
+time
+
+SPF
+opt
+
+time
+
+B&P
+
+29
+
+time
+
+2
+4
+6
+10
+
+[1, 10]
+[1, 10]
+[1, 10]
+[1, 10]
+
+742.09
+48.85
+—
+931.69
+
+3 274.06 8(1)
+—
+1 74.43 10 78.82
+0 26.72 10 211.59
+1
+4.07 10 160.59
+
+0
+— 65.80
+2 264.00
+—
+3 1651.00
+—
+6 1699.33 115.29
+
+1 379.24
+0 137.24
+0 76.06
+1 15.87
+
+2
+4
+6
+10
+
+[2, 4]
+[2, 4]
+[2, 4]
+[2, 4]
+
+519.24
+252.00
+—
+—
+
+5 685.39
+1 377.74
+0 139.55
+0 22.61
+
+1
+9
+10
+10
+
+0
+0
+0
+0
+
+1
+— 0(10)
+0 845.90
+1
+0 347.35
+3
+0 74.46
+10
+
+2
+4
+6
+10
+
+[4, 8]
+[4, 8]
+[4, 8]
+[4, 8]
+
+187.43
+—
+323.92
+1029.56
+
+6
+0
+2
+1
+
+13.83
+4.92
+2.24
+3.37
+
+442.85
+
+20
+
+—
+—
+—
+—
+
+opt
+
+TIF
+
+vi
+
+average/total
+
+opt
+
+B&P
+
+m
+
+opt
+
+time
+
+1(5)
+—
+10
+—
+10 947.03
+10 447.79
+—
+—
+—
+—
+
+opt
+
+nodes
+
+0
+—
+0
+—
+1 3059.00
+3 2540.33
+
+—
+—
+—
+—
+
+55.93
+—
+—
+—
+
+0
+0
+0
+0
+
+—
+—
+—
+—
+
+10 210.53
+10 195.54
+10 107.13
+10 446.13
+
+2 1392.00
+3 2269.67
+7 1439.57
+9 7014.56
+
+—
+—
+—
+—
+
+0
+0
+0
+0
+
+11.46
+9.28
+8.07
+5.94
+
+10
+—
+10 236.25
+10 100.41
+10 290.14
+
+0
+—
+4 1929.00
+3 1082.33
+6 3152.33
+
+85.14 108 235.27
+
+32 3077.44
+
+79.01
+
+3
+
+66.48
+
+85 310.44
+
+17 2385.71
+
+

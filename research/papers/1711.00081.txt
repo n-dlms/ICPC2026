@@ -1,0 +1,533 @@
+arXiv:1711.00081v2 [cs.DS] 20 Mar 2022
+
+Approximating the 2-Machine Flow Shop
+Problem with Exact Delays Taking Two
+Values
+Alexander Ageev
+Abstract
+In the 2-Machine Flow Shop problem with exact delays the operations of each job are separated by a given time lag (delay). Leung et al.
+(2007) established that the problem is strongly NP-hard when the delays may have at most two different values. We present further results
+for this case: we prove that the existence of (1.25 − ε)-approximation
+implies P=NP and develop a 2-approximation algorithm.
+
+1
+
+Introduction
+
+An instance of the 2-Machine Flow Shop problem with exact delays consists
+of n triples (aj , lj , bj ) of nonnegative integers where j is a job in the set of
+jobs J = {1, . . . , n}. Each job j must be processed first on machine 1 and
+then on machine 2, aj and bj are the lengths of operations on machines 1
+and 2, respectively. The operation of job j on machine 2 must start exactly
+lj time units after the operation on machine 1 has been completed. The goal
+is to minimize makespan. In the standard three-field notation scheme the
+problem is written as F 2 | exact lj | Cmax .
+One of evident applications of scheduling problems with exact delays is
+chemistry manufacturing where there often may be an exact technological
+delay between the completion time of some operation and the initial time
+of the next operation. The problems with exact delays also arise in command-and-control applications in which a centralized commander distributes
+a set of orders (associated with the first operations) and must wait to receive
+responses (corresponding to the second operations) that do not conflict with
+any other (for more extensive discussion on the subject, see [5, 9]). Condotta
+[4] describes an application related to booking appointments of chemotherapy
+treatments [4].
+1
+
+The approximability of F 2 | exact lj | Cmax was studied by Ageev and
+Kononov in [2]. They proved that the existence of (1.5−ε)-approximation algorithm implies P=NP and constructed a 3-approximation algorithm. They
+also give a 2-approximation algorithm for the cases when aj ≤ bj and aj ≥ bj ,
+j ∈ J. These algorithms were independently developed by Leung et al. in
+[8]. The case of unit processing times (aj = bj = 1 for all j ∈ J) was
+shown to be strongly NP-hard by Yu [10, 11]. Ageev and Baburin [1] gave a
+1.5-approximation algorithm for solving this case.
+In this paper we consider the case when lj ∈ {L1 , L2 } for all j ∈ {1, . . . , n}.
+In the three-field notation scheme this case can be written as F 2 | exact lj ∈
+{L1 , L2 } | Cmax . The problem was shown to be strongly NP-hard by Leung
+et al. [8].
+Our results are the following: we prove that the existence of (1.25 − ε)approximation for F 2 | exact lj ∈ {0, L} | Cmax implies P=NP and present a
+2-approximation algorithm for F 2 | exact lj ∈ {L1 , L2 } | Cmax .
+Throughout the paper we use the standard notation: Cmax (σ) stands for
+∗
+the length of a schedule σ (makespan); Cmax
+means the length of a shortest
+schedule.
+We assume that no job has a missing operation in the sense that a zero
+processing time implies that the job has to visit the machine for an infinitesimal amount of time δ > 0.
+
+2
+
+Inapproximability lower bound for
+F 2 | exact lj ∈ {0, L} | Cmax
+
+In this section we establish the inapproximability lower bound for the case
+F 2 | exact lj ∈ {0, L} | Cmax , i.e., when L1 = 0, L2 = L. To this end consider
+the following reduction from Partition problem.
+Partition
+P
+Instance: Nonnegative integers w1 , . . . , wm such that m
+k=1 wk = 2S.
+P
+Question: Does there exist a subset X ⊆ {1, . . . , m} such that k∈X wk
+= S?
+Consider an instance I of Partition and construct an instance I ′ of
+F 2 | exact lj ∈ {0, L}| Cmax .
+
+2
+
+Let R > 5S. Set J = {1, . . . , m + 6} and
+ak =
+am+1 =
+am+2 =
+am+3 =
+am+4 =
+am+5 =
+am+6 =
+
+bk = wk , lk = 2R for k = 1, . . . m,
+bm+1 = R, lm+1 = 0,
+bm+2 = R, lm+2 = 2R,
+0, bm+3 = R − S, lm+3 = 0,
+R − S, bm+4 = 0, lm+4 = 0,
+0, bm+5 = R, lm+5 = 0,
+R, bm+6 = 0, lm+6 = 0.
+
+We will refer to the jobs in {1, . . . , m} as small and to the remaining six jobs
+as big.
+Lemma 1.
+P
+(i) If
+k∈X wk = S for some subset X ⊆ {1, . . . m}, then there exists a
+feasible schedule σ such that Cmax (σ) ≤ 4R + 4S.
+(ii) IfPthere exists a feasible schedule σ such that Cmax (σ) ≤ 4R + 4S, then
+k∈X wk = S for some set X ⊆ {1, . . . m}.
+∗
+(iii) If Cmax (σ) > 4R + 4S for any feasible schedule σ, then Cmax
+≥ 5R − S.
+P
+P
+Proof. (i) Let X ⊆ {1, . . . , m} such that k∈X wk = S. Then k∈Y wk = S
+where Y = {1, . . . , m} \ X.
+First of all point out that the whole construction presenting a feasible
+schedule can be moved along the time line in both directions. So the length
+of the schedule is the length of the time interval between the starting time of
+the first operation (which is not necessarily equal to zero) and the completion
+time of the last one. To construct the required schedule arrange the big jobs
+
+m+2
+
+m+1
+
+m+5
+
+m+3
+
+R
+
+R-S
+
+m+4
+
+m+6
+
+B
+
+m+1
+
+m+2
+
+S
+
+R
+
+R
+
+A
+
+Figure 1: Scheduling the big jobs.
+in the order shown in Fig. 1. This construction has two idle intervals: A on
+machine 1 and B on machine 2. The interval A is between the end of the
+3
+
+first operation of job m + 1 and the beginning of the first operation of job
+m + 4. The interval B is between the end of the second operation of job
+m + 3 and the beginning of the second operation of job m + 1. Both intervals
+have length S.
+For scheduling the small jobs we use the following rule. Schedule the
+small jobs in X in such a way that their first operations are executed within
+the time interval A in non-decreasing order of the lengths. Correspondingly,
+w.l.o.g. we may assume that X = {1, 2, . . . , q} and w1 ≤ w2 ≤ . . . ≤ wq .
+Denote by A′ the time interval between the end of the second operation of
+job m + 2 and the end of the last operation of job q. It is easy to understand
+(see Fig. 2) that all the second operations of jobs {1, . . . , q} fall within A′
+and the length of A′ is equal to
+q
+X
+
+wi + w1 + (w2 − w1 ) + (w3 − w2 ) + . . . + (wq − wq−1 ) =
+
+q
+X
+
+wi + wq ,
+
+i=1
+
+i=1
+
+which does not exceed 2S. Now we observe that the construction is sym2R-S
+
+S
+1 2
+
+3
+
+1 2
+
+3
+< 2S
+
+Figure 2: Scheduling the small jobs in X.
+metric and schedule the jobs in Y quite similarly. More precisely, the second
+operations of jobs in Y are executed without interruption within the time
+interval B in non-increasing order of their lengths. Then the first operations
+of these jobs fall within a time interval of length at most 2S.
+Finally, we arrive at the schedule shown in Fig. 3. From the above argument its length does not exceed 4R + 4S, as required.
+(ii) Let σ be a feasible schedule with Cmax (σ) ≤ 4R + 4S. Observe first
+that in any schedule of length at most 4R + 4S both operations of job m + 1
+are executed exactly within the lag time interval of job m+2, since otherwise
+Cmax (σ) ≥ 5R. So for these jobs we have the initial construction shown in
+Fig. 4. Denote by t0 , t1 , t2 , t3 , t4 the junction times of the operations of these
+jobs (see Fig. 4).
+Observe that the schedule σ has the following property (Q): for any small
+job either it completes at time not earlier than t1 , or starts at time not later
+4
+
+m+2
+
+m+1
+
+m+4
+
+m+6
+
+m+5
+
+m+3
+
+m+1
+
+m+2
+
+R
+
+R-S
+
+R
+
+R
+
+S
+
+Figure 3: The jobs in {1, . . . , m} are executed within the shaded intervals.
+
+m+2
+
+m+1
+m+1
+
+t0
+
+t1
+
+t2
+
+m+2
+
+t3
+
+t4
+
+Figure 4: The initial construction.
+
+than t3 . It follows from the fact that otherwise the length of σ is at least 5R.
+Let X be the subset of small jobs that complete at time not earlier than t1 .
+Then Y = {1, . . . , m} \ X is the subset of small jobs that start at time not
+later than t3 . For definiteness assume that X 6= ∅. This immediately implies
+that job m + 5 starts at time not later than t0 . Then job m + 3 starts exactly
+at time t1 , since otherwise the length of σ is at least 5R − S, which is greater
+than 4R+4S due to the choice of R and S. Thus the second operations of the
+jobs in X are executed within the interval [t2 − S, S]. It follows that Y 6= ∅.
+Moreover, a similar argument shows that the first operations P
+of the jobs in
+Y are
+executed
+within
+the
+interval
+[t
+,
+t
++
+S].
+Thus
+we
+have
+j∈X wj ≤ S
+P
+P 2 2
+P
+and j∈Y wj ≤ S, which implies j∈X wj = j∈Y wj = S, as required.
+(iii) Let σ be a feasible schedule. By the assumption of (iii) Cmax (σ) >
+4R+4S. We may assume that σ contains the initial construction and satisfies
+property (Q) (see (ii)), since otherwise
+P we are done.
+P Let X and Y be defined
+as in (ii). From
+(i)
+it
+follows
+that
+w
+=
+6
+j∈XP j
+j∈Y wj . W.l.o.g. we may
+P
+P
+assume that j∈X wj >
+j∈Y wj , i.e.,
+j∈X wj > S. Then by property
+(Q) neither job m + 3 nor job m + 5 starts at time t1 . It follows that at
+least one of these jobs is executed outside the interval [t0 , t4 ], which implies
+Cmax (σ) ≥ 5R − S (one of the possible configurations is shown in Fig. 5).
+Set R = kS. Then 5R − S = S(5k − 1). On the other hand, 4R + 4S =
+
+5
+
+m+2
+m+3
+
+m+1
+
+m+5
+
+m+1
+
+R-S
+
+m+2
+
+4R
+
+Figure 5: One of the possible configurations for (iii).
+
+4kS + 4S = S(4k + 4). The fraction
+5k − 1
+4k + 4
+tends to 1.25 as k tends to infinity. Thus Lemma 1 implies
+Theorem 1. If the problem F 2 | exact lj ∈ {0, L} | Cmax admits a (1.25−ε)approximation algorithm, then P = NP .
+
+3
+
+A 2-approximation algorithm for
+F 2 | exact lj ∈ {L1, L2} | Cmax
+
+In this section we present a simple 2-approximation algorithm for solving
+F 2 | exact lj ∈ {L1 , L2 } | Cmax .
+We show first that the case when the delays are the same for all jobs
+(L1 = L2 = L) is polynomially solvable. Note that any feasible schedule σ
+of an instance of F 2 | exact lj = L | Cmax can be associated with a feasible
+schedule σ ′ of the corresponding instance of F 2 | exact lj = 0 | Cmax and
+their lengths satisfy Cmax (σ) = Cmax (σ ′ ) + L. More precisely, shifting the
+second operations of all jobs to the left by distance L gives a feasible schedule
+to the problem with zero delays, and vise versa (see Fig. 6). The problem
+F 2 | exact lj = 0 | Cmax (all delays are equal to 0) is nothing but the 2machine no-wait Flow Shop problem. The latter problem is known to be
+solvable in O(n log n) time [6, 7, 3]. Therefore the problem F 2 | exact lj =
+L| Cmax is solvable in O(n log n) time for all L ≥ 0.
+Let I1 , I2 be instances of F 2 | exact lj | Cmax with disjoint sets of jobs J1
+and J2 . Let σk , k = 1, 2, be feasible schedules of Ik , respectively. Consider an
+instance I of F 2 | exact lj | Cmax formed by the union of J1 and J2 . Denote
+by σ1 ⊕ σ2 the schedule of I obtained from σ1 and σ2 by concatenation of
+schedules σ1 and σ2 . More precisely, the schedule σ1 ⊕ σ2 first executes the
+jobs in J1 according to the schedule σ1 and then as earlier as possible starts
+6
+
+(a)
+
+1
+
+2
+
+3
+1
+
+(b)
+
+1
+
+2
+
+2
+
+3
+
+3
+
+1
+
+2
+
+3
+
+Figure 6: (a) A schedule with the same delay L for all jobs; (b) the corresponding schedule with delay 0 for all jobs.
+
+executing the jobs in J2 according to the schedule σ2 . An example with
+J1 = {(3, 2, 3), (2, 2, 4)} and J2 = {(4, 0, 2), (5, 0, 1)} is depicted in Fig. 7.
+1
+
+1
+
+3
+
+2
+
+4
+
+σ2
+
+σ1
+1
+
+4
+
+3
+
+2
+
+2
+
+4
+
+3
+1
+
+2
+
+4
+
+3
+
+Figure 7: The schedule shown below is the concatenation of σ1 and σ2 .
+We now give a description of an approximation algorithm for the problem
+F 2 | exact lj ∈ {L1 , L2 } | Cmax .
+Algorithm Concatenation
+Input: An instance {(aj , lj , bj ) : j ∈ J}, lj ∈ {L1 , L2 }.
+Output: A feasible schedule σ.
+1. Set Jk = {j ∈ J : lj = Lk , k = 1, 2}. For k = 1, 2 form the instances
+Ik = {(aj , Lk , bj ) : j ∈ Jk } of F 2 | exact lj = L | Cmax .
+2. Solve the instances Ik , k = 1, 2. Let σk , k = 1, 2, be optimal schedules
+of Ik , respectively.
+3. Set σ = σ1 ⊕ σ2 .
+As mentioned above the time complexity of Step 2 is O(n log n). So the
+overall running time of Algorithm Concatenation is O(n log n).
+The approximation bound is derived from the following easy lemmata.
+7
+
+∗
+Lemma 2. Let Cmax
+be the length of an optimal schedule to the instance
+∗
+{(aj , lj , bj ) : j ∈ J}, lj ∈ {L1 , L2 }. Then Cmax (σk ) ≤ Cmax
+for k = 1, 2.
+
+Proof. Evident.
+Lemma 3. Cmax (σ) ≤ Cmax (σ1 ) + Cmax (σ2 ).
+Proof. Follows from the definition of operation ⊕.
+From Lemmata 2 and 3 we have
+∗
+Cmax (σ) ≤ 2Cmax
+.
+
+Thus we arrive at the following
+Theorem 2. Algorithm Concatenation runs in time O(n log n) and finds
+a feasible schedule of F 2 | exact lj ∈ {L1 , L2 } | Cmax whose length is within
+a factor of 2 of the optimum.
+Tightness.
+For a > δ > 0, consider the instance {(aj , lj , bj ) : j ∈ J}, lj ∈ {L1 , L2 },
+consisting of k jobs (a, 0, a) and a single job (δ, (k + 1)a, δ). It is clear that
+∗
+Cmax
+= (k + 1)a + 2δ
+
+(see Fig. 8 for the optimal schedule). Let σconc denote the schedule returned
+by Algorithm Concatenation. Then evidently
+Cmax (σconc ) = ka + 2δ + (k + 1)a.
+Thus we have
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+
+a
+a
+
+δ
+
+δ
+
+Figure 8: The optimal schedule.
+
+ka + 2δ + (k + 1)a
+ka
+Cmax (σconc )
+=
+=1+
+∗
+Cmax
+(k + 1)a + 2δ
+(k + 1)a + 2δ
+which tends to 2 when k tends to ∞.
+8
+
+References
+[1] A.A. Ageev and A.E. Baburin, Approximation algorithms for UET
+scheduling problems with exact delays. Oper. Res. Letters 35(2007), 533–
+540.
+[2] A.A. Ageev and A.V. Kononov, Approximation algorithms for scheduling
+problems with exact delays. In: Approximation and Online Algorithms:
+4th International Workshop (WAOA 2006), Zurich, Switzerland, LNCS
+4368 (2007), 1–14.
+[3] R.E. Burkard, V.G. Deineko, R. van Dal, J.A.A. van der Veen and G.J.
+Woeginger. Well-solvable special cases of the traveling salesman problem:
+A survey. SIAM Review, 40: 496–546, 1998.
+[4] A. Condotta, Scheduling with due dates and time lags: new theoretical
+results and applications. Ph.D. Thesis, 2011, The University of Leeds,
+School of Computing, 156 pp.
+[5] M. Elshafei, H. D. Sherali, and J.C. Smith, Radar pulse interleaving for
+multi-target tracking. Naval Res. Logist. 51 (2004), 79–94.
+[6] P.C. Gilmore and R.E. Gomory. Sequencing a one-state variable machine:
+a solvable case of the traveling salesman problem. Operations Research 12
+(1964), 655–679.
+[7] P.C.Gilmore, E.L. Lawler and D.B. Shmoys. Well solved cases, in E.L.
+Lawler, J.K. Lenstra, A.H.G. Rinnooy Kan and D.B. Shmoys (Eds), The
+Traveling Salesman Problem: A Guided Tour of Combinatorial Optimization, Wiley, New York, pp. 87–143, 1986.
+[8] J. Y.-T. Leung, H. Li, and H. Zhao, Scheduling two-machine flow shops
+with exact delays. International Journal of Foundations of Computer Science 18 (2007), 341–359.
+[9] H. D. Sherali and J. C. Smith, Interleaving two-phased jobs on a single
+machine, Discrete Optimization 2 (2005), 348–361.
+[10] W. Yu, The two-machine shop problem with delays and the one-machine
+total tardiness problem, Ph.D. thesis, Technische Universiteit Eindhoven,
+1996.
+[11] W. Yu, H. Hoogeveen, and J. K. Lenstra, Minimizing makespan in a
+two-machine flow shop with delays and unit-time operations is NP-hard.
+J. Sched. 7 (2004), no. 5, 333–348.
+9
+
+

@@ -1,0 +1,1526 @@
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2025
+
+1
+
+SLICE: SLO-Driven Scheduling for LLM Inference on Edge
+Computing Devices
+
+arXiv:2510.18544v3 [cs.DC] 18 Nov 2025
+
+Will Chow
+
+Abstract—Large Language Models (LLMs), as the foundational architecture for next-generation interactive AI applications, not only power intelligent dialogue systems but also drive
+the evolution of embodied intelligence on edge devices, including
+humanoid robots, smart vehicles, and other scenarios. The
+applications running on these edge devices impose differentiated
+Service Level Objectives (SLO) requirements on LLM services,
+specifically manifested as distinct constraints on Time to First
+Token (TTFT) and Time Per Output Token (TPOT) as well
+as end-to-end latency. Notably, edge devices typically handle
+real-time tasks that are extremely sensitive to latency, such
+as machine control and navigation planning. However, existing
+scheduling service systems still prioritize maximizing output
+token throughput as the sole optimization objective, failing to
+adequately address the diversity of SLO requirements. This
+ultimately results in persistently high violation rates for endto-end latency or TPOT related SLOs.
+This paper proposes SLICE, an innovative scheduling solution designed for edge computing scenarios with differentiated
+SLO requirements. By combining a utility-maximizing request
+scheduling algorithm with a dynamic iterative control mechanism
+for generation rates, SLICE significantly improves LLM inference service SLO attainment. Experimental results demonstrate
+that compared to state-of-the-art solutions Orca and FastServe,
+SLICE achieves up to 35× higher SLO attainment and 3.4×
+advantage in task completion time than the other two solutions.
+This version is temporarily hosted anonymously for double-blind
+review.
+Index Terms—Large Language Model, Edge Device, LLM
+Inference, Time Per Output Token, Service Level Objectives.
+
+I. I NTRODUCTION
+
+L
+
+ARGE language models (LLMs) such as GPT and
+DeepSeek series [1] [2] are raising artificial general intelligence to an unprecedented heights. With their human-like
+generation capabilities, these models are being rapidly adopted
+across diverse domains, most notably in edge intelligence. This
+development has sparked new possibilities for intelligent edge
+devices and is poised to fundamentally transform lifestyles
+and work patterns. A prominent example is Google’s SayCan
+[3], which significantly enhances robots’ ability to comprehend and execute linguistic commands. Leading technology
+companies including Boston Dynamics [4], Tesla [5], and
+Apple [6] are actively developing and implementing LLM
+technologies in their products. As a result, integrating the vast
+knowledge capabilities of large language models into edge
+devices—spanning smartphones, IoT systems, and automotive
+platforms—represents a transformative opportunity in modern
+edge computing ecosystems [7] [8] [9].
+Deploying large language models on edge devices requires
+supporting diversified application services, where different applications exhibit significant variations in service-level objectives (SLOs) for inference performance. Real-time applications
+
+(a) Decode latency VS. batch size
+
+(b) Token throughput VS. batch size
+
+Fig. 1. We conducted a batch processing performance evaluation of the
+ChatGLM2-6B model on an NVIDIA RTX 4060 Ti 16GB GPU. Experimental
+results demonstrate that as the batch size increases from 1 to 9, the per-token
+latency shows near-linear growth while throughput improves only marginally.
+When batch size exceeds 9, although the per-token latency stabilizes and
+throughput continues to scale linearly with batch size, the absolute latency
+spikes above 120ms, reducing the token generation rate per task to below
+10 tokens/s. This performance bottleneck will significantly impact latencysensitive real-time tasks, making it impossible to meet strict SLO.
+
+like navigation planning and device control demand strict endto-end deadline constraints [10]–[12]. Non-real-time interactive applications focus on Time To First Token (TTFT) and
+Time Per Output Token (TPOT) [13]–[15]. For example, voice
+interaction must guarantee output speed not less than human
+speech rate [16], while text-based question answering requires
+matching reading speed to maintain interaction fluency [17]
+[18]. Given the constrained hardware resources of edge devices
+and the large scale of LLMs, even a single-unit increase in
+batch size can lead to significant single-token latency spikes
+(as illustrated in Fig. 1). This tension between resource constraints and multi-SLO requirements places scheduling system
+design as the key enabler for efficient LLM inference in edge
+computing scenarios.
+Mainstream inference services such as Orca [19], vLLM
+[20], FastLLM [21], and FasterTransformer [22] predominantly employ First-Come-First-Served (FCFS) scheduling
+to compose a processing batch, which may cause queuing
+delay for later-arriving tasks under ultra heavy workloads
+in cloud computing scieneros. Meanwhile, alternative highperformance schedulers adopt specialized techniques to alleviate this queuing delay. Sarathi Serve [23] implements
+chunked pre-filling to eliminate stalls between prefill and
+decode phase transitions. FastServe [24] deploys multi-level
+feedback queues with iteration-level preemption to mitigate
+head-of-line blocking, while Splitwise/DistServe [25] isolates
+pre-filling and decoding stages for independent optimization.
+Llumnix [26] further enhances throughput through load balancing, prioritization, defragmentation, and auto-scaling. All
+these designs indiscriminately batch tasks regardless of their
+SLO requirements during inference. During each decoding
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2025
+
+2
+
+tance. Notably, real-time tasks are assigned significantly higher
+utility values than non-real-time tasks (typically 10 to 100
+times higher) in the edge scenarios. By maximizing the total
+utility value, the system selects a batch of tasks for decoding,
+ensuring real-time task prioritization while maximizing nonreal-time task throughput.
+(a) Existing coarse-grained decoding scheduling
+
+(b) SLO-aware decoding scheduling
+Fig. 2. (a) The current scheduling system cannot perform fine-grained,
+decode-level scheduling. Each decoding process batches all scheduled tasks
+together, which increases decoding latency and consequently leads to violations of task-level SLOs. (b) By adopting decode-level batch scheduling and
+implementing an on-demand allocation approach, more tasks can meet their
+SLO requirements.
+
+iteration, all scheduled tasks are indiscriminately batched
+together and processed through the LLM’s decoding forward
+pass. This coarse-grained decoding scheduling works well
+for homogeneous SLO scenarios without strict deadline constraints or TPOT requirements, while our experiments reveal
+its inadequate when handling edge computing workloads with
+various strict SLO requirements, as illustrated in Fig. 2a.
+This experimental case demonstrates that existing decoding
+scheduling can cause a long decoding latency that exceeds
+TPOT requirements when the batch size surpasses the critical
+threshold, resulting in severe SLO violations. More critically,
+if the deadline of real-time tasks cannot be guaranteed, it will
+directly impair the normal operation of edge devices, such as
+those performing delay-sensitive and mission-critical tasks like
+machine control and navigation planning, potentially leading
+to system malfunctions or even task failures.
+Motivated by the above insights, can we design an intelligent scheduling system that dynamically adjusts decoding
+rates according to tasks’ SLO requirements, thereby improving
+overall SLO attainment while ensuring effective guarantees for
+real-time tasks’ deadline in edge computing scenarios?
+In this paper, we propose a SLO-driven scheduling strategy
+called SLICE for LLM inference services. The core concept of
+SLICE revolves around ”real-time task prioritization and ondemand resource allocation”. Specifically, SLICE gives priority to scheduling real-time tasks to ensure they meet their deadlines. Additionally, it allocates decoding rates in accordance
+with SLO requirements. This approach prevents low-demand
+tasks from excessively consuming computational resources,
+thereby enabling more concurrent tasks to run even with
+limited computing power (as shown in Fig. 2b). By adhering
+to this principle, SLICE achieves a synergistic improvement
+in both SLO attainment and the successful completion of realtime tasks within their deadlines. To implement this scheduling
+concept, SLICE employs a two-stage scheduling strategy.
+In the first phase (i.e., the task selection phase), each newly
+arrived task is assigned a utility value that reflects its impor-
+
+In the second phase (i.e., the rate allocation phase), the
+decoding rate is dynamically adjusted based on the SLO
+requirements of each task. To minimize system overhead, this
+paper proposes an innovative decode-mask matrix that enables
+cycle-based scheduling to achieve rate control for individual
+tasks. Specifically, the number of columns in the matrix
+represents the total number of decoding operations per cycle,
+while each row corresponds to one scheduled task, recording
+its decoding schedule within the cycle. In the matrix, setting
+the nth column of a row to ”1” indicates that the corresponding
+task participates in the nth decoding operation of that cycle.
+For tasks with stricter TPOT SLO requirements (i.e., those
+requiring a higher decoding rate), the ”1”s are distributed
+more densely across their respective rows, thereby enabling a
+higher decoding rate. During the actual scheduling process, the
+system performs column-wise scanning starting from the left
+to right column in each cycle, triggering a decoding operation
+upon completing the scan of a column. For every scan, the
+system groups all tasks corresponding to rows marked ”1” in
+the current column into a single decoding batch. Through this
+iterative scanning and dynamic batch aggregation mechanism,
+the system can dynamically adjust the decoding rate of each
+task according to its SLO requirements.
+Overall, the main contributions of this paper are as follows:
+This paper investigates the distinctive challenges in LLM
+task scheduling for edge computing scenarios, where
+different tasks exhibit significant variations in SLOs for
+inference performance.
+• The paper proposes a utility-maximizing task selection
+mechanism that optimizes task scheduling upon arrival,
+achieving dual objectives of real-time task deadline assurance and maximum overall SLO attainment.
+• The paper proposes a decode-mask matrix periodic scanning mechanism that accurately controls the decoding rate
+of scheduled tasks even under various load conditions.
+• The paper design and implement SLICE, a SLO-aware
+LLM inference scheduling strategy built on top of
+the above utility-maximizing based task selection and
+decode-mask matrix based rate allocation mechanisms.
+We evaluate SLICE on various scenarios and demonstrate
+that it achieves up to 35× improvement in SLO attainment
+under heavy workloads and a 3.4× advantage in task
+completion time compared to state-of-the-art solutions
+Orca [19] and FastServe [24].
+•
+
+The rest of this paper is organized as follows. Section II
+presents the research background and related work. Section
+III and IV provide the motivations and design of SLICE,
+respectively. Section VI presents the validation of SLICE, and
+Section VII concludes the research contributions.
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2025
+
+Fig. 3. In LLM inference, the prefill and decode phases utilize a dynamically
+maintained Key-Value (KV) cache. This cache acts as a working memory,
+being continuously stored, loaded, and updated throughout the generation
+process.
+
+3
+
+define an inference iteration as the complete cycle from token
+processing to next-token sampling. Through intensive training
+on large corpora, LLM is able to perform various language
+tasks excellently. For example, when inputting ”Piece of”, the
+probability of the model predicting ”cake” as a subsequent
+word is significantly higher than ”sugar”. After the first iteration is completed, the newly generated token will be appended
+to the end of the initial prompt and input back into LLM as a
+whole to continue generating the next token, as illustrated in
+Fig. 3. This process repeats until a unique token representing
+the end of the sequence is generated or the preset maximum
+output length threshold is reached.
+B. Related Work
+
+II. BACKGROUND AND R ELATED W ORK
+A. Background
+Applications of LLM in edge computing. Edge scenarios
+include a wide range of devices, including mobile phones,
+smart homes, vehicles, and robots, which are ubiquitous in
+users’ daily lives [8], [27]. Deploying LLM on these edge
+devices can achieve a wider range of usage, better computing efficiency, more robust offline behavior, and better
+privacy/security protection, providing a promising solution for
+more practical edge intelligence applications [3], [4], [28]. For
+example, in the field of embodied intelligence, as one of the
+core goals of artificial general intelligence, embodied intelligence constructs self centered intelligent systems through
+LLM, which can interact with the surrounding environment
+and have perception, reasoning, and planning capabilities [11],
+[12]. The emerging large-scale visual language models allow
+embedded artificial intelligence agents to solve related tasks
+in a highly end-to-end manner, such as embedded question
+answering and visual language navigation, voice control, chatbots, artificial intelligence assistants, and so on [7], [29], [30].
+Therefore, LLM is becoming the foundation model for various applications in edge scenarios, providing context specific
+inputs (also known as ”prompts”) to support the inference
+needs of these applications. However, different applications
+have different service requirements. Some applications have
+strong real-time performance and require the inference system
+to complete inference within a specified time limit, such as
+navigation planning [12], industrial robot control [10], [29],
+etc. Non-real-time tasks prioritize token generation rates or
+TPOT demands. For instance, voice conversations must sustain
+a minimum of 8 tokens per second to match natural speech
+flow, whereas text-based question answering requires at least
+10 tokens per second to ensure reading fluency [16]–[18]. This
+heterogeneous demand introduces distinct challenges for task
+scheduling on edge devices.
+Autoregressive Generation of LLM inference. LLM belongs to a language model series with Transformer architecture
+as its core, and its inference mechanism follows the autoregressive paradigm [1], [31]. Under this framework, input consists
+of a series of tokens, commonly referred to as prompts. LLM
+parses these prompts and outputs a probability distribution
+indicating the tokens that may be sampled next. We formally
+
+Due to GPUs and other accelerators having numerous
+parallel computing units, they typically batch inference tasks
+to improve hardware utilization and system throughput. When
+batching is enabled, input tensors from multiple tasks are
+concatenated and fed into the model as a single input [21],
+[22]. The drawback of batching is that it incurs higher memory overhead compared to processing individual tasks. Since
+activation memory scales proportionally with model size, the
+maximum batch size for LLM inference is constrained by
+the model’s size. Currently, optimization efforts for inference
+primarily focus on two directions: memory management and
+batch scheduling optimization.
+In memory management, fairseq [32] proposes storing
+keys and values in a key-value cache for reuse throughout the
+iterative process. This divides inference into two phases: the
+prefilling phase (initial iteration), where prompts are processed
+to generate key-value caches for each transformer layer in
+LLM, and the decoding phase, where LLM only computes
+queries, keys, and values for newly generated tokens while
+reusing and updating the cache, resulting in typically shorter
+iteration times than the first iteration. Other transformeroptimized libraries like HuggingFace [33] and FasterTransformer [22] implement similar optimizations. However, unpredictable KV cache memory demands require systems to
+reserve maximum GPU capacity for batch tasks, severely
+limiting batch size benefits. For instance, LLaMA-2-13B [34]
+requires 3.2GB of KV cache per request at 4k sequence
+lengths, competing with model weights (26GB) on mainstream
+GPUs with only tens of GBs. Recent solutions like vLLM’s
+dynamic memory allocation employ PagedAttention: KV data
+is stored in dynamically allocated memory blocks as cache
+scales, with active requests assigned based on available blocks
+[20]. Methods like FlexGen [35] and CARASERVE [36]
+further offload partial tasks to CPUs to increase batch size
+and throughput. These memory optimizations complement the
+present work.
+In batch scheduling, early approaches mimicked traditional
+deep learning batch processing by executing all tasks in a
+batch before moving to the next, causing completed tasks to
+remain idle and new arrivals to wait. Orca’s iteration-level
+scheduling [19] addressed this by running a single iteration
+per batch, allowing finished jobs to exit and new ones to join
+after each token generation. SARATHI [23] further improved
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2025
+
+GPU utilization by splitting prompts into chunks for parallel
+execution with decoding. Splitwise [25] decoupled prefilling
+and decoding batches to reduce interference. However, these
+methods may cause head-of-line blocking due to First-ComeFirst-Serve (FCFS) scheduling strategy. FastServe [24] mitigates this with multi-level feedback queues and distribute tasks
+to different priority queues according to tasks lengths. vLLMLTR [37] predicts task length via a machine learning method
+and executes a Shortest-Job-First (SJF) scheduling. Llumnix
+[26] prioritized real-time tasks by migrating instances across
+GPU pools, but this approach proved infeasible for resourceconstrained edge computing.
+
+4
+
+Challenge 2: scheduling overhead. Precise rate allocation
+requires tracking the state of scheduled tasks, which imposes
+significant overhead. For any task, enforcing a strict fixed time
+interval for token generation is impractical. This mechanism
+not only necessitates real-time monitoring of each task’s state
+but also requires precisely scheduling the generation time for
+every token. Such an approach leads to two major issues. First,
+the system incurs substantial scheduling overhead. Second,
+even if precise generation times are defined, token generation
+may still be blocked due to hardware resource unavailability,
+ultimately causing noticeable stuttering.
+IV. SLICE: SLO-D RIVEN S CHDULING
+
+III. M OTIVATION AND CHALLENGES
+A. Opportunity: SLO-Aware Scheduling
+The above state-of-the-art scheduling strategies exhibit a
+critical flaw by failing to adequately address the diverse
+SLOs of tasks. They adopted a uniform batching mechanism
+that forcibly groups all scheduled tasks into a single batch
+to perform the forward computation for each decode stage.
+This coarse-grained scheduling leads to two contradictory
+phenomena. On one hand, as the batch size increases, the
+per-decode latency grows linearly, causing high-generationrate tasks to fail meeting TPOT requirements and real-time
+tasks’ deadlines due to decoding delays. On the other hand,
+low-generation-rate tasks are forced to perform decoding at
+frequencies far exceeding their SLO requirements, resulting in
+the dilemma of insufficient supply for high-demand tasks and
+excessive supply for low-demand tasks (see Fig. 2 for typical
+cases). To address this, we propose dynamic rate allocation
+for individual tasks based on their SLO demands to improve
+SLO attainment. However, implementing such SLO-aware rate
+allocation faces two major challenges: Dual Optimization
+Objectives and Scheduling Overhead.
+B. Challenges
+Challenge 1: dual optimization objectives. In practical
+task scheduling, there is a significant conflict between ensuring
+the deadline SLO of real-time tasks and maximizing the
+overall SLO attainment of all tasks. This conflict stems from
+the stringent deadline requirements of real-time tasks. They
+need to complete processing within an extremely short time
+frame, which directly translates into a rigid demand for a high
+token generation rate. To achieve this, the system must limit
+the decoding batch size. Otherwise, it cannot meet the realtime tasks’ delay requirements for TPOT. As shown in Fig. 1a,
+blindly increasing the decoding batch size will lead to higher
+decoding latency, directly causing real-time tasks to fail to
+meet their predefined SLOs. In contrast, from the perspective
+of overall task scheduling efficiency, maximizing the SLO
+achievement rate requires enlarging the decoding batch size as
+much as possible to enhance the system’s parallel processing
+capability, thereby scheduling more tasks. Therefore, the key
+challenge in scheduling design lies in finding the optimal
+balance between ensuring real-time task SLOs and improving
+the overall SLO attainment.
+
+To address the aforementioned challenges, this chapter proposes a systematic solution. Section IV-A constructs a utility
+maximization model to transform the dual-objective optimization scheduling problem into a mathematical optimization
+problem, identifying the optimal trade-off between real-time
+guarantees and overall SLO attainment optimization by maximizing system-wide comprehensive utilities. Section IV-B
+introduces an offline SLICE scheduling strategy that systematically addresses the aforementioned optimization challenges
+through its two core components—task scheduling selection
+and task rate allocation. Section IV-C provides a task selection
+scheme based on a utility-rate-priority decision framework,
+enabling maximizing system-wide comprehensive utility to
+resolve Challenge 1. Section IV-D innovatively proposes an
+SLO-aware decoding mask matrix to allocate the decoding
+rates of scheduled tasks, tackling Challenge 2. Section IV-E
+further realizes the effective transformation of the offline
+SLICE into an online strategy, ensuring efficient and stable
+execution in real-time scenarios.
+A. Problem Formulation
+We first formulate the problem using the notations in Table
+I. For ease of description, we translate the deadline constraints
+of real-time tasks into dual-metric requirements for TTFT and
+TPOT. Through this transformation, both real-time and nonreal-time tasks can be uniformly modeled under consistent
+constraint conditions, thereby enhancing the standardization
+and operational feasibility of the modeling approach. And
+different types of tasks vary in importance or priority. For
+instance, real-time tasks related to machine control typically
+have higher priority. To ensure that high-priority tasks are
+scheduled first, each task is assigned a utility value. The
+higher the value, the higher the priority. Thus, our optimization
+objective is to maximize the system’s total utility, as shown
+in Eq. (1), where Ui represents the utility value obtained by
+task i, and Xi is a binary decision variable. Xi = 1 if task i
+meets its SLO, otherwise Xi = 0, as defined in Eq. (2).
+The number of scheduled tasks in the system is denoted
+by b. Each scheduled task is assigned a token generation rate
+ṽi > 0, as specified in Eq. (3) and (4). The sum of the rates
+allocated to all scheduled tasks must not exceed the maximum
+processing capacity of the GPU, as expressed in Eq. (5). Here,
+l(b) denotes the latency for decoding a batch of b tasks, and
+b/l(b) represents the maximum system throughput when the
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2025
+
+5
+
+TABLE I
+S UMMARY OF NOTATIONS
+Notation
+N
+Xi
+l(b)
+Ui
+TTi P OP
+TTi T F T
+tiT T F T
+vi
+ṽi
+Tperiod
+
+Description
+The number of tasks
+A binary decision variable
+Decoding latency with batch size b
+Utility value of task i
+Time Per Output Token (TPOT) of task i
+Time to First Token (TTFT) of task i
+The actual TTFT of task i
+The required generation rate of task i, defined as 1/TTi P OP
+Task i’s actual generation rate allocated by the system
+The estimated duration of the scheduling cycle
+N
+X
+
+max
+
+Xi Ui
+
+(1)
+
+Algorithm 1 SLO-Driven offline Scheduling: SLICE-offline
+1: Input: Task set N = {0, 1, 2, ..., N }; TPOT value set
+T = {TT0 P OT , TT1 P OT , ..., TTNP OT }; Utility value set U =
+{U0 , U1 , ..., UN }; For any task i ∈ N: TPOT requirement
+TTi P OT , Utility value Ui ; Token buffer tokenBuf for
+streaming response; Event queue eventQ
+2: Output: Tasks not yet completed
+3: eventQ ← ∅
+▷ First step: task selection
+4: b, N ← TASK S ELECTION (N, T, U)
+▷ Second step: rate allocation
+5: b ← R ATE A LLOCATION(b, tokenBuf, eventQ)
+6: N ← b ∪ N
+7: return N ▷ Return tasks not yet completed
+
+i=0
+
+s.t.
+
+1
+1 if ṽi ≥
+and tiT T F T ≥ TTi T F T
+i
+TT P OT
+Xi =
+
+0
+others
+b=
+
+N
+X
+
+I(ṽi )
+
+(2)
+
+(3)
+
+i=1
+
+(
+I(ṽi ) =
+N
+X
+i=1
+
+1
+
+if ṽi > 0
+
+0
+
+others
+
+ṽi ≤
+
+b
+l(b)
+
+the differentiated SLO requirements of each task. It strictly
+guarantees that the actual decoding rate assigned to each
+task is no lower than its preset SLO requirement, thereby
+ensuring service quality while achieving precise scheduling
+of computing resources.
+The detailed design of the task selection algorithm and the
+rate allocation algorithm can be found in following Section
+IV-C and Section IV-D.
+
+(4)
+C. Task Selection
+(5)
+
+batch size is b. Generally, l(b) is a non-linear function (Fig.
+1a provides an example). If l(b) were a linear function, the
+problem could be reduced to the knapsack problem, which is
+NP-hard. Therefore, the problem described by Eq. (1) to (5) is
+more complex than the knapsack problem and is also NP-hard.
+B. SLO-Driven offline Scheduling
+To efficiently solve the above formulated optimization problem, we propose the SLICE algorithm, a two-phase solution
+comprising task selection and rate allocation. For clarity, we
+first present the algorithm in an offline scenario where all tasks
+arrive simultaneously, and subsequently extend it to the online
+scenario (detailed in subsection IV-E) that accommodates
+dynamic task arrivals and departures.
+In the offline scenario, all tasks arrive simultaneously at
+time 0. The SLICE scheduling algorithm completes task
+scheduling through a two-phase mechanism of task selection
+and rate allocation, as depicted in Algorithm 1. The SLICE
+scheduling algorithm first employs a task selection algorithm
+to select a batch of tasks (line 4), ensuring that the SLOs
+of these tasks are met while maximizing the overall system
+utility. The selected batch is then handed over to the rate
+allocation algorithm for executing the decoding operations of
+LLMs (line 5). This algorithm takes into full consideration the
+unique decoding computational characteristics of LLMs and
+dynamically allocates corresponding decoding rates based on
+
+The task selection process consists of two steps: utility
+rate calculation and task selection, as shown in Algorithm 2.
+Step 1: Utility Rate Calculation (line 5). Since the system
+has a limited number of tokens that can be generated per
+second, we calculate the utility rate ri for each task according
+to Eq. (6). This rate represents the utility gained per token
+generated within a second. If the token interval of task i
+is TTi P OT , the number of tokens generated per second is
+1/TTi P OT . By distributing the task utility Ui evenly across
+all tokens generated per second, the utility value per token is
+given by 1/TXi i
+= Xi · TTi P OT , which simplifies to Eq. (6):
+T P OT
+
+ri = Ui · TTi P OT
+
+(6)
+
+Step 2: Task Selection (line 6-18). In this step, the |b|
+tasks with the highest utility rate are selected to scheduling.
+However, the determination of b is non-trivial. If too many
+tasks are selected, it may not be possible to allocate sufficient
+generation rates to each task due to hardware limitations.
+Conversely, selecting too few tasks may underutilize hardware
+resources, resulting in an insufficient number of schedulable
+tasks.
+To deal with this challenge, this scheme employs a heuristic
+scheduling strategy. It adopts a non-replacement iterative strategy for task selection. In each iteration, it identifies the task
+with the highest utility rate from the remaining task set, adds
+it to the selected task set b to form the current candidate batch
+(line 7-9), and then evaluates whether the system processing
+capacity can meet the SLO requirements of this batch (line 12).
+If the requirements can be met, the tasks selected in the current
+iteration are validated and retained in set b, proceeding to the
+next iteration; if not, the current iteration’s tasks are removed
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2025
+
+from set b and returned to the pending task pool, immediately
+terminating the iteration process (line 13-17). The final task
+set in set b is determined as the optimal scheduling result that
+satisfies the SLO constraints.
+It should be particularly noted that the rate allocation
+mechanism (see section IV-D) of SLICE adopts a periodic
+scheduling strategy where each scheduling cycle generates at
+least vi tokens for each scheduled task i ∈ b, and when the
+duration of a single cycle does not exceed 1000ms, the system
+can ensure that the SLO requirements of all tasks are met.
+Conversely, if the cycle duration exceeds 1000 milliseconds,
+the SLO requirements cannot be satisfied (see line 13).
+The above two steps ensure that the total rate of scheduled
+tasks strictly adheres to the system’s capacity constraints while
+prioritizing the execution of tasks with high utility rates,
+thereby maximizing the total utility of the scheduling sytem
+defined by Eq. (1).
+Algorithm 2 TASK S ELECTION
+1: Input: Task set N = {0, 1, 2, ..., N }; for any task i ∈ N:
+TPOT requirement TTi P OT , Utility value Ui
+2: Output: Selected tasks b = {σ(1), σ(2), ..., σ(∥b∥)}
+3: b ← ∅;
+▷ Initial empty batch
+4: rateSum ← 0;
+▷ Step 1: Calculating utility rate
+5: ri ← Ui · TTi P OT for i ∈ N;
+▷ Step 2: Select the |b| tasks with the highest utility rate
+6: for i = 0, 1, ..., N do
+7:
+σ(i) ← arg maxj∈N rj ;
+8:
+latencySum ← 0
+9:
+b ← b ∪ σ(i)
+10:
+N ← N \ σ(i)
+11:
+b ← sortT asksBySLORateDescending(b)
+▷ Estimating the durationPfor a period
+i−1
+12:
+period ← vb[i] l(i + 1) + j=0 (vb[j] − vb[j+1] )l(j + 1)
+13:
+if period ≥ 1000ms then
+14:
+b ← b \ σ(i)
+15:
+N ← N ∪ σ(i)
+16:
+break;
+17:
+end if
+18: end for
+19: return b, N
+
+D. Rate Allocation
+The rate allocation algorithm employs a periodic scheduling
+mechanism to achieve precise token generation control. Each
+scheduling cycle allocates a token generation quota of vi
+(defined as 1/TTi P OT ) for every scheduled task i, with the
+duration of each cycle strictly limited to within 1000 milliseconds to ensure all tasks’ SLOs are rigorously met. Within each
+cycle, multiple iterations of scheduling are performed, where
+each iteration selectively groups only a subset of task set b
+into dynamic batches for decoding. Tasks with stricter TPOT
+requirements (i.e., demanding higher token generation rates)
+receive proportionally higher iteration frequencies, and vice
+versa. This sophisticated integration of TPOT-weighted probabilistic selection and dynamic batch reorganization techniques
+
+6
+
+Fig. 4. Rate allocation example. The rate allocation algorithm achieves
+differentiated rate allocation by constructing a 4×6 token generation mask
+matrix. The system first sorts the four tasks (task0-task3) in descending order
+of their decoding rate requirements (6/4/2/1 tokens/s) and builds a 4×6 binary
+scheduling matrix: the row index corresponds to the task ID, where the 0th row
+(all 1s) ensures task0 is scheduled 6 times per cycle, the 1st row (first 4 bits as
+1s) enables task1 to be scheduled 4 times per cycle, the 2nd row (first 2 bits as
+1s) realizes task2 being scheduled 2 times per cycle, and the 3rd row (first bit
+as 1) meets task3’s requirement of 1 scheduling per cycle. During execution, a
+periodic column-wise scanning mechanism is adopted—each scheduling cycle
+sequentially scans columns 0 to 5, dynamically grouping tasks with a value
+of 1 in the current column for batch decoding (e.g., when scanning column
+2, task0 and task1 corresponding to the 0th and 1st rows are grouped). This
+matrix-based scheduling approach not only guarantees that each task meets
+its SLO-required decoding rate but also enables efficient utilization of system
+resources.
+
+ultimately achieves fine-grained SLO-aware rate allocation,
+optimizing system throughput efficiency while guaranteeing
+quality of service, as presented in Algorithm 3.
+The algorithm can be summarized into two steps:
+decode-mask matrix construction and SLO-aware decoding.
+Step 1: Decode-mask mask matrix construction (line
+3-11). We first sort the selected |b| tasks in descending
+order based on their token generation rate requirements and
+construct a token generation mask matrix to achieve periodic
+scheduling. Specifically, for each task i, a binary mask vector
+of length v0 is constructed, where the first vi elements are set
+to 1 and the remaining elements to 0. The mask vectors of
+the |b| tasks are stacked according to the same sorting order,
+forming a matrix of dimension |b| × v1 , with the row order
+strictly corresponding to the task sorting order.
+As illustrated in Fig. 4, there are four tasks requiring
+decoding execution, which are ranked by their decoding rate
+requirements in descending order as task0 through task3. The
+decoding rate requirements for task0 to task3 are 6, 4, 2,
+and 1 tokens per second, respectively. Accordingly, SLICE
+constructs a 4×6 matrix: the 0th row consists entirely of 1s
+(six 1s), indicating that task0 is scheduled for all six decoding
+steps in each cycle; the 1st row has the first four elements as
+1s and the remaining elements as 0s, corresponding to task1
+being scheduled for the first four decoding steps in each cycle;
+the 2nd row has the first two elements as 1s and the remaining
+elements as 0s, indicating that task2 is scheduled for the first
+two decoding steps in each cycle; the 3rd row has only the first
+element as 1 and the remaining elements as 0s, corresponding
+to task3 being scheduled for the first decoding operation in
+each cycle.
+Step 2: SLO-aware decoding (line 12-33). During decoding execution, a column-wise scanning mechanism is adopted.
+The system sequentially scans the matrix columns from left to
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2025
+
+Algorithm 3 R ATE A LLOCATION
+1: Input: A batch of task b; Output token buffer tokenBuf ;
+An interruption event queue eventQ used to receive
+decoding interrupt instructions
+2: Output: Token generation rate v1 , v2 , ..., vT
+▷ Construct token masking matrix
+3: b ← sortT asksBySLORateDescending(b);
+b[0]
+4: v0 ← ⌈1/TT P OT ⌉;
+5: M ← [0]|b|×v0 ;
+6: for k = 0, 1, 2, ..., |b|−1 do
+b[k]
+7:
+vk ← ⌊1/TT P OT ⌋;
+8:
+for m = 0, 1, 2, ..., vk do
+9:
+M[k][m] ← 1
+10:
+end for
+11: end for
+▷ Decoding execution
+12: while True do
+13:
+for j = 0, 1, 2, ..., v0 do
+14:
+m ← M[j] ▷get the jth column
+15:
+c←∅
+16:
+for k = 0, 1, 2, ..., |b|−1 do
+17:
+c ← c ∪ b[k] if m[k] = 1;
+18:
+end for
+19:
+outputT okens ← excuteBatchF orward(c)
+20:
+e←∅
+21:
+if an ending token in outputT okens then
+22:
+e ←find the ending tasks
+23:
+end if
+24:
+b ← b \ e ▷remove the ending tasks
+▷restore the output tokens
+25:
+outputBuf ← outputBuf ∪ outputT okens
+26:
+if b is empty then
+27:
+return ∅
+28:
+end if
+29:
+if eventQ is not empty then
+30:
+return b
+31:
+end if
+32:
+end for
+33: end while
+
+right, moving to the next column after completing the scanning
+and decoding of the current column. During the scanning of a
+column, all tasks corresponding to the elements with a value
+of 1 in that column are grouped into a batch for executing a
+decoding step (line 16-19). When the scanning and decoding
+of the rightmost column is completed, a full scheduling cycle
+is finished, and the system automatically resets to the leftmost
+column to begin a new cycle. Through this cyclic columnscanning mechanism, the system can accurately achieve dynamic allocation of differentiated rates for each task. The
+algorithm will continue execution until either all tasks are
+completed or an interruption event occurs.
+As shown in Fig. 4, during the decoding execution phase,
+the SLICE algorithm performs periodic scheduling through
+column-wise scanning. Each scheduling cycle scans sequentially from the 0th column to the 5th column, after which
+the next cycle restarts scanning from the 0th column and
+
+7
+
+repeats cyclically. During each scan, the system groups tasks
+corresponding to the positions with a value of 1 in the current
+column into a batch for a decoding step. For example, when
+scanning the 2nd column, if the 0th and 1st elements in that
+column are 1, the SLICE algorithm will group task0 and task1
+into a batch and perform one decoding step.
+Latency Estimation. Notably, the number of batched tasks
+in each decoding step may vary, which implies that the
+decoding latency for each step could also differ. Specifically,
+a smaller number of tasks in a batch corresponds to lower
+latency. We can estimate the total latency of a scheduling cycle
+through the token generation mask matrix, with the specific
+formula provided below:
+Tperiod = vb l(b + 1) +
+
+b−1
+X
+(vj − vj+1 )l(j + 1)
+
+(7)
+
+j=0
+
+where a set of tasks are indexed by from 0 to b, and thus b + 1
+represents the number of scheduled tasks requiring decoding
+rate allocation. Here, term vb l(b + 1) captures the latency for
+executing vb decoding steps with a batch size of b + 1, which
+corresponds to processing the first vb columns in the mask
+matrix. And the expression (vj − vj+1 )l(j + 1) represents the
+latency for performing (vj −vj+1 ) decoding steps with a batch
+size of j + 1, corresponding to processing columns from vj+1
+to vj in the mask matrix.
+Since the task selection algorithm in Section IV-C has
+accurately estimated the scheduling cycle and selected b
+tasks through this formula Eq. (7), the scheduling cycle for
+executing these b tasks via the rate allocation algorithm will
+not exceed 1000 milliseconds, thereby ensuring that the actual
+token generation rate obtained by each task is no less than its
+SLO requirement.
+E. Offline to Online consideration
+In this subsection, we generalize the algorithm to the online
+scenario considering the dynamic arrival and departure of
+tasks. To achieve this extension, we adopt a strategy of
+cyclically executing the offline SLICE algorithm, thereby
+transforming it into an online SLICE algorithm, as depicted
+in Algorithm 4. During each execution of the offline SLICE
+algorithm, the scheduling system continuously monitors task
+arrivals and departures. If any task arrival or departure is
+detected, the system immediately interrupts the decoding phase
+of the offline SLICE algorithm and restarts its execution
+process (line 4-18). Specifically, upon restarting, if new tasks
+have arrived, they are incorporated into the current task set
+to participate in subsequent task selection. Those selected
+will proceed to the scheduling phase and initiate decoding
+execution, while those not selected remain unscheduled. If task
+departures are detected, the remaining task set is input into
+the offline SLICE algorithm to re-execute the task selection
+and decoding processes, ensuring that the scheduling results
+consistently reflect the latest task status.
+Preemption Consideration. To enhance the algorithm’s
+adaptability to diverse scenarios, the online algorithm introduces a dynamic utility value adjustment mechanism after the
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2025
+
+decoding phase (line 17), thereby enabling flexible customization of preemption strategies. For example, by reducing the
+utility values of tasks that generate a large number of tokens
+(i.e., those with longer execution cycles), such long tasks can
+be prioritized for exclusion during subsequent task selection.
+This design mimics the SJF scheduling strategy, effectively
+avoiding head-of-line blocking caused by prolonged resource
+occupancy. Conversely, if continuous execution of specific
+tasks needs to be ensured to prevent mid-process preemption,
+the utility value of those tasks can be appropriately increased
+to give them a competitive advantage in scheduling, thereby
+reducing the likelihood of interruption.
+
+8
+
+Fig. 5. Overview of SLICE implementation. The system consists of the SLICE
+scheduler and the preemption controller.
+
+Algorithm 4 SLO-Driven online Scheduling: SLICE-online
+1: Input: Task set N = {0, 1, 2, ..., N } for receiving new
+Upon the occurrence of events such as task arrival, departure,
+tasks; TPOT value set T = {TT0 P OT , TT1 P OT , ..., TTNP OT };
+or other scheduling triggers, the SLICE Scheduler selects a
+Utility value set U = {U0 , U1 , ..., UN }; For any task
+batch tasks from the buffer according to Algorithm 2 and
+i ∈ N: TPOT requirement TTi P OT , Utility value Ui ;
+forwards them to the SLO-aware rate allocator according to
+Token buffer tokenBuf for streaming response; Event
+Algorithm 3. The rate allocator then assigns each task a
+queue eventQ
+decoding rate that no less than its SLO requirement.
+2: Output: Tasks not yet executed
+Preemption Controller. When a scheduling event occurs,
+3: tokenBuf, eventQ ← ∅, ∅;
+the Preemption Controller dynamically adjusts the utility val4: while True do
+ues of currently executing tasks, thereby enabling a flexi▷Start a schedule
+ble multi-objective preemptive scheduling mechanism as de5:
+Start thread SLICEoffline(N, T, U, tokenBuf, eventQ)
+scribed in Section IV-E.
+6:
+while True do
+7:
+if a task is arrived or completed do
+VI. E VALUATIONS
+8:
+eventQ.put(reshedule message)
+9:
+break
+A. Experimental Settings
+10:
+end if
+Testbed. This evaluation is conducted on a test platform
+11:
+if other reschedule event is arrived do
+equipped with an NVIDIA RTX 4060Ti (16GB GDDR6),
+12:
+eventQ.put(reshedule message)
+where the GPU is connected to the host system via a PCIe
+13:
+break
+3.0 x16 interface. The host machine is configured with 22GB
+14:
+end if
+of system memory and an Intel Xeon E5-2690 v4 processor.
+15:
+end while
+LLM models. The evaluation utilizes the open source LLM
+16:
+N ←waiting SLICEoffline
+ChatGLM2-6B-INT4, selected for its exceptional deployment
+▷ Used for controlling task preemption
+flexibility. As an INT4-quantized model, it requires only
+17:
+U ←U TILITYA DAPTOR(U, T, N)
+6GB GPU memory and is widely compatible with consumer18: end while
+grade edge computing hardware, striking a balance between
+19: return N ▷ Return tasks not yet executed
+efficiency and accessibility. This design ensures fast inference
+and streamlined experimentation while significantly improving
+research feasibility and reproducibility.
+Workloads. To comprehensively evaluate the system’s perV. S YSTEM I MPLEMENTATION
+formance
+under varying load intensities, this study designs a
+The online SLICE scheduling algorithm is designed to
+comprehensive
+workload scheme incorporating multiple types
+be universal, exhibiting no dependency on specific inference
+of
+tasks.
+Specifically,
+the experiment configures two task types
+systems and enabling seamless integration with mainstream
+with
+differentiated
+SLO
+requirements:
+large language model (LLM) inference platforms. Among
+1)
+Real-time
+tasks,
+such
+as machine control and navigation
+these, FastLLM is a lightweight LLM inference framework
+planning
+[10],
+demand
+strict adherence to response rates
+developed entirely in C++, requiring no third-party plugin
+(i.e.,
+at
+least
+20
+tokens/s)
+to ensure critical tasks are
+support and specifically optimized for low-resource environcompleted
+within
+deadlines
+(i.e., 1.5s).
+ments on edge computing devices. We implemented the SLICE
+2)
+Non-real-time
+tasks,
+such
+as
+voice chat tasks (8 tokens/s)
+online algorithm using approximately 1,000 lines of C++ code
+and
+text-based
+Q&A
+tasks
+(10
+tokens/s), generate conand integrated it into the FastLLM platform. The system
+tent
+at
+a
+pace
+close
+to
+the
+average
+human reading speed
+consists of two components: the SLICE Scheduler and the
+to
+ensure
+a
+smooth
+interactive
+experience.
+Preemption Controller, as illustrated in Fig. 5.
+SLICE Scheduler. User requests for LLM first enter the In the workload design, task arrivals are simulated using a
+request buffer of the SLICE Scheduler to await scheduling. Poisson process, with ten incrementally increasing request
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2025
+
+9
+
+TABLE II
+TPOT STATISTICS OF DIFFERENT TASK TYPE UNDER THREE SCHEDULING
+Strategy
+Orca
+
+FastServe
+
+SLICE
+
+Task Type
+Task A
+Task B
+Task C
+Task A
+Task B
+Task C
+Task A
+Task B
+Task C
+
+Task number
+3
+4
+2
+3
+4
+2
+3
+4
+2
+
+TPOT SLO
+100ms
+120ms
+250ms
+100ms
+120ms
+250ms
+100ms
+120ms
+250ms
+
+Actual TPOT
+128.59ms
+128.59ms
+128.59ms
+129.56ms
+129.56ms
+129.56ms
+94.03ms
+106.65ms
+121.11ms
+
+arrival rates (ranging from 0.1 to 7.0 tasks/sec). This approach
+systematically examines the system’s performance evolution
+from idle to overloaded states while assessing SLO compliance
+across different task types. Such a refined experimental setup
+enables a thorough analysis of the system’s performance
+characteristics and potential bottlenecks under varying load
+conditions.
+Baselines. To comprehensively validate the performance
+advantages of the proposed SLICE scheduling in this study,
+we have selected two state-of-the-art baseline strategy for
+comparative analysis:
+1) ORCA: ORCA [19] first proposed Dynamic Batching
+method, an innovative approach that has now become
+the standard scheduling strategy in mainstream inference frameworks. Leading systems such as FastLLM,
+FasterTransformer, and vLLM have adopted it as their
+default implementation, making it a crucial benchmark
+for evaluating algorithmic improvements.
+2) FastServe: FastServe [24] innovatively utilizes task generation length information to achieve dynamic priority
+adjustment, effectively mitigating head-of-line blocking
+through its iterative preemption mechanism .
+Through this dual comparison, we can not only verify our
+solution’s improvements over conventional methods but also
+highlight its innovative value in addressing complex scheduling challenges.
+Metrics. This study employs three core metrics - TTFT
+attainment, TPOT attainment, and SLO attainment - to systematically evaluate the comprehensive performance of scheduling
+strategies. Specifically, for real-time tasks, their SLOs are
+achieved if and only if their completion time does not exceed
+the deadline requirement. While for non-real-time tasks, their
+SLOs are considered fulfilled only when both the TTFT SLO
+and TPOT SLO are simultaneously satisfied.
+B. Static performance
+This experiment designed three types of experimental tasks
+with differentiated TPOT requirements, each containing multiple independent requests, totaling nine experimental tasks. The
+detailed settings are provided in Table II. Based on this experimental setup, the effectiveness of the SLICE algorithm in
+dynamically allocating resources for different TPOT requests
+was systematically evaluated.
+As shown in Table 1, the experimental configuration of
+this experiment includes three types of heterogeneous tasks
+
+Decoding rate
+7.78 tokens/s
+7.78 tokens/s
+7.78 tokens/s
+7.72 tokens/s
+7.72 tokens/s
+7.72 tokens/s
+10.63 tokens/s
+9.37 tokens/s
+8.26 tokens/s
+
+Is TPOT satisfied
+No
+No
+Yes
+No
+No
+Yes
+Yes
+Yes
+Yes
+
+SLO attainment
+22%
+
+22%
+
+100%
+
+Fig. 6. TPOT Statistics of Different Task Types Under Three Scheduling
+Strategies. SLICE can allocate corresponding rates based on the TPOT
+requirements of each task to meet the diverse TPOT demands of various
+tasks. In contrast, Orca and FastServe adopt a uniform decoding rate strategy,
+assigning the same decoding rate (i.e., TPOT value) to all tasks without
+considering the heterogeneous requirements among them.
+
+(A, B, and C), with their TPOT SLOs set to 100 ms, 120
+ms, and 250 ms, respectively. Specifically, Task Type A
+consists of 3 independent request instances, Task Type B
+comprises 4 independent request instances, and Task Type
+C contains 2 independent request instances. The experiment
+employs three scheduling strategies for comparison: the proposed SLICE algorithm, the current state-of-the-art method
+Orca, and FastServe. Through experimental measurements, the
+actual TPOT values obtained by each task type during runtime
+are statistically analyzed (with specific numerical distributions
+illustrated in Fig. 6).
+From the perspective of rate allocation, SLICE can dynamically assign transmission rates that precisely match the
+TPOT demand characteristics of each individual task, thereby
+ensuring that the actual TPOT values of all task types align
+with their preset SLOs. In contrast, during practical operation,
+both the Orca and FastServe scheduling strategies allocate
+identical TPOT values to all tasks. This means they employ
+a uniform decoding rate across tasks, as shown in Fig. 6.
+The fundamental reason for this phenomenon lies in the
+fact that Orca and FastServe merge all pending tasks into a
+single consolidated batch for LLM’s forward pass during each
+decoding cycle. This processing approach rigidly enforces
+consistent decoding rates across all tasks (i.e., identical TPOT
+values for every task), consequently eliminating their ability
+to accommodate the heterogeneous demand characteristics
+among different tasks.
+From the perspective of SLO attainment, the SLICE algorithm achieved a 100% SLO attainment. In contrast, Orca and
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2025
+
+FastServe exhibited an SLO attainment of merely 22% (as
+shown in Table II). The fundamental cause of this significant
+discrepancy lies in the large batch processing scale employed
+by Orca and FastServe during each decoding cycle, which
+leads to a substantial increase in overall decoding latency. This
+processing approach renders high TPOT demand tasks (such as
+Type A and Type B) difficult to meet their stringent latency
+requirements, while only low TPOT demand tasks (such as
+Type C) with relatively lenient requirements can be satisfied
+(see Table II).
+C. Dynamic performance
+In this section’s experiments, we construct an scenario with
+dynamic task arrivals and departures. And the task arrival rate
+is set to 1, a load condition that has been tested to precisely
+saturate the performance capacity of the experimental GPU.
+Considering that real-time tasks typically dominate in edge
+computing scenarios, we configured a 7:3 ratio between realtime and non-real-time tasks. Under this setup, we conducted
+a comparative evaluation of ORCA, FastServe, and SLICE
+strategies using four key metrics: SLO attainment, TTFT
+SLO attainment, TPOT SLO attainment, and average task
+completion time.
+Performance of SLO attainment. As illustrated in Fig.
+7, the SLICE exhibits substantial improvements in SLO attainment metrics. In overall performance, SLICE achieves a
+SLO attainment of 83.33%, representing a 2.67× improvement
+over baseline methods ORCA and FastServe (both at 31.25%
+SLO attainment). For real-time task processing, SLICE attains
+an exceptional SLO attainment of 85.29%, achieving a 3.23×
+performance enhancement. In non-real-time scenarios, it maintains a robust 78.15% attainment rate with an average 1.92×
+performance gain.
+
+10
+
+task scheduling strategies between the two algorithms. When
+the number of tasks within a batch accumulates to a specific
+threshold, the cumulative effect of decoding latency directly
+triggers a significant increase in TPOT. For non-real-time
+tasks, this latency escalation elevates the TPOT SLO violation
+probability across all task types despite maintaining 100%
+TTFT SLO attainment, as shown in Fig. 8. For real-time
+tasks, the immediate consequence is substantial prolongation
+of task completion time, causing tasks to miss their predefined
+deadlines and ultimately leading to a marked rise in real-time
+task SLO violation rates. In contrast, the SLICE implements
+selective batch scheduling based on each task’s specific SLO
+requirements, while flexibly allocating differentiated decoding
+rates to tasks within the same batch, thereby achieving more
+precise performance optimization.
+
+Fig. 8. Comparison of TPOT SLO attainment, TTFT SLO attainment,
+and deadline SLO attainment for the three strategies. In non-real-time task
+scenarios, all three strategies achieved 100% TTFT SLO attainment. However,
+regarding TPOT metrics, both ORCA and FastServe demonstrated relatively
+low SLO attainment rates, while the SLICE achieved a remarkable 78.5%
+optimization. For real-time tasks, ORCA and FastServe could only ensure
+approximately 26% of tasks were completed before their deadlines. In
+contrast, SLICE significantly improved this ratio to nearly 85%, demonstrating
+superior real-time task processing capabilities.
+
+Performance of task completion time. In terms of task
+completion time, the SLICE significantly outperforms the
+comparative methods ORCA and FastServe, as illustrated
+in Fig. 9. For real-time tasks, it demonstrates an average
+completion time advantage of 2.9x over ORCA and 3.4x
+over FastServe. Regarding non-real-time tasks, the average
+completion time improvements are 1.4x and 1.2x compared
+to ORCA and FastServe, respectively. Across all task types,
+SLICE achieves notable optimizations with approximately
+1.7x and 1.5x faster average completion times than ORCA
+and FastServe, respectively.
+Fig. 7. SLO attainment comparison of real-time vs. non-real-time tasks for the
+three strategies. Our SLICE demonstrates significant performance superiority
+over state-of-the-art methods Orca and FastServe in SLO attainment metrics
+across all task types.
+
+As we can see in Fig. 7, ORCA and FastServe exhibit comparable performance characteristics. The fundamental reason
+lies in their inherent limitation in edge computing scenarios
+where the task arrival rate consistently fails to reach their
+predefined maximum batch processing capacity. Whenever
+tasks enter the system, they are immediately incorporated into
+the current batch for unified decoding, resulting in identical
+
+D. Performance varying with task ratio
+In this section’s experiments, we fix the task arrival rate
+at 1 and adjust the proportion of real-time tasks in the total
+workload. Under this experimental setup, we compare the
+performance of Orca, FastServe and the proposed SLICE in
+terms of SLO attainment.
+As we can see in Fig. 10c, SLICE demonstrates a significantly superior SLO achievement rate compared to Orca
+and FastServe across all task scenarios, with its performance advantage reaching up to 13×. Specifically, for realtime task processing, SLICE consistently maintains a stable
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2025
+
+11
+
+rate, thereby preserving relatively reliable SLO attainment
+even under overload conditions.
+E. Performance varying with workloads
+
+Fig. 9. Completion time comparison of real-time vs. non-real-time tasks
+for the three algorithms. Our SLICE algorithm significantly outperforms the
+comparative algorithms ORCA and FastServe.
+
+SLO achievement rate exceeding 80%. In contrast, when
+the proportion of real-time tasks falls below 70%, Orca and
+FastServe only achieve a comparatively low SLO attainment
+of approximately 10% (see Fig. 10a). For non-real-time tasks,
+SLICE still maintains the best SLO attainment performance.
+When real-time tasks account for 10% of the workload, the
+SLO attainment of SLICE is 10.5× higher than the other two
+methods (see Fig. 10b).
+When the proportion of real-time tasks decreases, the
+SLO attainment of both SLICE and the comparative methods
+(Orca/FastServe) exhibit a declining trend. This phenomenon
+stems from the fundamental differences between real-time
+tasks and long-duration non-real-time tasks. Real-time tasks
+typically consist of short-duration operations requiring rapid
+responses (such as machine control commands), whereas nonreal-time tasks generally feature longer execution cycles. As
+the percentage of real-time tasks diminishes, the proportion of
+long-duration tasks in the system correspondingly increases,
+leading to a significant escalation in overall system load.
+When this load pressure persistently exceeds the hardware
+performance limits of the GPU, all three scheduling strategies
+demonstrate a degradation in their SLO achievement rates.
+Notably, SLICE maintains a relative advantage in this scenario, demonstrating significantly smaller performance degradation compared to the baseline algorithms, as illustrated in
+10. This advantage stems from fundamental differences in their
+scheduling mechanisms. Orca and FastServe employ a coarsegrained batch processing approach, where all arriving tasks
+are aggregated into a single batch for synchronous decoding in
+our experiment settings. When the batch size exceeds 8 tasks,
+the decoding latency surpasses the 100ms threshold, resulting
+in severe TPOT violations. In contrast, SLICE innovatively
+adopts a dynamic rate allocation strategy. During decoding,
+it adaptively adjusts the decoding rates of individual tasks
+within the batch based on their specific requirements, thereby
+ensuring more tasks’ TPOT requirement. When computational
+resources become insufficient to meet the TPOT demands of
+additional tasks, the system proactively halts batch expansion.
+By effectively controlling batch size and thus decoding latency
+in this manner, SLICE maintains a baseline TOPT satisfaction
+
+In this section’s experiments, we set the ratio of real-time
+tasks to non-real-time tasks at 7:3, and simulate experimental
+environments under varying workload conditions by progressively adjusting the task arrival rate (from 0.1 to 7). The higher
+the task arrival rate, the heavier the system workload. For
+each arrival rate, we evaluate the performance of the three
+scheduling methods in terms of SLO attainment.
+Overall, SLICE demonstrates exceptional SLO attainment
+performance across various workload conditions, consistently
+outperforming Orca and FastServe with a maximum performance advantage of up to 35×. When the task arrival rate
+exceeds 0.8, the SLO achievement rates of Orca and FastServe decline sharply, whereas SLICE experiences a moderate
+decrease but still maintains a relatively high SLO achievement
+rate, as shown in Fig. 11c. The root cause of this phenomenon
+lies in Orca and FastServe’s excessively large batch sizes under
+high arrival rates. Moreover, all tasks within the batch must
+participate decoding every iteration, resulting in prohibitively
+high decoding latency. The tokens’ output TPOT far exceeds
+the SLO requirement, leading to severe TPOT SLO violations.
+In contrast, SLICE precisely regulates the decoding rate of
+scheduled tasks based on their individual TPOT requirements,
+and thus can allocate limited computational resources across
+more tasks. This dynamic resource management strategy
+achieves superior SLO attainment.
+In real-time task scenarios, SLICE maintains a near 100%
+SLO attainment, whereas Orca and FastServe experience a
+sharp decline in SLO attainment, dropping to nearly 0% when
+the task arrival rate exceeds 1.5 (see Fig. 11a). This is because
+SLICE assigns higher utility values to real-time tasks, enabling
+priority scheduling of real-time tasks to ensure their service
+guarantees.
+For non-real-time tasks, SLICE significantly outperforms
+the comparative methods when the arrival rate is below 2,
+while all methods including SLICE exhibit relatively low SLO
+attainment when the arrival rate surpasses 2 (see Fig. 11b).
+This occurs because, under high arrival rates with limited
+computational resources, SLICE prioritizes the allocation of
+resources to real-time tasks. As a result, non-real-time tasks
+receive comparatively fewer computational resources, leading
+to a higher rate of SLO violations for non-real-time tasks. Although the SLO attainment for non-real-time tasks is relatively
+low under high workload conditions, SLICE guarantees nearly
+100% SLO attainment for real-time tasks. Remarkably, even
+when the task arrival rate exceeds 1.5, SLICE maintains an
+overall SLO attainment of approximately 80% (see Fig. 11c).
+VII. C ONCLUSION
+The integration of LLMs into edge computing systems
+marks a pivotal advancement in embodied intelligence, enabling real-time applications across humanoid robots, autonomous vehicles, and other latency-sensitive scenarios.
+However, the inherent diversity of SLOs, such as various
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2025
+
+(a) Real-time tasks’ SLO attainment
+
+12
+
+(b) Non-real-time tasks’ SLO attainment
+
+(c) Overall SLO attainment
+
+Fig. 10. SLO attainment across different task types. (a) SLICE consistently maintains an SLO achievement rate above 80% for real-time tasks; in contrast,
+Orca and FastServe only achieve an SLO rate of approximately 10% when the proportion of real-time tasks is below 70%. (b) SLICE consistently achieves
+the highest SLO attainment for non-real-time tasks across varying task ratios compared to both Orca and FastServe. Notably, when real-time tasks account
+for just 10% of the workload, SLICE attains an SLO attainment 10.5× higher than that of the other two methods. (c)Overall, across all task mix scenarios,
+SLICE demonstrates consistently superior SLO achievement rates compared to both Orca and FastServe, with performance advantages reaching up to 13× in
+certain configurations.
+
+(a) Real-time tasks’ SLO attainment
+
+(b) Non-real-time tasks’ SLO attainment
+
+(c) Overall SLO attainment
+
+Fig. 11. SLO attainment across different workloads. (a) SLICE consistently maintains an SLO attainment close to 100% in real-time task scenarios. In
+contrast, when the task arrival rate exceeds 1.5, the SLO attainment of Orca and FastServe for real-time tasks drop to nearly 0. (b) When the task arrival
+rate is below 2, SLICE achieves a higher SLO attainment than Orca and FastServe in non-real-time task scenarios. However, when the arrival rate exceeds
+2, SLICE and both baseline methods maintain relatively low SLO attainment. (c) Overall, SLICE demonstrates consistently superior SLO attainment across
+varying workload conditions, significantly outperforming both Orca and FastServe. Notably, at an arrival rate of 3, SLICE achieves an SLO attainment 35x
+higher than that of the other two methods.
+
+constraints on end-to-end latency, TTFT and TPOT, poses
+critical challenges for existing scheduling frameworks that
+prioritize throughput over differentiated SLO requirements.
+This paper addresses this research gap by proposing SLICE,
+a SLO-driven scheduling framework that prioritizes real-time
+task execution while maximizing the SLO attainment of nonreal-time tasks. The SLICE dynamically adjusts decoding rates
+via a decode-mask matrix, allocating fewer resources to tasks
+with lower demands under strict SLO constraints, thereby
+enabling limited resources to support more concurrent tasks.
+Through rigorous experimentation, SLICE achieves up to 35×
+improvement in SLO attainment under heavy workloads and
+a 3.4× advantage in average completion time compared to
+state-of-the-art benchmarks Orca and FastServe. These results
+underscore the necessity of customizing LLM scheduling
+mechanisms for edge-specific SLOs to ensure reliable responses.
+R EFERENCES
+[1] J. Achiam, S. Adler, S. Agarwal, L. Ahmad, I. Akkaya, F. L. Aleman,
+D. Almeida, J. Altenschmidt, S. Altman, S. Anadkat et al., “Gpt-4
+technical report,” arXiv preprint arXiv:2303.08774, 2023.
+[2] A. Liu, B. Feng, B. Xue, B. Wang, B. Wu, C. Lu, C. Zhao, C. Deng,
+C. Zhang, C. Ruan et al., “Deepseek-v3 technical report,” arXiv preprint
+arXiv:2412.19437, 2024.
+
+[3] M. Ahn, A. Brohan, N. Brown, Y. Chebotar, O. Cortes, B. David,
+C. Finn, C. Fu, K. Gopalakrishnan, K. Hausman et al., “Do as i can,
+not as i say: Grounding language in robotic affordances,” arXiv preprint
+arXiv:2204.01691, 2022.
+[4] J. P. Macdonald, R. Mallick, A. B. Wollaber, J. D. Peña, N. McNeese, and H. C. Siu, “Language, camera, autonomy! prompt-engineered
+robot control for rapidly evolving deployment,” in Companion of the
+2024 ACM/IEEE International Conference on Human-Robot Interaction,
+2024, pp. 717–721.
+[5] Y. Cui, S. Huang, J. Zhong, Z. Liu, Y. Wang, C. Sun, B. Li, X. Wang,
+and A. Khajepour, “Drivellm: Charting the path toward full autonomous
+driving with large language models,” IEEE Transactions on Intelligent
+Vehicles, vol. 9, no. 1, pp. 1450–1464, 2023.
+[6] K. Alizadeh, S. I. Mirzadeh, D. Belenko, S. Khatamifard, M. Cho, C. C.
+Del Mundo, M. Rastegari, and M. Farajtabar, “Llm in a flash: Efficient
+large language model inference with limited memory,” in Proceedings
+of the 62nd Annual Meeting of the Association for Computational
+Linguistics (Volume 1: Long Papers), 2024, pp. 12 562–12 584.
+[7] C. Cui, Y. Ma, X. Cao, W. Ye, Y. Zhou, K. Liang, J. Chen, J. Lu, Z. Yang,
+K.-D. Liao et al., “A survey on multimodal large language models for
+autonomous driving,” in Proceedings of the IEEE/CVF winter conference
+on applications of computer vision, 2024, pp. 958–979.
+[8] S. Liu, K. Han, A. Fernandez-Lopez, A. K. Jaiswal, Z. Atashgahi, B. Wu,
+E. Ponti, C. Hao, R. Burkholz, O. Saukh et al., “Edge-llms: Edge-device
+large language model competition,” in NeurIPS 2024 Competition Track,
+2024.
+[9] H.-K. Chiu, R. Hachiuma, C.-Y. Wang, S. F. Smith, Y.-C. F. Wang,
+and M.-H. Chen, “V2v-llm: Vehicle-to-vehicle cooperative autonomous
+driving with multi-modal large language models,” CoRR, 2025.
+[10] N. Ling, G. Chen, and L. Zhong, “Timelyllm: Segmented llm serving system for time-sensitive robotic applications,” arXiv preprint
+arXiv:2412.18695, 2024.
+[11] Y. Ding, X. Zhang, C. Paxton, and S. Zhang, “Task and motion planning
+
+JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2025
+
+with large language models for object rearrangement,” in 2023 IEEE/RSJ
+International Conference on Intelligent Robots and Systems (IROS).
+IEEE, 2023, pp. 2086–2092.
+[12] G. Chen, X. Yu, N. Ling, and L. Zhong, “Typefly: Flying drones with
+large language model,” arXiv preprint arXiv:2312.14950, 2023.
+[13] W. Borui, Z. Juntao, J. Chenyu, G. Chuanxiong, and W. Chuan,
+“Efficient llm serving on hybrid real-time and best-effort requests,” arXiv
+preprint arXiv:2504.09590, 2025.
+[14] K. Hong, X. Li, L. Chen, Q. Mao, G. Dai, X. Ning, S. Yan, Y. Liang,
+and Y. Wang, “Sola: Optimizing slo attainment for large language model
+serving with state-aware scheduling,” in Eighth Conference on Machine
+Learning and Systems.
+[15] J. Huang, Y. Xiong, X. Yu, W. Huang, E. Li, L. Zeng, and X. Chen, “Sloaware scheduling for large language model inferences,” arXiv preprint
+arXiv:2504.14966, 2025.
+[16] K. Rayner, “Eye movements in reading and information processing: 20
+years of research.” Psychological bulletin, vol. 124, no. 3, p. 372, 1998.
+[17] J. Yoo, H. Oh, S. Jeong, and I.-K. Jin, “Comparison of speech rate and
+long-term average speech spectrum between korean clear speech and
+conversational speech,” Journal of audiology & otology, vol. 23, no. 4,
+p. 187, 2019.
+[18] M. McTear and M. Ashurkina, “The rise of neural conversational
+systems,” in Transforming Conversational AI: Exploring the Power of
+Large Language Models in Interactive Conversational Agents. Springer,
+2024, pp. 43–60.
+[19] G.-I. Yu, J. S. Jeong, G.-W. Kim, S. Kim, and B.-G. Chun, “Orca: A
+distributed serving system for {Transformer-Based} generative models,”
+in 16th USENIX Symposium on Operating Systems Design and Implementation (OSDI 22), 2022, pp. 521–538.
+[20] W. Kwon, Z. Li, S. Zhuang, Y. Sheng, L. Zheng, C. H. Yu, J. Gonzalez,
+H. Zhang, and I. Stoica, “Efficient memory management for large
+language model serving with pagedattention,” in Proceedings of the 29th
+symposium on operating systems principles, 2023, pp. 611–626.
+[21] “fastllm,” https://github.com/ztxz16/fastllm, 2024.
+[22] NVIDA,
+“Fastertransformer,”
+https://github.com/NVIDIA/
+FasterTransformer, 2024.
+[23] A. Agrawal, N. Kedia, A. Panwar, J. Mohan, N. Kwatra, B. Gulavani,
+A. Tumanov, and R. Ramjee, “Taming {Throughput-Latency} tradeoff
+in {LLM} inference with {Sarathi-Serve},” in 18th USENIX Symposium
+on Operating Systems Design and Implementation (OSDI 24), 2024, pp.
+117–134.
+[24] B. Wu, Y. Zhong, Z. Zhang, S. Liu, F. Liu, Y. Sun, G. Huang, X. Liu, and
+X. Jin, “Fast distributed inference serving for large language models,”
+arXiv preprint arXiv:2305.05920, 2023.
+[25] P. Patel, E. Choukse, C. Zhang, A. Shah, Í. Goiri, S. Maleki, and
+R. Bianchini, “Splitwise: Efficient generative llm inference using phase
+splitting,” in 2024 ACM/IEEE 51st Annual International Symposium on
+Computer Architecture (ISCA). IEEE, 2024, pp. 118–132.
+[26] B. Sun, Z. Huang, H. Zhao, W. Xiao, X. Zhang, Y. Li, and W. Lin,
+“Llumnix: Dynamic scheduling for large language model serving,” in
+18th USENIX symposium on operating systems design and implementation (OSDI 24), 2024, pp. 173–191.
+[27] Y. Yao, T. Yu, A. Zhang, C. Wang, J. Cui, H. Zhu, T. Cai, H. Li, W. Zhao,
+Z. He et al., “Minicpm-v: A gpt-4v level mllm on your phone,” CoRR,
+2024.
+[28] L. Li, X. Yang, W. Wu, H. Wang, T. Ohtsuki, X. Fu, M. Pan, and
+X. Shen, “Mobillm: Enabling llm fine-tuning on the mobile device via
+server assisted side tuning,” arXiv preprint arXiv:2502.20421, 2025.
+[29] J. Wu, R. Antonova, A. Kan, M. Lepert, A. Zeng, S. Song, J. Bohg,
+S. Rusinkiewicz, and T. Funkhouser, “Tidybot: Personalized robot assistance with large language models,” Autonomous Robots, vol. 47, no. 8,
+pp. 1087–1102, 2023.
+[30] Y. Zhang, Z. Ma, J. Li, Y. Qiao, Z. Wang, J. Chai, Q. Wu, M. Bansal, and
+P. Kordjamshidi, “Vision-and-language navigation today and tomorrow:
+A survey in the era of foundation models,” Transactions on Machine
+Learning Research.
+[31] J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova, “Bert: Pre-training
+of deep bidirectional transformers for language understanding,” in Proceedings of the 2019 conference of the North American chapter of the
+association for computational linguistics: human language technologies,
+volume 1 (long and short papers), 2019, pp. 4171–4186.
+[32] M. Ott, S. Edunov, A. Baevski, A. Fan, S. Gross, N. Ng, D. Grangier,
+and M. Auli, “fairseq: A fast, extensible toolkit for sequence modeling,”
+in Proceedings of the 2019 Conference of the North American Chapter of
+the Association for Computational Linguistics (Demonstrations), 2019,
+pp. 48–53.
+
+13
+
+[33] S. M. Jain, “Hugging face,” in Introduction to transformers for NLP:
+With the hugging face library and models to solve problems. Springer,
+2022, pp. 51–67.
+[34] A. Kumar, R. Sharma, and P. Bedi, “Towards optimal nlp solutions:
+analyzing gpt and llama-2 models across model scale, dataset size, and
+task diversity,” Engineering, Technology & Applied Science Research,
+vol. 14, no. 3, pp. 14 219–14 224, 2024.
+[35] Y. Sheng, L. Zheng, B. Yuan, Z. Li, M. Ryabinin, B. Chen, P. Liang,
+C. Ré, I. Stoica, and C. Zhang, “Flexgen: High-throughput generative
+inference of large language models with a single gpu,” in International
+Conference on Machine Learning. PMLR, 2023, pp. 31 094–31 116.
+[36] S. Li, H. Lu, T. Wu, M. Yu, Q. Weng, X. Chen, Y. Shan, B. Yuan,
+and W. Wang, “Caraserve: Cpu-assisted and rank-aware lora serving for
+generative llm inference,” CoRR, 2024.
+[37] Y. Fu, S. Zhu, R. Su, A. Qiao, I. Stoica, and H. Zhang, “Efficient
+llm scheduling by learning to rank,” Advances in Neural Information
+Processing Systems, vol. 37, pp. 59 006–59 029, 2024.
+
+

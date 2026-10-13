@@ -1,0 +1,420 @@
+INTERNATIONAL JOURNAL of ENGINEERING SCIENCE AND APPLICATION
+Botsalı, Vol.3, No.4, 2019
+
+Lot Streaming Techniques
+Ahmet Reha Botsalı
+Department of Industrial Engineering, Necmettin Erbakan University, 42090 Konya/Turkey
+Tel: +90 332 325 20 24 (4000) Fax: +90 332 248 7706, rbotsali@erbakan.edu.tr
+Received: 08.10.2019 Accepted: 27.12.2019
+Abstract- In batch manufacturing, the items are grouped into batches. These batches are treated as individual jobs and they are
+not divided. However, if batch sizes are large, it may be beneficial to split these batches into smaller transfer lots which is known
+as lot streaming. Lot streaming provides acceleration of the production by processing the items of the original batch in an
+overlapping fashion. In this paper, the lot streaming problem is defined, the problem characteristics and the notation are
+explained. Then the solution procedures in the literature for lot streaming problems are discussed respectively for 2-machine, 3machine and, m-machine cases. For all types of 2 and 3-machine problems, there exist polynomial time algorithms. For certain
+m-machine problems, there also exist polynomial time algorithms.
+Keywords Lot Streaming, Optimization, NP-Complete.
+1. Introduction
+Traditionally batch manufacturing has an important place
+in production scheduling. In batch manufacturing, items are
+grouped into several batches and each batch is treated as an
+individual job. In this case when a batch goes to a resource for
+an operation, all the items belonging to this batch have to wait
+until every item is processed. After the processing of the last
+item, the batch is ready for the next operation.
+In general, if there are k items in a batch and each item has
+a processing time of pi time units for each resource i, then this
+batch requires a processing time of k×pi time units on each
+resource i. This means, on the average at each resource, an
+item waits (k×pi)/2 time units after being processed. If the
+batch size k is large then it may be beneficial to divide this
+batch into smaller sublots which can be transferred
+independently between resources.
+The idea of dividing the batch into smaller transfer lots is
+the origin of lot streaming. This term was introduced by Reiter
+[9]:
+“Lot Streaming is the process of splitting a process lot into
+sublots, and then scheduling those sublots in overlapping
+fashion, in order to accelerate the progress of an order in
+production.” [6]
+Today, synchronized manufacturing, which can be
+defined as “Any systematic way that attempts to move
+material quickly and smoothly through the various resources
+of the plant in concert with market demand” [4], gained much
+importance. In synchronized manufacturing, the process batch
+that is the quantity of a product considered for processing in a
+resource does not need to be equal to the transfer batch that is
+the quantity of units that are moved at the same time from one
+resource to the next [11]. In fact the idea of different transfer
+and process batches is same as what lot streaming does. For
+
+that reason, lot streaming has an important place in
+synchronized manufacturing systems such as Just In Time
+(JIT). By lot streaming, it is possible to accelerate the
+processing of the products at the same time reducing the work
+in process (WIP) inventory level and these are the aims of all
+manufacturing firms.
+As an example, we can consider a batch with 500 items.
+If each item has a processing time of 2 time units on machine
+1 (p1 = 2) and 1 time unit on machine 2 (p2 = 1), then according
+to the traditional batch manufacturing, the makespan will be
+500x2 + 500x1 = 1500.
+Next, if we consider to split this batch into two sublots
+with sizes 300 and 200, then it takes 300x2 = 600 time units
+for the items of the 1st sublot to be ready for machine 2. In the
+same manner, the items of the 2nd sublot will be ready for
+machine 2 after 300x2 + 200x2 = 1000 time units. As seen in
+Figure 1, dividing this batch into two sublots provides a
+makespan of 1200 time units which is smaller than the
+makespan under the original case. This small example gives
+an idea about how lot streaming accelerates the process of the
+items.
+
+Fig. 1. Lot streaming effect on batch of 500 items on
+2 machines
+
+INTERNATIONAL JOURNAL of ENGINEERING SCIENCE AND APPLICATION
+A.R. Botsalı., Vol.3, No.4, 2019
+In the next section, the characteristics of the lot streaming
+problem, its notation and models are explained. In sections 3
+and 4, the solution procedures for 2 and 3-machine cases are
+examined, respectively. In section 5, the case of having more
+than 3 machines is discussed, and finally in section 6, there is
+a brief overview of the ideas covered in this paper.
+2.
+
+Lot Streaming Model and Notation
+
+Although there is not a common notation in general, the
+notations used in different sources for the lot streaming
+problem is similar to each other. In this paper, the notation
+given in [3] is used.
+In the lot streaming problem, there is an original job lot
+which has U identical items. These items are required to be
+processed by m machines. (Assuming that no machine is used
+for more than one operation) Each item has a processing time
+of pi on machine i.
+In most of the lot streaming problems, the number of
+sublots is a given parameter of the problem. Here, the number
+of sublots is denoted by n. If n = 1, this means that lot
+streaming is not allowed. In this case the makespan M will be:
+𝑀𝑀 = 𝑈𝑈 × ∑𝑚𝑚
+𝑖𝑖=1 𝑝𝑝𝑖𝑖
+
+(1)
+
+𝑀𝑀 = 𝑈𝑈 × ∑𝑚𝑚−1
+𝑖𝑖=1 𝑝𝑝𝑖𝑖 + 𝑈𝑈 × 𝑝𝑝𝑚𝑚
+
+(2)
+
+If n = U, then we are allowed to transfer each item one by
+one between the machines. If there is no setup time, for n = U,
+then the minimum makespan can be achieved and it is:
+
+2.1. Sublot Sizes
+
+Suppose that there are n sublots for each machine and also
+there are m different machines. As a result, in total there are
+𝑛𝑛 × 𝑚𝑚 sublots in the model. These sublots are represented by
+𝐿𝐿𝑖𝑖𝑖𝑖 where 𝐿𝐿𝑖𝑖𝑖𝑖 shows the size of the jth sublot on machine i.
+Alternatively, 𝑥𝑥𝑖𝑖𝑖𝑖 shows the proportion of the size of the jth
+sublot on machine i over the total lot size U, in other words,
+𝑥𝑥𝑖𝑖𝑖𝑖 = 𝐿𝐿𝑖𝑖𝑖𝑖 /𝑈𝑈.
+Sometimes, in lot streaming models, equal lot sizes are
+assumed. In such a case, all sublots have the same size and
+𝐿𝐿𝑖𝑖𝑖𝑖 = 𝐿𝐿 ∀𝑖𝑖, 𝑗𝑗.
+
+Another case is the model with consistent sublots. If the
+sublot sizes are same for every machine, then the sublots are
+called consistent and 𝐿𝐿𝑖𝑖𝑖𝑖 = 𝐿𝐿𝑗𝑗 .
+
+Finally, the most general case related to sublot size is the
+model with variable sublots. If all 𝐿𝐿𝑖𝑖𝑖𝑖 values are allowed to be
+different than each other, then it is said that variable lot sizes
+are allowed. Since equal and consistent sublots can be
+represented by using variable sublots, variable sublot case is
+dominant over equal and consistent sublot cases.
+2.2. Discrete versus Continuous Models
+The models can be divided into two classes as continuous
+or discrete case. In continuous case, sublot sizes can be real
+
+numbers, however in discrete case, sublots should have
+discrete number of items. If there is a solution procedure for
+finding optimal lot sizes for continuous case, it is possible to
+find an answer for discrete case by rounding off
+the results of the continuous case, but the optimality is not
+guaranteed.
+2.3. No Idling versus Intermittent Idling
+In some lot streaming problems, there is a constraint
+which requires that when a machine starts processing, it
+should process continuously all the items without being idle.
+This requirement is called “No Idling”. If the machines are
+allowed to have idle time between the processes of two
+consecutive sublots, then this case is called “Intermittent
+Idling”.
+It is clear that for the 1st machine to have no idling
+restriction does not affect the makespan M. Also, it is known
+that: A lot streaming problem and its inverse are equivalent
+[2]. In other words, we can obtain the same optimal solution
+assuming that lots flow in the reverse order. By combining
+these two ideas, we can conclude that for 2-machine problem,
+no idling restriction does not affect the optimal makespan. If
+there are m machines in a model with no idling restriction and
+if variable sublots are allowed, it is possible to find
+optimal sublots by dividing m machines into m-1 adjacent
+pairs and solving the 2-machine problem for each pair
+separately [3].
+2.4. Notation
+To solve a lot streaming problem, we need information
+about certain characteristics of the problem. This information
+can be represented by the following way which is given in [3]:
+m
+: Number of machines
+E,C,V: Properties of sublot sizes: (E for Equal, C for
+Consistent, V for Variable sublot sizes)
+II , NI: Idling condition (II for Intermitted Idling and NI
+for No Idling)
+DV, CV: Discrete (DV) or Continuous (CV) case
+Then according to the above information, each lot
+streaming problem can be represented in a form by using the
+notation:
+m / V, C or E / II or NI / CV or DV
+As an example, 2/C/NI/CV represents a lot streaming
+problem which has two machines, consistent sublots, no idling
+restriction and it may have real numbered lot sizes.
+2.5. Dominance
+Related to the sublot sizes, variable sublot case is
+dominant over consistent sublot case which is dominant over
+equal sublot case. This means that a model with variable
+sublots should have shorter or equal makespan than the
+makespan of the same model with consistent or equal sublots.
+It is clear that II (Intermittent Idling) dominates NI (No
+Idling) case and CV (Continuous) dominates over DV
+(Discrete) case.
+According to these dominance relationships, the least
+restrictive model is m/V/II/CV.
+
+173
+
+INTERNATIONAL JOURNAL of ENGINEERING SCIENCE AND APPLICATION
+Botsalı, Vol.3, No.4, 2019
+3.
+
+Two-Machine Problems
+
+In 2-machine problems, there are n sublots and transfer of
+sublots occurs between 1st and 2nd machines. As explained
+before, allowing intermittent idling does not improve the
+makespan. For that reason, optimal solution can be obtained
+by solving 2/C/NI problem. In [2], this problem is solved and
+it is shown that if there are n sublots and the ratio of the
+processing times of machine 1 to machine 2, that is p2=p1=q,
+then for continuos version, the optimal solution for jth sublot
+can be found by solving equation (3):
+𝐿𝐿𝑗𝑗 = 𝑞𝑞 × 𝐿𝐿𝑗𝑗−1 = 𝑞𝑞 𝑗𝑗−1 × 𝐿𝐿1
+
+(3)
+
+In optimal solution of 2/C/NI problem, there should not
+be idle time on machine 2 after it starts processing. In fact, the
+equation 𝐿𝐿𝑗𝑗 = 𝑞𝑞 × 𝐿𝐿𝑗𝑗−1 is the condition for the lot sizes that
+provide no idling on machine 2. To understand this better, we
+can consider a 2/C/NI problem for which U = 7, n = 3, p1 = 2
+and p2 = 1. Then according to the above formula, the optimal
+lot sizes will be L1= 4,L2 = 2 and L3 = 1. In Figure 2, it is seen
+that for these lot sizes there is no idle time on machine 2 after
+it starts processing.
+
+𝐿𝐿1 = �
+and
+
+�𝐶𝐶𝐶𝐶�𝑝𝑝2 �∗(1−𝑞𝑞)
+1−𝑞𝑞 𝑘𝑘
+
+�𝐶𝐶𝐶𝐶�𝑝𝑝2 �
+𝑘𝑘
+
+if 𝑞𝑞 ≠ 1
+
+(4)
+
+if 𝑞𝑞 = 1
+
+𝑛𝑛−1
+𝐿𝐿𝑗𝑗
+𝐿𝐿𝑛𝑛 = 𝑈𝑈 − ∑𝑖𝑖=1
+
+(5)
+
+The reader can find the derivation of equations (4) and (5)
+in [3]. In the same paper, the iterative solution procedures for
+2/C/NI/DV and 2/C/NI/CV with limited transporter capacity
+are also given.
+4.
+
+Three-Machine Problems
+
+For 2-machine problem, it is enough to consider
+consistent sublot sizes to find the optimal lot sizes. However,
+in 3-machine problem, we may not have consistent sublots in
+the optimal solution. So, for 3-machine problem, minimum
+makespan M can be obtained by having variable sublots.
+4.1. Three-Machine Problems with Consistent Sublots
+
+Fig. 2. An example for 2/C/NI problem
+A solution procedure exists also for 2/C/NI/DV problem.
+In this procedure, initially an upper bound for the makespan
+M is determined. Then, by an iterative procedure, sublot sizes
+are determined. If during iterations, it is found that the optimal
+makespan is greater than the initially estimated M value, this
+M value is increased by some determined amount and the
+iterations are done again for the new M value. The interested
+reader is referred to [3] for more details.
+For 2-machine problem, it is also possible to consider the
+setup times and limited transporter capacity. Baker [7],
+investigates 2-machine problem with setup time. He considers
+both attached and separable setup cases and defines the
+optimality condition.
+Related to the 2-machine problem with limited
+transporter capacity, the solution for the problem 2/C/NI/CV
+with k transporters with cycle time CT is found again by the
+formula 𝐿𝐿𝑗𝑗 = 𝑞𝑞 × 𝐿𝐿𝑗𝑗−1 where:
+
+For 3 or more machines, consistent sublot problem for
+continuous version can be solved by a linear programming
+(LP) model which is shown by Baker [5]. There are two LP
+models. The first model is constructed by defining the
+relationship between the completion times of sublots and its
+objective is minimizing the completion time of the last sublot
+on the last machine. This objective value is same as makespan
+value. In the second model, idle time relationship between the
+machines are defined and the objective is minimizing the total
+idle time that occurs on the last machine till the process of the
+last sublot.
+Clearly, for discrete version of a consistent sublot
+problem for 3 or more machines, the solution can be found by
+putting a constraint in LP model which requires that sublot
+sizes are integer. In this case, an integer linear programming
+problem should be solved to find the optimal lot sizes.
+4.2. Three-Machine Problems with with Variable Sublots and
+Intermittent Idling
+3/V//II problems can be divided into two as: 3/V/II/CV or
+3/V/II/DV. For 3/V/II/CV problem, a solution procedure is
+given in [1]. In this solution procedure, the inequality
+(𝑝𝑝2 ) − 𝑝𝑝1 ∗ 𝑝𝑝3 ≤ 0
+
+(6)
+
+𝐿𝐿𝑗𝑗+1 × (𝑝𝑝1 + 𝑝𝑝2 ) = 𝐿𝐿𝑗𝑗 × (𝑝𝑝2 + 𝑝𝑝3 )
+
+(7)
+
+is checked. If inequality (6) holds, then in the optimal
+solution, sublot sizes have the below relationship shown by
+equation (7):
+If inequality (6) does not hold, then optimal sublot sizes
+can be found by dividing the 3-machine problem into two
+
+174
+
+INTERNATIONAL JOURNAL of ENGINEERING SCIENCE AND APPLICATION
+A.R. Botsalı., Vol.3, No.4, 2019
+subproblems. In this case optimal lot sizes between machines
+1 and 2, machines 2 and 3 are found separately. These are also
+optimal lot sizes for the original 3-machine problem.
+In fact inequality (6) specifies the critical path for optimal
+sublots in the network for 3-machine flow shop problem. What
+the above solution procedure does is that it determines the
+critical path property in the network of a 3-machine flow shop
+problem for the optimal lot sizes. According to this
+information, it finds the optimal lot sizes which minimize
+the critical path length. The interested reader is referred to [1].
+For the problem 3/V/II/DV again the inequality (6) is
+checked. If this inequality does not hold, it is possible to find
+a solution by dividing the machines into two adjacent pairs
+and finding optimal lot sizes separately as done in the
+continuous version. If inequality holds then there exists an
+iterative procedure to find optimal lot sizes which can be
+found in [3].
+5.
+
+Problems for More Than Three Machines
+
+When the number of machines is greater than 3 (m > 3),
+the problems become more difficult. As it is stated at the
+beginning, m/V/NI problem can be solved by applying 2machine solution procedure to every adjacent air of machines.
+If the problem has consistent sublot requirements, then it can
+be solved by Baker's LP model which is described in section
+4.1.
+For m/V/II/CV problem, it is possible to formulate a
+mixed integer linear programming model [8]. By some
+modifications, this model can be used to find optimal solution
+for some other objective functions such as minimum mean
+flow time or minimum mean unit completion time.
+
+machine and m-machine cases are explained. It is seen that
+there exist polynomial time solution algorithms for all 2machine and 3-machine problems. There exist also
+polynomial time algorithms for m/V/NI/DV and m/V/N I/CV,
+because these problems can be solved by applying 2-machine
+procedures to adjacent pairs of machines. In addition,
+m/C/II/CV and m/C/NI/CV can be solved in polynomial time,
+because they have LP models.
+The problems m/C/NI/DV, m/C/II/DV and m/V/II/DV have
+integer linear programming models but there is not a proof for
+NP-completeness [3]. For m/V/II/CV problem, there exists a
+mixed integer programming model [8], but it does not have a
+proof for NP-completeness, either.
+References
+[1] C.A. Glass, J.N.D. Gupta and C.N. Potts, Lot streaming in
+three-stage production processes, European Journal of
+Operations Research, 75:378-394, 1994.
+[2] C. N. Potts and K. R. Baker, Flow shop scheduling with
+lot streaming, Operations Research Letters, 8:297-303, 1989.
+[3] D. Trietsch and K. R. Baker, Basic technique for lot
+streaming, Operations Research, 41:1065-1076, 1993.
+[4] Goldratt E. and Fox R. E., (1986) The Race. North River
+Press, Crotonon-Hudson, NY.
+[5] K. R. Baker, Lot streaming to reduce cycle time in a
+flow shop, Working Paper, The Amos Tuck School of
+Business Administration, Dartmouth College, Hanover, N.H.
+[6] K. R. Baker and D. Jia, A comparative study of lot
+streaming procedures, OMEGA Int. J. of Management
+Science, 5:561-566, 1993.
+
+Also we can consider the lot streaming problems for job
+shops. Job shop case is different than flow shop case in a way
+that the sublots can go to the same machine more than once
+for different operations. A solution procedure for lot streaming
+problem in job shop can be found in [10]. The solution
+procedure described in this paper uses the idea of solving a
+lot-sizing problem with a given sequence of sublots on the
+machines and a standard job shop scheduling problem with
+fixed sublot sizes.
+
+[8] Omer S. Benli, Lot streaming in production scheduling,
+Department of Industrial Engineering, Bilkent University,
+Ankara - Turkey.
+
+6.
+
+[9] Reiter S. A system for managing job shop production, J.
+Bus., 34:371-393, 1966.
+
+Conclusion
+
+In this paper, lot streaming is defined and some basic lot
+streaming problems are discussed with solution procedures
+that exist in the literature. In this respect, first, the problem
+characteristics and notation are described. Next, 2-machine, 3-
+
+[7] K. R. Baker, Lot streaming in the two-machine flow shop
+with setup times, Annals of Operations Research, 57:1-11,
+1995.
+
+[10] S. Dauzere-Peres and J. Lasserre, Lot streaming in jobshop scheduling, Operations Research, 4:584-595, 1997.
+[11] Umble M. and Srikanth M., (1990) Synchronous
+Manufacturing. South Western, Cincinnati, Ohio.
+
+175
+
+

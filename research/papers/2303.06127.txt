@@ -1,0 +1,1014 @@
+Any-Order Online Interval Selection
+
+arXiv:2303.06127v3 [cs.DS] 26 May 2023
+
+Allan Borodin
+bor@cs.toronto.edu
+
+Christodoulos Karavasilis
+ckar@cs.toronto.edu
+
+Abstract
+We consider the problem of online interval scheduling on a single machine, where intervals
+arrive online in an order chosen by an adversary, and the algorithm must output a set of nonconﬂicting intervals. Traditionally in scheduling theory, it is assumed that intervals arrive in
+order of increasing start times. We drop that assumption and allow for intervals to arrive in
+any possible order. We call this variant any-order interval selection (AOIS). We assume that
+some online acceptances can be revoked, but a feasible solution must always be maintained.
+For unweighted intervals and deterministic algorithms, this problem is unbounded. Under the
+assumption that there are at most k diﬀerent interval lengths, we give a simple algorithm that
+achieves a competitive ratio of 2k and show that it is optimal amongst deterministic algorithms,
+and a restricted class of randomized algorithms we call memoryless, contributing to an open
+question by Adler and Azar [1]; namely whether a randomized algorithm without memory or
+with only “bounded” access to history can achieve a constant competitive ratio. We connect our
+model to the problem of call control on the line, and show how the algorithms of Garay et al.
+[23] can be applied to our setting, resulting in an optimal algorithm for the case of proportional
+weights. We also discuss the case of intervals with arbitrary weights, and show how to convert
+the single-length algorithm of Fung et al. [21] into a classify and randomly select algorithm
+that achieves a competitive ratio of 2k. Finally, we consider the case of intervals arriving in
+a random order, and show that for single-lengthed instances, a one-directional algorithm (i.e.
+replacing intervals in one direction), is the only deterministic memoryless algorithm that can
+possibly beneﬁt from random arrivals.
+
+1
+
+Introduction
+
+We consider the problem of scheduling intervals online with revoking1 . Intervals arrive with a ﬁxed
+start time and ﬁxed end time, and have to be taken right away, or be discarded upon arrival, while
+no intervals in the solution conﬂict. The algorithm has to decide which intervals to include in the
+ﬁnal schedule, so as to optimize some objective.
+In the unweighted case, the goal is to maximize the number of intervals in the ﬁnal solution. In
+the weighted case, we want an interval-set of maximum weight. Following previous work, we allow
+some revoking of online decisions, which is often considered even in the conventional start-timeordered scheduling model. More precisely, if a newly arrived interval conﬂicts with other intervals
+already taken by the algorithm, we are able to take the new interval and discard the conﬂicting
+intervals. We are able to displace multiple existing intervals at once, although this won’t occur in
+the unweighted case. To avoid confusion, we should note that preemption 2 is used in the interval
+selection literature to mean precisely this revoking of previous decisions we just described. Under
+this deﬁnition, preemption is allowed in our model. When we discard an interval it is ﬁnal and it
+1
+
+Displacing one or more previously scheduled intervals with a conflicting new interval.
+In contrast to revoking, preemption in much of the scheduling literature means the pausing of a scheduled job,
+and resuming it later.
+2
+
+1
+
+cannot be taken again.
+We focus mainly on the unweighted case, where all intervals have the the same weight. We discuss the competitive ratio of the problem in terms of k, the number of distinct interval lengths.
+However our algorithm does not need a priori knowledge of k. We show that a simple, deterministic, “memoryless” algorithm that only replaces when the new interval is entirely subsumed by an
+existing one, achieves the optimal competitive ratio in terms of the parameter k. We also show
+that “memoryless” randomized algorithms can not do any better. The main diﬀerence between
+our model and most of the interval selection literature, is allowing intervals to arrive in any order,
+a strict generalization of the ordered case. Bachmann et al. [4] have studied the any-order input
+model in the context of “t-intervals” (we are concerned with t = 1). They consider randomized
+algorithms, and don’t allow revoking. In that model, they get a lower bound of Ω(N ), with N
+being the number of intervals in a given input instance. The next most closely related problem is
+that of call admission [22] on the line graph, with online intervals corresponding to paths of a given
+line graph. The connection between call control on the line graph and interval selection has been
+noted before, but has not been carefully deﬁned. We wish to clarify this connection by explaining
+the similarities as well as the diﬀerences, and how results correspond. We note that the parameter
+k ≤ N (respectively, k ≤ n − 1) is an obvious reﬁnement of the number of intervals (respectively,
+the number of vertices for call admission on a line graph with n vertices).
+The applications of interval selection problems are plentiful. Some examples are resource allocation, network routing, transportation, and computer wiring. We refer the reader to the surveys
+by Kolen et al. [28], and Kovalyov et al. [30] for an overview of results and applications in the area
+of interval scheduling.
+Related Work. Lipton and Tomkins [31] introduced the online interval scheduling problem.
+In our terminology, they consider the arrival of intervals with increasing start times (ordered), and
+interval weights that are proportional to the lengths. They don’t allow displacement of existing
+intervals, and give a randomized algorithm with competitive ratio O((log∆)1+ǫ ), where ∆ is the
+ratio of the longest to shortest interval.
+In the unweighted case with increasing starting times, Faigle and Nawijn [19] give an optimal
+1-competitive algorithm that is allowed to revoke previous decisions (replace intervals). In the
+weighted case with increasing starting times, Woeginger [39] shows that for general weights, no
+deterministic algorithm can achieve a constant competitive ratio. Canetti and Irani [13] extend
+this and show that even randomized algorithms with revocable decisions cannot achieve a constant ratio for the general weighted case. For special classes of weight functions based on the
+length (including proportional weights), Woeginger [39] gives√an optimal deterministic algorithm
+with competitive ratio 4. Seiden [36] gives a randomized (2 + 3)-competitive algorithm when the
+weight of an interval is given by a continuous convex function of the length. Epstein and Levin [18]
+give a 2.45-competitive randomized algorithm for weights given by functions of the length that
+are monotonically decreasing, and they also give an improved 1 + ln(2) ≈ 1.693 upper bound for
+the weight functions studied by Woeginger [39]. Fung et al. [21] currently have the ﬁnal word on
+the best upper bounds, giving barely random algorithms that achieve a competitive ratio of 2 for
+all the Woeginger weight functions. These algorithms randomly choose one of two deterministic
+algorithms at the beginning. More generally, barely random algorithms have access to a small
+number of deterministic algorithms, and randomly choose one.
+
+2
+
+Restricting interval lengths has previously been considered in the literature, e.g. Lipton and
+Tomkins [31] study the case of two possible lengths, and Bachmann et al. [4] consider single and
+two-length instances. For the related oﬄine problem of throughput maximization, Hyatt-Denesik
+et al. [26] consider c distinct processing times. The special case of single-length jobs has been
+studied in the job scheduling [37, 5, 14], sum coloring [10], and the interval selection literature [20,
+33]. Woeginger [39] also points out how his results can be extended to the case of equal lengths
+and arbitrary weights. Miyazawa and Erlebach [33] point out the equivalency between ﬁxed length
+(w.l.o.g. unit) instances, and proper interval instances, i.e. instances where no interval is contained
+within another. This is because of a result by Bogart and West [9], showing the equivalency of the
+corresponding interval graphs in the oﬄine setting.
+There has also been some work on multiple identical machines. For the case of equal-length,
+arbitrary-weight intervals, Fung et al. [20] give an algorithm that is 2-competitive when m, the
+2
+) when m is odd. Yu & Jacobson [40] consider Cnumber of machines, is even, and (2 + 2m−1
+benevolent (weight function is convex increasing) jobs and get an algorithm that is 2-competitive
+2
+)-competitive when m is odd.
+when m is even, and (2 + m
+In the problem of call control, a graph is given, and requests that correspond to pairs of nodes
+of the graph arrive online. The goal is to accept as many requests as possible, with the ﬁnal set
+consisting of disjoint paths. When the underlying graph is a line, this problem is closely related to
+ours. For call control on the line, Garay et al. [23] give optimal deterministic algorithms. In the
+unweighted case, they achieve a O(log(n)) competitive ratio, where n is the number of the vertices
+of the graph. In the case of proportional
+weights (weight is equal to the length of the path), they
+√
+give an optimal algorithm that is ( 5 + 2) ≈ 4.23-competitive (its optimality was shown by Furst
+and Tomkins [38]). Adler and Azar [1] use randomization to overcome the log(n) lower bound, and
+give a 16-competitive algorithm. Emek et al. [17] study interval selection in the streaming model,
+and show how to modify their streaming algorithm to work online, achieving a competitive ratio
+of 6, improving upon the 16-competitive algorithm of Adler and Azar. It is noteworthy that the
+Adler and Azar algorithm uses memory proportional to the entire input sequence. In contrast, the
+Emek et al. algorithm only uses memory that is within a constant factor of a current OPT solution.
+It is still an open question if a randomized algorithm using only constant bounded memory can
+get a constant ratio in the unweighted case. We show that for a strict, but natural deﬁnition of
+memoryless randomized algorithms, a constant ratio cannot be obtained. The algorithms presented
+in this paper, along with the optimal algorithms by Garay et al. [23] and Woeginger [39], fall under
+our deﬁnition of memoryless. It is worth noting that similar notions of memoryless algorithms,
+and comparison between randomized memoryless and deterministic, have appeared in the k-server
+and caching literature [15, 29, 27, 35]. We would note that barely random algorithms as described
+earlier (i.e. algorithms that initially generate some random bits, which are used in every online
+step), are not memoryless but usually satisfy bounded memory. The algorithms by Fung et al. [21]
+are an example of this. More generally, this use of initial random bits are the classify and randomly
+select algorithms3 (e.g. Lipton and Tomkins [31] and Awerbuch et al. [3]). It’s important to note
+that such algorithms may require prior knowledge of bounds on lengths of intervals. In appendix
+A we discuss our meaning of memoryless and bounded memory online algorithms, and the relation
+to randomness, advice, and the Adler and Azar question.
+The problem of admission control has also been studied under the model of minimizing rejections
+3
+
+Barely random algorithms can be thought of as a special case of the classify and randomly select paradigm.
+
+3
+
+[6, 2] instead of maximizing acceptances. An alternative input model for interval selection is that
+of arriving conﬂicts [25] instead of single intervals, with the algorithm being able to choose at most
+one item from each conﬂict. We also note that, an instance of interval selection can be represented
+as an interval graph, with intervals corresponding to vertices, and edges denoting a conﬂict between
+two intervals. Generally, interval graphs reveal much less about the instance compared to receiving
+the actual intervals. In the interval graph representation, arriving vertices may have an adjacency
+list only in relation to already arrived vertices, or they may show adjacency to future vertices as well.
+Our results. For the unweighted adversarial case, we know that no deterministic algorithm is
+bounded (follows from [23]). Assuming there are at most k diﬀerent lengths, we show how a simple
+greedy algorithm achieves a competitive ratio of 2k. We also give a matching lower bound that
+holds for all deterministic algorithms, as well as “memoryless” randomized algorithms. We note
+that an instance with k diﬀerent lengths can have a nesting depth of at most k − 1. Alternatively,
+we can state our results in terms of d, the nesting depth (see ﬁgure 1), noting that d ≤ (k − 1). This
+implies that our 2k bounds can be restated as 2(d + 1). We also show how to extend the classify
+and randomly select paradigm used by Fung et al [21] to obtain a randomized algorithm that is
+2k-competitive for the case of arbitrary
+√ weights and k diﬀerent interval lengths. It’s worth noting
+that Canetti and Irani [13] give a Ω( k) lower bound for randomized algorithms and arbitrary
+weights.
+We show how the problem of call control on the line [23] relates to interval selection,
+√ and in particular how their log n-competitive algorithm for the unweighted case and their (2 + 5)-competitive
+algorithm for proportional weights carries over to interval selection. Lastly, we consider deterministic memoryless algorithms for the problem of any-order, unweighted, single-lengthed (i.e. unit)
+intervals with random order arrivals. We show that the only deterministic memoryless algorithm
+that can possibly beneﬁt from random arrivals is one-directional, only replacing intervals if they
+overlap in that particular direction.
+Organization of the paper. Section 2 has some deﬁnitions to clarify the model. Section 3 has
+our upper and lower bounds in the adversarial case, the connection to call control, and the application of the proportional weights algorithm to our model. Section 4 discusses arbitrary weights.
+Section 5 is about interval selection in the random order model. We end with some conclusions
+and open problems.
+
+2
+
+Preliminaries
+
+Our model consists of intervals arriving on the real line. An interval Ii is speciﬁed by a starting
+point si , and an end point fi , with si < fi . It occupies space [si , fi ) on the line, and the conventional notions of intersection, disjointness, and containment apply. This allows two adjacent
+intervals [s1 , f ) and [f, f2 ) to not conﬂict, although our results would apply even if we considered
+closed intervals [si , fi ] with [s1 , f ] and [f, f2 ] conﬂicting. There are two main ways two intervals
+can conﬂict, and they are shown in ﬁgure 1.
+We use the notion of competitive ratio to measure the performance of our online algorithms. Given
+an algorithm A, let ALG denote the objective value of the solution achieved by the algorithm, and
+let OPT denote the optimal value achieved by an oﬄine algorithm. The competitive ratio of A is
+T
+deﬁned as follows: CR(A) = OP
+ALG ≥ 1. We should note that we can repeat disjoint copies of our
+4
+
+nemesis sequences, and get the corresponding tight lower bounds. As a result, we can omit the
+standard additive term in our deﬁnition of competitive ratio. We will sometimes abuse notation
+and use ALG and OPT to denote the sets of intervals maintained by the algorithm at some given
+point, and the set of intervals of an optimal solution respectively. In the case of deterministic
+algorithms and random arrival of intervals, the performance of an algorithm is a random variable,
+and the competitive ratios hold w.h.p. (deﬁnition of competitive ratio remains unchanged). The
+algorithm we present in the case of arbitrary weights is randomized, and its expected competitive
+OP T
+.
+ratio is deﬁned as CR(A) = E[ALG]
+
+(a)Partial Conﬂict.
+
+(b)Containment with nesting depth 1.
+Figure 1: Types of conﬂicts.
+We sometimes refer to a chain of intervals (ﬁgure 2). This is a set of intervals where each interval
+partially conﬂicts with exactly two other intervals, except for the two end intervals that partially
+conﬂict with only one.
+
+Figure 2: Interval chain.
+
+3
+
+Adversarial Order
+
+3.1
+
+Unweighted
+
+In this section, we assume an adversary chooses the instance conﬁguration, along with the arrival
+order of all intervals. Lemma 3.1 shows that revocable decisions are necessary even in the case of
+two diﬀerent lengths. Algorithm 1 is the greedy algorithm that achieves the optimal competitive
+ratio of 2k in the unweighted case, and it works as follows: On the arrival of a new interval, take
+it if there’s no conﬂict. If there’s a conﬂict, take the new interval only if it is properly contained
+inside an existing interval.
+Algorithm 1
+On the arrival of I:
+Is ← Set of intervals currently in the solution conﬂicting with I
+for I ′ ∈ Is do
+if I ⊂ I ′ then
+Take I and discard I ′
+return
+Discard I
+5
+
+Lemma 3.1. The problem of any-order unweighted interval scheduling with two different lengths
+and irrevocable decisions is unbounded.
+Proof. Consider two possible interval lengths of 1 and K. Let an interval of length K arrive ﬁrst.
+W.l.o.g. the algorithm takes it. Then K 1-length intervals arrive next, all of them overlapping
+with ﬁrst K-length interval. The algorithm cannot take any of the 1-length intervals, achieving a
+competitive ratio of K1 .
+K
+...
+1
+
+1
+
+1
+
+1
+
+Figure 3: Unweighted instance with two diﬀerent lengths.
+Theorem 3.2. Algorithm 1 achieves a competitive ratio of 2k for the problem of any-order unweighted interval scheduling with k different lengths.
+Proof. We deﬁne a mapping of intervals f : OP T −→ ALG, where every interval in ALG has at
+most 2k intervals in OPT mapped to it. Because intervals taken by the algorithm might be replaced
+during the execution, the mapping f might be redeﬁned multiple times. What follows is the way
+optimal intervals I ∈ OP T are charged, as soon as they arrive, to intervals I ′ ∈ ALG. There are
+four cases of interest:
+Case 1 : The newly arrived optimal interval is taken by the algorithm.
+This can happen either because this interval did not conﬂict with any other intervals taken by
+the algorithm, or because it was entirely subsumed by a larger interval in ALG, in which case the
+algorithm would have replaced the large interval with the new small one. In this case, this optimal
+interval is mapped onto itself.
+Case 2 : The newly arrived optimal interval partially conﬂicts with one interval currently in ALG.
+In this case, this optimal interval is charged to the interval it conﬂicts with.
+Case 3 : The newly arrived optimal interval partially conﬂicts with two intervals currently in ALG.
+In this case, this optimal interval can be charged to any of these two intervals arbitrarily. We may
+assume it’s always charged to the interval it conﬂicts with on the right. Notice also, that a newly
+arrived interval, cannot partially conﬂict with more than two intervals in ALG.
+Case 4 : The newly arrived optimal interval subsumes an interval currently in ALG. W.l.o.g. we
+can assume this never happens. Any such optimal solution OP T can be turned into an optimal
+solution OP T ′ , with the smaller interval in place of the larger one. We can restrict ourselves to only
+look at optimal solutions where no such transformation can take place. This case also encapsulates
+the case of an optimal interval perfectly coinciding with an interval taken by the algorithm.
+An interval (Il ) taken by the algorithm can later be replaced, if a smaller one (Is ) comes along and
+is subsumed by it. When this happens, all intervals in OP T charged to Il up to that point, will be
+transferred and charged to Is . As a result, there are two ways an interval taken by the algorithm
+can be charged intervals in OP T . The ﬁrst way is when an interval I ∈ OP T is directly charged to
+6
+
+an interval I ′ ∈ ALG when I arrives (Cases 1-4). This will be referred to as direct charging. The
+second way is when a new interval, In , arrives, and replaces an existing interval Ie , in which case
+all optimal intervals previously charged to Ie , will now be charged to In . This will be referred to
+as transfer charging.
+
+Proposition 3.3. An interval taken by the algorithm (even temporarily), can be charged by at most
+two optimal intervals through direct charging.
+To see why this true, we consider the three main cases of direct charging explained earlier. In Case
+1, the optimal interval is taken by the algorithm and is charged to itself. Because no other optimal
+interval can conﬂict with it, we know this interval will never be directly charged again.
+In Cases 2 and 3, direct charging happens because of the optimal interval partially conﬂicting with
+one or two intervals currently taken by the algorithm. Because an interval taken by the algorithm
+can partially conﬂict with at most two optimal intervals (one on each side), it can be charged twice
+at most.
+Proposition 3.4. An interval taken by the algorithm can be charged at most 2k−2 optimal intervals
+through transfer charging.
+Consider a sequence of interval replacements by the algorithm, where all optimal intervals charged
+to an interval in the sequence, are passed down to the next interval in the sequence. The last
+interval in that sequence will have accumulated all the optimal intervals charged to the previous
+intervals in that sequence. Because we consider k diﬀerent lengths, such a sequence can have up to
+k intervals, participating in k − 1 transfer charging events. We also know that every interval in that
+sequence can be charged at most two optimal intervals through direct charging (Proposition 3.3)
+before being replaced. Consequently, assuming two additional charges are added to each interval
+in that sequence, the last (smallest) interval will be charged 2(k − 1) optimal intervals through
+transfer charging.
+We have described a process, during which every optimal interval is charged to an interval in
+ALG. By Propositions 3.3 & 3.4, we know that an interval in ALG, can be charged by 2k intervals
+in OPT at most. Therefore, our algorithm has a competitive ratio of 2k for the problem of unweighted interval selection with revocable decisions and k diﬀerent possible interval lengths. This
+ratio is tight for this algorithm and an example instance for k = 2 is shown in Figure 4. I1 is
+directly charged by I2 and I3 , transfers charges to I4 , which in turn is directly charged another two
+times by I5 and I6 .
+I1
+I2
+
+I4
+I5
+
+I3
+I6
+
+Figure 4: 4-competitive tight example for Algorithm 1. Interval subscripts corresponds to the
+arrival order.
+
+7
+
+I3
+
+I2
+I1
+
+I5
+I4
+
+Figure 5: Base adversarial construction
+We now provide a matching lower bound, showing that no deterministic algorithm can do better.
+Theorem 3.5. No deterministic algorithm can achieve a competitive ratio better than 2k for the
+problem of unweighted interval selection with revocable decisions and k different lengths.
+Proof. At any point during the execution, the algorithm will have exactly one interval in its solution, while the size of the optimal solution will keep growing. We begin by describing how the main
+component of the instance is constructed, using intervals of the same length. First, the adversary
+must decide on an overlap amount v, which can be arbitrary. All partially conﬂicting intervals will
+overlap by exactly this amount. Consider now the instance of ﬁgure 5. Intervals I1 and I2 arrive
+ﬁrst in that order. If I1 is taken by the algorithm and is then replaced by I2 , then I4 arrives. If
+I1 was taken by the algorithm but was not replaced by I2 , then I3 would arrive. Because this case
+is symmetrical, we only consider the former case of I2 replacing I1 . What happens is that this
+chain keeps growing in the same direction, until the algorithm decides to stop replacing. When
+that happens, we look at the last three intervals of the chain. For example, when I4 arrived, if the
+algorithm chose to not select I4 and instead maintain I2 , we stop growing the chain and consider
+the intervals (I1 , I2 , I4 ). If the algorithm never stops replacing, it will end up with I5 in its solution.
+Although it’s not necessary, if the algorithms seems to always be replacing as the chain is growing,
+the adversary is able to abuse this as much as they want. In all cases, there exists an optimal
+solution of at least two intervals, with neither of them being the one taken by the algorithm. Note
+also that this construction requires at most four intervals of length L, occupying space at most
+(4L − 3v) in total.
+A small detail is that w.l.o.g. we can assume I1 is always taken by the algorithm when it ﬁrst
+arrives. Because this construction will take place a number of times during the execution, when the
+algorithm will already have an interval in its solution, it’s useful to consider the case when I1 is not
+taken by the algorithm. In this case, we start growing the chain regardless. If I2 or I4 are taken
+by the algorithm, we treat it similarly to when I1 was taken and the algorithm kept replacing. If
+the algorithm hasn’t taken any interval even after I4 has arrived, the chain stops growing and we
+consider the intervals (I1 , I2 , I4 ).
+Let Ialg be the interval taken by the algorithm (or I2 if no intervals were taken). All remaining intervals to arrive will be subsumed by Ialg , and thus will not conﬂict with the two neighboring
+intervals taken by OP T . Assuming Ialg conﬂicts with one interval on the left and one on the right,
+that leaves space of length (L − 2v) for all remaining intervals. Inside that space, the exact same
+construction described will take place, only when the algorithm takes a new interval, it implies Ialg
+is replaced. This can be thought of as going a level deeper, and using a suﬃciently smaller interval
+length. More precisely, if L′ is the new (smaller) length that will be used, it must hold that L′ ≤ L+v
+4 .
+After each such construction is completed, the size of the optimal solution grows by at least 2.
+Because there are at most k diﬀerent lengths, this can be repeated at most k times. Finally, because the algorithm only ever keeps a single interval in its solution, it will achieve a competitive
+ratio of 2k.
+8
+
+We now extend Theorem 3.5 and show that the the 2k lower bound also holds for a class of randomized algorithms we call memoryless. Intuitively, memoryless algorithms decide on taking or
+discarding the newly arrived interval, only by looking at the new interval, and all the intervals
+currently in the solution, using no information from previous online rounds. Although not randomized, it’s worth noting that Algorithm 1, along with the optimal deterministic algorithms for call
+control [23], are memoryless.
+Definition 3.1 (Memoryless randomized algorithm). We call a randomized algorithm memoryless,
+if a newly arrived interval Inew is taken with probability F (Inew , S), where S = {I1 , I2 , ...} is the
+set of intervals currently in the solution, and each interval is a tuple of the form (si , fi ).
+Notice that deﬁnition 3.1 only allows us to make use of random bits of this current step, and it
+does not allow access to random bits from previous rounds. In particular, this deﬁnition does not
+capture barely random algorithms (as mentioned in the introduction), or algorithms that fall under
+the classify and randomly select paradigm.
+Theorem 3.6. No memoryless randomized algorithm can achieve a competitive ratio better than
+2k for the problem of unweighted interval selection with revocable decisions and k different lengths.
+More specifically, for all p ∈ (0, 1], there exists an ǫp > 0, such that the competitive ratio is greater
+than 2k − ǫp with probability p.
+
+Proof. The proof is very similar to the proof of Theorem 3.5. The instance has the same structure
+as the one described in the proof of Theorem 3.5, with the diﬀerence that whenever a new interval
+is taken with probability p > 0, the adversary will have to add as many copies of that interval as
+necessary, so that it’s taken w.h.p. Figure 6 shows an example of multiple copies of a new interval,
+ensuring that a replacement happens w.h.p.
+I1
+I2
+..
+.
+Figure 6: Replacing I1 w.h.p when F (I2 , {I1 }) > 0.
+It is worth mentioning that similar to how we extend our lower bound to hold for memoryless
+randomized algorithms, one can extend the log(n) lower bound for call control [23] to also hold for
+memoryless randomized algorithms. We also prove the following lower bound on all randomized
+algorithms and instances with no proper inclusions, capturing the case of k = 1.
+Lemma 3.7. No randomized algorithm can achieve a competitive ratio better than 43 for the case
+of unweighted instances with no proper inclusions.
+Proof. Consider two diﬀerent input sequences, S1 and S2 , each consisting of a chain of intervals.
+The ﬁrst two intervals (I1 , I2 ) are the same in both sequences and partially conﬂict, with f2 > f1 .
+S1 has the third interval in the sequence partially conﬂict with I2 , whereas S2 has the third interval
+conﬂict with I1 . The adversary chooses one of the two sequences with probability 12 . Regardless of
+what the algorithm does after the arrival of I2 , it ends up with a single interval in its solution with
+probability 12 , whereas the optimal solution is always of size 2. This leads to an expected solution
+size of 32 , and a competitive ratio of 43 .
+9
+
+3.2
+
+Connection to Call Control
+
+In this section we relate our results to those of call control on the line. In the problem of call
+control, we are given a graph G(V, E), and requests (intervals) correspond to paths on the graph.
+We note that in the call control literature, it is assumed that requests can come in any order. The
+length of a request is deﬁned as the length of the corresponding path, and a valid solution is a set of
+edge-disjoint paths. The objective is to maximize the number of accepted paths. The special case
+of line graphs is of most relevance to us, with Garay et al. [23] giving an optimal log(n)-competitive
+algorithm, where n = |V |. Their algorithm is similar to ours, with one important additional replacement rule. If the new interval’s length is less than half the length of the shortest interval
+it’s conﬂicting with, the new interval is taken by displacing whatever is necessary. Notice how by
+ﬁxing each edge to be of the same Euclidean length, that notion of length matches ours, without
+modifying the instance in any meaningful way.
+An apparent diﬀerence between our model and that of call control, is that in the latter, we’re
+initially given the graph. It is not clear how an algorithm that uses that information would operate
+in our setting. The optimal algorithm of [23] does not use that information. We can use such
+an algorithm on an instance of AOIS, using our deﬁnition of length. To see how the log(n) upper
+bound would still apply, we describe a way to add vertices on the line after the entire AOIS instance
+has been revealed, such that we can view it as an instance of call control. There isn’t just one way
+to add those vertices 4 , and ideally we’re interested in the minimum number of vertices for a “valid”
+call control instance to be formed5 . There are two requirements for the point-adding construction
+to be considered valid: (a) the points must be equally spaced, so that the two deﬁnitions of length
+in our model and call control match, and (b) every start and end point of an interval must coincide
+with a point. If all interval start and end points are rational numbers, we can multiply them by
+a common denominator, and use integer points. If there exist interval start/end points that are
+irrational, we can approximate the call control instance by adding suﬃciently many points that are
+suﬃciently close to each other, so that our comparison of two lengths in the AOIS instance, gives
+the same result as in the ﬁnal call control instance. This is a technical issue we leave as an open
+problem. Such a construction allows us to view the AOIS instance as an instance of call control.
+If the resulting graph was given to us a priori and we applied the
+√ call control algorithm to it, the
+ﬁnal solution would be the same. This also allows us to use the ( 5 + 2)-competitive algorithm by
+Garay et al. [23] in the case of interval weights proportional to their length.
+Applying an algorithm for AOIS on a call control instance is more straightforward. W.l.o.g. we
+can ﬁx edge lengths to be unit lengths and directly apply the algorithm, while achieving the same
+competitive ratio.
+To see how our 2k lower bound applies to call control on the line, notice that being allowed k
+diﬀerent lengths, there need to be enough points to allow the adversary to ﬁt in the instance of
+Theorem 3.5. Given that construction, we can compute a lower bound on the number of points
+(vertices) required. The base (shortest) intervals need two points each. Each level (base one included) has at most four intervals, all of the same length. Because the points are equally spaced,
+same-length intervals cover the same number of points. If an interval on level j covers x points, an
+4
+
+Notice how we can take an instance of call control on n points, and repeatedly add n − 1 new points, one new
+point between every pair of consecutive points, while keeping it a valid instance.
+5
+The total number of vertices we add to view it as an instance of call control has no impact on the quality (i.e.,
+the number of intervals accepted) of the solution. The log(n) is in terms of the minimum n.
+
+10
+
+interval of the upper (longer) level j + 1 covers at least 4x points. This results in a lower bound
+of 22k+1 points. Another way to view this, is that if the number of diﬀerent lengths is suﬃciently
+small (compared to n), the 2k lower bound applies, and our algorithm becomes optimal for call
+control on the line. In particular, this argument does not contradict the known log(n) lower bound.
+Whether the algorithm by Garay et al. can be forced to a competitive ratio worse than 2k for
+AOIS is open. When deciding on which algorithm to use, potential knowledge about the instance
+structure may be of help. This becomes apparent from the two following observations.
+Observation 3.8. There exists an instance where the algorithm by Garay et al. [23] achieves a
+competitive ratio of (2k − 2), whereas algorithm 1 gets 1.
+This instance is essentially two long chain-like structures that meet in the middle, and it is depicted
+in ﬁgure 7. A single side of the construction is better shown in ﬁgure 8. The arrival sequence is
+′
+, M . We have that |Li | = |L′i | = |Ri | = |Ri′ |, and
+L1 , R1 , L2 , R2 , L′2 , R2′ , ..., Lk−1 , Rk−1 , L′k−1 , Rk−1
+|Li | > 2|Li+1 |. The algorithm in [23] would always take the next interval on the chains L1 , L2 , ... and
+R1 , R2 , ..., ending up with only M , which would displace both intervals in the solution {Lk−1 , Rk−1 }.
+′
+} is obtained by our algorithm, and it is of size
+The optimal solution {L1 , R1 , L′2 , R2′ , ..., L′k−1 , Rk−1
+(2k − 2).
+L1
+
+L2
+
+...
+
+L′2
+
+Lk−1 M Rk−1
+
+...
+
+′
+L′k−1 Rk−1
+
+R1
+
+R2
+R2′
+
+Figure 7: Instance where algorithm by Garay et al.[23] gets CR (2k − 2).
+L1
+
+L3
+
+L2
+L′2
+
+...
+L′3
+
+Figure 8: Single chain from instance of ﬁgure 7
+Observation 3.9. There exists an instance where algorithm 1 achieves a competitive ratio of 2k,
+whereas the algorithm by Garay et al. gets 1.
+This instance 6 is shown in ﬁgure 9. Our algorithm ends up with a single interval in its solution,
+whereas —OPT— = 2k.
+..
+.
+R3
+t
+
+L2
+
+R1
+
+L1
+
+R4
+R2
+
+Figure 9: Instance where our algorithm gets competitive ratio 2k, whereas Garay et al. get 1.
+6
+
+This instance is taken from lecture notes by Yossi Azar http://www.cs.tau.ac.il/~ azar/Online-Class10.pdf
+
+.
+
+11
+
+4
+
+Arbitrary Weights
+
+The case of intervals having an arbitrary weights has previously been considered for the case of
+single-length instances and ordered arrivals. Woeginger [39] gives an optimal deterministic algorithm that is 4-competitive. Fung et al. [21] give a barely random algorithm that is 2-competitive,
+and show that it is optimal amongst barely random algorithms that choose between two deterministic algorithms. Woeginger [39] shows that in the case of two diﬀerent lengths, there does not exist a
+deterministic algorithm with ﬁnite competitive ratio. We show how to combine the barely random
+algorithm of Fung et al., with a classify and randomly select algorithm, to obtain a randomized
+algorithm for the any-order case, that achieves a competitive ratio of 2k, when there are k diﬀerent
+lengths.
+First, one can observe that the 2-competitive single-length algorithm by Fung et al. [21] (Theorem 3.1), works even in the case of any-order arrivals. Our algorithm (denoted as ARB), which
+requires knowledge of all the diﬀerent lengths of the instance, works as follows: Choose one of k
+lengths, uniformly at random. Then execute the algorithm of Fung et al., looking only at intervals
+of the chosen length.
+Theorem 4.1. Algorithm ARB achieves a competitive ratio of 2k, for the problem of any-order
+interval selection, with k different lengths and arbitrary weights.
+Proof. Let L1 , L2 , ..., Lk be all the diﬀerent lengths of an instance. Associated with length Li , is a
+sub-instance Ci , comprised only of the intervals of length Li . Let OP Ti denote the weight of an
+optimal solution on sub-instance Ci . The expected performance of the algorithm can be bounded
+as follows:
+1 OP T2
+1 OP Tk
+OP T
+1 OP T1
++
++ ... +
+≥
+E[ALG] ≥
+k 2
+k 2
+k 2
+2k
+The ﬁrst inequality holds because applying Fung et al. [21] on Ci gives a solution of weight at least
+OP Ti
+2 . The second inequality holds because for every length Lj , the total weight of the intervals of
+length Lj in the ﬁnal solution, is at most OP Tj .
+We note that the algorithm does not need to know the actual lengths beforehand, or even k. The
+algorithm can start working with the ﬁrst length that appears. When a second length arrives, the
+algorithm discards its current solution and chooses the new length with probability 21 . More generally, when the ith length arrives, the algorithm starts over using the new length with probability
+1
+1
+i . One can see that the probability that any length is chosen is k . Moreover, by replacing the
+2-competitive arbitrary weights algorithm with a simple greedy algorithm, we get a randomized
+algorithm for the unweighted case that is 2k-competitive and does not use revoking (as long as we
+know k).
+
+5
+
+Random Order
+
+In this section, we assume the adversary chooses the instance conﬁguration, but the intervals arrive
+in a random order. We consider unweighted, single-lengthed instances, and deterministic memoryless algorithms with revocable acceptances. We consider various cases and show that the only type
+of algorithm that can possibly beneﬁt from the random order model is a one-directional algorithm,
+namely an algorithm that only replaces intervals on the left side, or only on the right side, regardless of the amount of overlap. For any other algorithm, we show how the adversary can enforce a
+competitive ratio of 2, resulting in no beneﬁt over adversarial arrivals for single-lengthed instances.
+12
+
+On the instances we present, an algorithm only keeps one interval in its solution at any given time
+w.h.p., so the decision on taking or discarding a newly arrived interval, depends only on the local
+conﬂicts. The behavior of an algorithm is described by two functions, Fl and Fr : Fl (v) ∈ {0, 1}
+denotes whether the algorithm replaces Iold with Inew when the conﬂict is on the left of Iold , and
+the overlap is equal to v. Fr is deﬁned similarly for conﬂicts on the right. We are concerned with
+single-lengthed instances, where there can only be partial conﬂicts. We also assume that a new
+interval is never taken if it conﬂicts with more than one existing intervals in the solution, and show
+why such an action cannot beneﬁt the algorithm.
+One might notice that in the above description, information about the endpoints of the conﬂicting
+intervals is omitted. This was to improve readability, and we do in fact allow a deterministic memoryless algorithm to know the endpoints of intervals. The lower bounds presented in this section
+still hold, regardless of where the intervals are placed on the line.
+
+Let L denote the interval length of an instance.
+I1
+..
+.
+α
+
+β
+
+I2
+
+I3
+
+Figure 10: Random order bad instance. α < L2 and β < L2
+Figure 10 depicts the general structure of the main bad instance in the random order model. There
+is a single copy of intervals I2 and I3 , but a very large number of identical intervals I1 . We ﬁrst
+prove the following lemmas about two diﬀerent algorithms. We refer to an algorithm as alwaysreplace, if the new interval is always taken whenever a conﬂict occurs. Respectively, a never-replace
+algorithm never takes the new interval when there’s a conﬂict.
+Lemma 5.1. An always-replace algorithm has a competitive ratio of 2 for the instance of figure
+10.
+Proof. Because there is a large number of I1 intervals, when we look at the arrival sequence of
+intervals, I1 will both precede and follow the arrival of I2 and I3 with very high probability. This
+will result in the algorithm ending up with a single interval I1 in its solution, whereas the size of
+an optimal solution is 2.
+Lemma 5.2. A never-replace algorithm has a competitive ratio of 2 for the instance of figure 10.
+Proof. The ﬁrst online interval will be I1 w.h.p. It will never be replaced and the algorithm will
+end up with one interval in its solution, admitting a competitive ratio of 2.
+13
+
+5.1
+
+Overlap at most L2
+
+We ﬁrst consider the behavior of an algorithm for overlaps at most half the length of the interval.
+If there is an overlap amount v ≤ L2 , such that Fl (v) = Fr (v), then the adversary can use the
+aforementioned instance with α = β = v. The algorithm’s behavior would then be either that of
+an always-replace algorithm, or that of a never-replace algorithm, incurring a competitive ratio of
+2. For an algorithm to do better, it must be that Fl (v) 6= Fr (v), ∀v ≤ L2 . In other words, for each
+overlap, the algorithm would replace in one way. Assume now that there exist two diﬀerent overlap
+amounts, α, β ≤ L2 , that replace in diﬀerent directions, namely Fl (α) 6= Fl (β) and Fr (α) 6= Fr (β).
+W.l.o.g. assume Fr (α) = 1. In this case, the adversary can use the instance of ﬁgure 10. Interval
+I1 arrives ﬁrst w.h.p., and intervals I2 and I3 are rejected whenever they arrive, resulting in 2competitiveness. To avoid this, it must be that Fl (α) = Fl (β) and Fr (α) = Fr (β) ∀α, β ≤ L2 ,
+meaning that for overlaps at most half the length of the interval, the algorithm replaces in one
+direction.
+
+5.2
+
+Overlap greater than L2
+
+We now consider the algorithm’s behavior for overlap amounts greater than L2 , knowing that for
+overlap v ≤ L2 , the algorithm is one-directional. W.l.o.g. we assume that Fl (v) = 1, ∀v ≤ L2 .
+Lemma 5.3. If ∃ γ > L2 : Fl (γ) = 0, the adversary can force a competitive ratio of 2.
+Proof. Consider the instance of ﬁgure 11. Because of the multiple copies of I1 , the arrival of I2
+and I3 is preceded by I1 intervals w.h.p. We know that Fr (α) = 0, and given that Fl (γ) = 0, we
+have that I2 and I3 will be rejected on arrival, leaving the algorithm with a single interval in its
+solution.
+Lemma 5.4. If ∃ γ > L2 : Fr (γ) = 1, the adversary can force a competitive ratio of 2.
+Proof. Using the previous lemma, we assume that Fl (γ) = 1. Using the same instance of ﬁgure 11,
+w.h.p. I2 will conﬂict with, and replace I1 on arrival, and will then be replaced by another arrival
+of I1 . Interval I3 will again be rejected on arrival, leaving the algorithm with I1 in its solution.
+I1
+..
+.
+γ
+
+α
+
+I2
+
+I3
+
+Figure 11: Random order bad instance. α < L2 and γ > L2
+We now explain why an algorithm doesn’t gain anything by replacing more than one interval at a
+time. First, notice that in all the negative results presented in this section, there’s never a conﬂict
+between more than two intervals w.h.p. Because we consider single-lengthed instances, a newly
+arrived interval can conﬂict with at most two other intervals currently in the algorithm’s solution.
+Assume that for some overlap amounts α and β, a memoryless algorithm accepts a new interval
+14
+
+conﬂicting with two already accepted intervals. At least one of {α, β} must be less than L2 (otherwise the two current intervals would have a conﬂict, a contradiction). The adversary can then use
+the instance from ﬁgure 10 or ﬁgure 11, with the appropriate α and β overlaps. Regardless of the
+arrival order of {I2 , I3 }, the algorithm ends up with a single interval in its solution.
+Combining sections 5.1 and 5.2, we get the following theorem:
+Theorem 5.5. Every deterministic memoryless algorithm that isn’t one-directional, can be forced
+to a competitive ratio of at least 2 for the problem of online unweighted single-lengthed interval
+selection under random order arrivals.
+
+6
+
+Conclusions & Open Problems
+
+There are a number of possible directions for future work. A very natural direction is looking at
+speciﬁc weighted cases. Deterministically, Garay et al. [23] have settled the case of proportional
+weights with an optimal, constant-competitive algorithm. It’s interesting to see if a similar constant
+can be achieved for the more general weight functions studied by Woeginger [39], with or without
+randomness. We considered the case of arbitrary weights in Section 4.
+It is fair to say that we have a very limited understanding of randomized algorithms for interval
+selection. In the unweighted adversarial setting, we have shown that no memoryless randomized
+algorithm can be constant-competitive and Fung et al. show that with one random bit, their 2competitive algorithm is optimal. But we have no other negative results for unweighted or weighted
+interval selection when revoking is permitted. We would like to extend the memoryless model to
+algorithms with constant memory (beyond the current solution) as discussed further in the appendix. In particular, we would want to allow access to a few initial random bits which would
+also capture algorithms that fall under the classify and randomly select paradigm. It would also
+be interesting to restrict the number of copies the adversary can generate, maybe only allowing
+a single copy of every interval, and see if memoryless randomized algorithms become more powerful.
+As mentioned earlier, we can think of the parameter k as a reﬁnement of the total number of
+intervals, and the number of vertices of a call control instance. We ﬁnd it interesting to see if
+restricting the number of diﬀerent lengths can yield better results for the problem of call control
+on other classes of graphs, such as trees (see [3]).
+Finally, to the best of our knowledge, we have initiated the study of this model under random
+order arrivals, where there are many open questions for future work. We have only looked at
+single-lengthed instances, a special case that, in the adversarial setting, doesn’t even require revoking. Looking at multiple lengths under random arrivals, is a natural next step. Lastly, we
+have shown that one-directional algorithms for single-lengthed instances, are the only type of deterministic memoryless algorithms that can possibly beneﬁt from random order arrivals. We don’t
+have any provable upper bounds on the performance of a one-directional algorithm, but we have
+conducted experiments that suggest it may achieve much better than 2-competitiveness. This is an
+interesting contrast with the adversarial model, where a one-directional algorithm would perform
+arbitrarily bad.
+Acknowledgements: We would like to thank Denis Pankratov, Adi Rosén and Omer Lev for
+many helpful comments.
+15
+
+References
+[1]
+
+Ran Adler and Yossi Azar. “Beating the logarithmic lower bound: randomized preemptive
+disjoint paths and call control algorithms”. In: Journal of Scheduling 6.2 (2003), pp. 113–129.
+
+[2]
+
+Noga Alon, Yossi Azar, and Shai Gutner. “Admission control to minimize rejections and
+online set cover with repetitions”. In: Proceedings of the seventeenth annual ACM symposium
+on Parallelism in algorithms and architectures. 2005, pp. 238–244.
+
+[3]
+
+Baruch Awerbuch, Yair Bartal, Amos Fiat, and Adi Rosén. “Competitive Non-Preemptive
+Call Control.” In: SODA. Vol. 94. Citeseer. 1994, pp. 312–320.
+
+[4]
+
+Unnar Th Bachmann, Magnús M Halldórsson, and Hadas Shachnai. “Online selection of
+intervals and t-intervals”. In: Information and Computation 233 (2013), pp. 1–11.
+
+[5]
+
+Philippe Baptiste. “Scheduling equal-length jobs on identical parallel machines”. In: Discrete
+Applied Mathematics 103.1-3 (2000), pp. 21–32.
+
+[6]
+
+Avrim Blum, Adam Kalai, and Jon Kleinberg. “Admission control to minimize rejections”.
+In: Workshop on Algorithms and Data Structures. Springer. 2001, pp. 155–164.
+
+[7]
+
+Hans-Joachim Böckenhauer, Dennis Komm, Rastislav Královič, and Richard Královič. “On
+the advice complexity of the k-server problem”. In: J. of Comput. and System Sciences 86
+(2017), pp. 159–170.
+
+[8]
+
+Hans-Joachim Böckenhauer, Dennis Komm, Richard Královič, and Peter Rossmanith. “The
+online knapsack problem: Advice and randomization”. In: Theoretical Computer Science 527
+(2014), pp. 61–72.
+
+[9]
+
+Kenneth P Bogart and Douglas B West. “A short proof that “proper= unit””. In: Discrete
+Mathematics 201.1-3 (1999), pp. 21–23.
+
+[10]
+
+Allan Borodin, Ioana Ivan, Yuli Ye, and Bryce Zimny. “On sum coloring and sum multicoloring for restricted families of graphs”. In: Theoretical Computer Science 418 (2012), pp. 1–
+13.
+
+[11]
+
+Niv Buchbinder, Joseph (Seﬃ) Naor, and David Wajc. “Lossless Online Rounding for Online
+Bipartite Matching (Despite its Impossibility)”. In: SODA. SIAM, 2023, pp. 2030–2068.
+
+[12]
+
+Sergio Cabello and Pablo Pérez-Lantero. “Interval selection in the streaming model”. In:
+Theoretical Computer Science 702 (2017), pp. 77–96.
+
+[13]
+
+Ran Canetti and Sandy Irani. “Bounding the power of preemption in randomized scheduling”.
+In: Proceedings of the twenty-seventh annual ACM symposium on Theory of computing. 1995,
+pp. 606–615.
+
+[14]
+
+Marek Chrobak, Christoph Dürr, Wojciech Jawor, Lukasz Kowalik, and Maciej Kurowski. “A
+Note on Scheduling Equal-Length Jobs to Maximize Throughput”. In: Journal of Scheduling
+9.1 (2006), pp. 71–73.
+
+[15]
+
+Christian Coester and Elias Koutsoupias. “The online k-taxi problem”. In: Proceedings of the
+51st Annual ACM SIGACT Symposium on Theory of Computing. 2019, pp. 1136–1147.
+
+[16]
+
+Christoph Dürr, Christian Konrad, and Marc P. Renault. “On the Power of Advice and
+Randomization for Online Bipartite Matching”. In: 24th Annual European Symposium on
+Algorithms, ESA 2016, August 22-24, 2016, Aarhus, Denmark. 2016, 37:1–37:16.
+
+[17]
+
+Yuval Emek, Magnús M Halldórsson, and Adi Rosén. “Space-constrained interval selection”.
+In: ACM Transactions on Algorithms (TALG) 12.4 (2016), pp. 1–32.
+16
+
+[18]
+
+Leah Epstein and Asaf Levin. “Improved randomized results for that interval selection problem”. In: European Symposium on Algorithms. Springer. 2008, pp. 381–392.
+
+[19]
+
+Ulrich Faigle and Willem M Nawijn. “Note on scheduling intervals on-line”. In: Discrete
+Applied Mathematics 58.1 (1995), pp. 13–17.
+
+[20]
+
+Stanley PY Fung, Chung Keung Poon, and Duncan KW Yung. “On-line scheduling of equallength intervals on parallel machines”. In: Information Processing Letters 112.10 (2012),
+pp. 376–379.
+
+[21]
+
+Stanley PY Fung, Chung Keung Poon, and Feifeng Zheng. “Improved randomized online
+scheduling of intervals and jobs”. In: Theory of Computing Systems 55.1 (2014), pp. 202–228.
+
+[22]
+
+Juan A Garay and Inder S Gopal. “Call preemption in communication networks”. In: [Proceedings] IEEE INFOCOM’92: The Conference on Computer Communications. IEEE. 1992,
+pp. 1043–1050.
+
+[23]
+
+Juan A Garay, Inder S Gopal, Shay Kutten, Yishay Mansour, and Moti Yung. “Eﬃcient
+on-line call control algorithms”. In: Journal of Algorithms 23.1 (1997), pp. 180–194.
+
+[24]
+
+Bjarni V Halldórsson, Magnús M Halldórsson, Elena Losievskaja, and Mario Szegedy. “Streaming Algorithms for Independent Sets.” In: ICALP (1) 6198 (2010), pp. 641–652.
+
+[25]
+
+Magnús M Halldórsson, Boaz Patt-Shamir, and Dror Rawitz. “Online scheduling with interval
+conﬂicts”. In: Theory of Computing Systems 53.2 (2013), pp. 300–317.
+
+[26]
+
+Dylan Hyatt-Denesik, Mirmahdi Rahgoshay, and Mohammad R Salavatipour. “Approximations for throughput maximization”. In: arXiv preprint arXiv:2001.10037 (2020).
+
+[27]
+
+Jon M. Kleinberg. “A Lower Bound for Two-Server Balancing Algorithms”. In: Inf. Process.
+Lett. 52.1 (1994), pp. 39–43.
+
+[28]
+
+Antoon WJ Kolen, Jan Karel Lenstra, Christos H Papadimitriou, and Frits CR Spieksma.
+“Interval scheduling: A survey”. In: Naval Research Logistics (NRL) 54.5 (2007), pp. 530–543.
+
+[29]
+
+Elias Koutsoupias. “The k-server problem”. In: Computer Science Review 3.2 (2009), pp. 105–
+118.
+
+[30]
+
+Mikhail Y Kovalyov, Chi To Ng, and TC Edwin Cheng. “Fixed interval scheduling: Models,
+applications, computational complexity and algorithms”. In: European journal of operational
+research 178.2 (2007), pp. 331–342.
+
+[31]
+
+Richard J Lipton and Andrew Tomkins. “Online Interval Scheduling.” In: SODA. Vol. 94.
+1994, pp. 302–311.
+
+[32]
+
+Jesper W Mikkelsen. “Randomization can be as helpful as a glimpse of the future in online
+computation”. In: arXiv preprint arXiv:1511.05886 (2015).
+
+[33]
+
+Hiroyuki Miyazawa and Thomas Erlebach. “An improved randomized on-line algorithm for
+a weighted interval selection problem”. In: Journal of Scheduling 7.4 (2004), pp. 293–311.
+
+[34]
+
+Nicolas Pena and Allan Borodin. “On extensions of the deterministic online model for bipartite matching and max-sat”. In: Theoretical Computer Science 770 (2019), pp. 1–24.
+
+[35]
+
+Prabhakar Raghavan and Marc Snir. “Memory versus randomization in on-line algorithms”.
+In: Automata, Languages and Programming: 16th International Colloquium Stresa, Italy, July
+11–15, 1989 Proceedings 16. Springer. 1989, pp. 687–703.
+
+[36]
+
+Steven S Seiden. “Randomized online interval scheduling”. In: Operations Research Letters
+22.4-5 (1998), pp. 171–177.
+17
+
+[37]
+
+Jiřı́ Sgall. “On-line scheduling”. In: Online algorithms (1998), pp. 196–231.
+
+[38]
+
+Andrew Tomkins. “Lower bounds for two call control problems”. In: Information processing
+letters 56.3 (1995), pp. 173–178.
+
+[39]
+
+Gerhard J Woeginger. “On-line scheduling of jobs with ﬁxed start and end times”. In: Theoretical Computer Science 130.1 (1994), pp. 5–16.
+
+[40]
+
+Ge Yu and Sheldon H Jacobson. “Online C-benevolent job scheduling on multiple machines”.
+In: Optimization Letters 12.2 (2018), pp. 251–263.
+
+A
+
+Memory in online computation
+
+The impact of limited memory (or time) is usually not considered in online competitive analysis,
+since the analysis is information theoretic and independent of complexity issues. Of course, the
+assumption is that algorithms are usually eﬃcient (in terms of time and space) while negative
+results are that much stronger as they do not require any complexity assumptions.
+However, the arguments for limited memory in streaming algorithms apply equally well to online
+algorithms which are forced to immediately make decisions for each input as it occurs. There
+has been some limited results concerning memory with respect to competitiveness. Perhaps the
+ﬁrst study of memoryless algorithms occurs in Kleinberg’s [27] study of balancing algorithms for
+2-server algorithms where it is shown that the optimal competitive ratio cannot be achieved. The
+ﬁrst issue is to deﬁne memoryless and bounded memory algorithms in online computation? In
+the earlier conference version of Adler and Azar [1], they ask “is there a memoryless online algorithm for interval selection that achieves a constant competitive ratio”. In the journal version
+they reframe this question and ask “is there a bounded memory algorithm achieving a constant
+competitive ratio”. They do no provide a deﬁnite meaning for the term bounded memory. Emek
+et al. [17] provide an interesting streaming based online algorithm (with revoking) that is “barely
+random” and achieves an improved constant competitive ratio. They seem to implicitly argue that
+their algorithm is “bounded memory” in the sense that the additional memory (beyond the current
+solution) is linear in the size of the optimal solution. Here we are counting memory in terms of
+the number of intervals and not necessarily in terms of bits of memory. This is a “permissive”
+deﬁnition of memoryless that could nicely serve in deﬁning “semi-streaming” that goes beyond
+graph optimization problems. In this “semi-streaming” model, Cabello and Pérez-Lantero [12]
+give alternative algorithms that match the performance of Emek et al. [17] for interval selection
+and same-length interval selection. In addition, for interval selection (on n equally spaced points)
+they show how to (2 + ǫ)-approximate the optimal solution size using O(ǫ−5 log 6 n) space, and
+show that no better approximation can be achieved using o(n) space. This lower bound on memory
+also applies to algorithms for computing a solution in the model proposed by Halldórsson et al. [24].
+In section 3, we deﬁne memoryless in a strict sense, namely that the algorithm does not maintain any information except the current solution. This is the deﬁnition of memoryless as used in
+Raghavan and Snir [35], Koutsoupias [29], and Coester and Koutsoupias [15]. The strict deﬁnition is also suﬃcient for the simple 41 competitive, 1 random bit randomized algorithm (without
+revoking) for the proportional knapsack7 . But as stated the strict deﬁnition does not include
+barely random algorithms even for those which do not use any memory beyond remembering a few
+initial bits. However, we would argue that remembering any initial random bits is a form of memory.
+7
+
+In the proportional knapsack the profit of an item is equal to its size. We assume every item has size > 0 or that
+the representation of the ith item includes the index i.
+
+18
+
+This leads us to what is arguably the most interesting interpretation of the Adler and Azar question;
+namely, is there a constant competitive (perhaps barely random) randomized algorithm that does
+not store any information besides the current solution and some number of initial bits. Of course we
+would allow such algorithms to use fresh bits (as well as the current solution) in randomly deciding
+the decision for the current input item. The Emek et al. algorithm uses memory well beyond the
+2 random bits. In contrast, the Fung et al. [21] algorithm for single length, arbitrary weights,
+does not use any additional memory beyond the one initial random bit. Indeed, many classify and
+randomly select algorithms only remember the initial random bits needed to classify an input item.
+We can also ask more generally when an algorithm only maintains a constant number of bits (and
+not necessarily initial random bits) in both deterministic and randomized algorithms. Böckenhauer
+et al. [8] show that the proportional and general knapsack problems exhibit “phase transitions”
+as to how much advice and random bits are needed to achieve certain certain competitive ratios.
+The results of [34, 11, 7, 16] provide interesting phase transitions for randomized algorithms and
+deterministic algorithms with advice for the online unweighted bipartite matching problem.
+Finally we mention that the results of Mikklesen [32] (for repeatable problems) and Böckenhauer
+[7] provide interesting results about the relation between randomized algorithms and advice. The
+bipartite matching problem and the interval selection problem are repeatable problems. It is interesting to explore this relation further with regard to the interval selection problem. Namely, does
+interval selection have a phase transition in that 1 bit of randomness is suﬃcient for a barely random 2 competitive ratio whereas no additional random or advice bits can help, or is there perhaps
+some threshold at Θ(log n) where that amount of advice (randomness) can asymptotically beat the
+2 ratio for interval selection. It is interesting to observe the diﬀerence between advice bits and
+random bits for the proportional and general knapsack problems as proven in Böckenhauer et al.
+[8]. Is there a provable diﬀerence for interval selection between advice bits and random bits?
+
+19
+
+

@@ -1,0 +1,3241 @@
+Optimal Scheduling Algorithms for LLM Inference: Theory
+and Practice
+AGRIM BARI∗ , The University of Texas at Austin, United States
+PARIKSHIT HEGDE∗ , The University of Texas at Austin, United States
+GUSTAVO DE VECIANA, The University of Texas at Austin, United States
+With the growing use of Large Language Model (LLM)-based tools like ChatGPT, Perplexity, and Gemini
+across industries, there is a rising need for e!cient LLM inference systems. These systems handle requests
+with a unique two-phase computation structure: a pre"ll-phase that processes the full input prompt and a
+decode-phase that autoregressively generates tokens one at a time. This structure calls for new strategies for
+routing and scheduling requests.
+In this paper, we take a comprehensive approach to this challenge by developing a theoretical framework
+that models routing and scheduling in LLM inference systems. We identify two key design principles—optimal
+tiling and dynamic resource allocation—that are essential for achieving high throughput. Guided by these
+principles, we propose the Resource-Aware Dynamic (RAD) scheduler and prove that it achieves throughput
+optimality under mild conditions. To address practical Service Level Objectives (SLOs) such as serving requests
+with di#erent Time Between Token (TBT) constraints, we design the SLO-Aware LLM Inference (SLAI)
+scheduler. SLAI uses real-time measurements to prioritize decode requests that are close to missing their TBT
+deadlines and reorders pre"ll requests based on known prompt lengths to further reduce the Time To First
+Token (TTFT) delays.
+We evaluate SLAI on the openchat_shareGPT4 dataset using the Mistral-7B model on an NVIDIA RTX ADA
+6000 GPU. Compared to Sarathi-Serve, SLAI reduces the median TTFT by 53% and increases the maximum
+serving capacity by 26% such that median TTFT is below 0.5 seconds, while meeting tail TBT latency constraints.
+The complete source code is available at: https://github.com/agrimUT/SLAI.
+CCS Concepts: • Computing methodologies → Arti!cial intelligence; Distributed algorithms; Machine
+learning; Model development and analysis; • Theory of computation → Theory and algorithms for
+application domains.
+Additional Key Words and Phrases: LLM inference serving systems, Throughput-optimal systems, SLO aware
+schedulers
+ACM Reference Format:
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana. 2025. Optimal Scheduling Algorithms for LLM Inference:
+Theory and Practice. Proc. ACM Meas. Anal. Comput. Syst. 9, 3, Article 59 (December 2025), 43 pages. https:
+//doi.org/10.1145/3771574
+∗ Both authors contributed equally to this work.
+
+Authors’ Contact Information: Agrim Bari, agrimchaudhry@gmail.com, Chandra Department of Electrical and Computer
+Engineering, The University of Texas at Austin, Austin, TX, United States; Parikshit Hegde, parihegde96@gmail.com,
+Chandra Department of Electrical and Computer Engineering, The University of Texas at Austin, Austin, TX, United States;
+Gustavo de Veciana, deveciana@utexas.edu, Chandra Department of Electrical and Computer Engineering, The University
+of Texas at Austin, Austin, TX, United States.
+
+This work is licensed under a Creative Commons Attribution 4.0 International License.
+© 2025 Copyright held by the owner/author(s).
+ACM 2476-1249/2025/12-ART59
+https://doi.org/10.1145/3771574
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:2
+
+1
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+Introduction
+
+LLM inference systems. The core problem in Large Language Model (LLM) inference is to generate
+a response autoregressively, one token1 at a time, given a prompt—for example, "What is the capital
+of France?" producing the output "It is Paris." Modern LLMs such as GPT-4, Llama 3, and Gemini now
+power a wide range of services, including chatbots, coding assistants, and search engines. These
+services handle millions of user requests daily, and private deployments are rapidly increasing. As
+a result, there is growing interest in optimizing how requests are processed across one or more
+Graphics Processing Unit (GPU)-enabled nodes in data centers, since improved e!ciency can lead
+to signi"cant reductions in infrastructure and operating costs.
+Objectives for LLM serving systems. To meet growing demand, LLM systems must be carefully designed to make e!cient use of hardware. A well-designed system keeps each active GPU
+busy—fully utilizing both its compute and memory—while also keeping response times low. This
+leads to two main goals: (1) achieving high throughput, measured in requests per second, to reduce
+the cost per request, and (2) maintaining low latency, which directly a#ects user experience. Latency
+is typically measured using two Service-Level Objectives (SLOs)2 : Time To First Token (TTFT), which
+is the delay between a request’s arrival and the generation of the "rst output token, capturing how
+long a user waits before the LLM starts responding; and Time Between Tokens (TBT), which is the
+time between successive output tokens, indicating the rate at which the response is streamed to the
+user. In real-world systems, request routing, scheduling, and caching are used to meet these goals.
+This paper focuses on scheduling, which plays a critical role in increasing throughput, reducing
+TTFT, and keeping TBT within acceptable limits.
+Phases of an LLM request and scheduler decisions. Each request to an LLM based on the
+Transformer architecture goes through two main phases: pre!ll and decode. In the pre!ll-phase,
+the model processes the entire prompt and generates the "rst output token. After that, the request
+enters the decode-phase, where it produces one token at a time in an auto-regressive manner until
+a stop token is generated. These two phases have distinct characteristics. The pre"ll-phase is
+highly parallelizable and can fully utilize the GPU’s compute resources. By contrast, the decode
+phase is sequential and has low parallelism, which means that multiple decode-phase requests
+must be batched together to make e!cient use of the GPU. Additionally, Transformer models store
+intermediate representations of tokens—called the Key-Value (KV) cache—which grow with the
+number of tokens processed and consume GPU memory. The scheduler’s job is to select a mix
+of pre"ll-phase and decode-phase requests to include in each GPU batch. These decisions must
+balance GPU compute and memory bandwidth usage, stay within the memory budget, and meet
+latency SLOs.
+Challenges in scheduler design. Designing an e#ective scheduler for LLM inference presents
+several key challenges. First, GPU compute e!ciency depends heavily on the composition of each
+batch—that is, the mix of pre"ll and decode-phase requests scheduled together. As a result, the
+scheduler must construct batches carefully to make the most of available resources. Second, the
+scheduler must balance resource allocation between the pre"ll and decode phases, as both phases
+have their respective SLOs: TTFT and TBT. Prioritizing pre"ll-phase requests can reduce TTFT
+but may delay decodes and worsen TBT. Conversely, prioritizing decode-phase requests keeps
+TBT low but can lower compute utilization and increase TTFT for new requests. Third, while the
+prompt length is known upon a request arrival the output length is unknown, making memory
+1 A token in a LLM is a unit of text-such as a word, subword, or character-used as the basic input element for processing and
+
+generation.
+2 Thresholds may vary by application, but these two metrics are commonly used.
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:3
+
+management complex—particularly since GPU memory is often a bottleneck. Finally, many LLM
+serving systems support multiple user tiers which have heterogeneous performance needs.
+Our approach. In this work, we approach the LLM scheduling problem from two complementary
+perspectives. From a theoretical standpoint, we develop a rigorous framework for analyzing and
+achieving throughput-optimal scheduling. From a practical perspective, we design a scheduler that
+dynamically adapts to diverse latency SLOs across heterogeneous user tiers.
+Contributions. Our key contributions are:
+(1) A Theoretical Model for LLM Inference Systems. We develop a comprehensive analytical
+framework for request routing and scheduling in LLM inference systems, capable of capturing
+salient features of practical policies considered in the literature. Additionally, we introduce a
+model to represent inference computation times on modern GPU architectures. This uni"ed
+framework enables rigorous analysis and comparison of routing and scheduling policies in
+such systems. See Section 3.
+(2) A Throughput Optimal Scheduler. We identify two key design principles that characterize
+optimal resource-utilization in LLM inference systems; optimal tiling and optimal dynamic
+resource allocation across pre"ll and decode workloads. Guided by these insights, we design
+a simple load-balancing routing strategy and introduce a Resource-Aware Dynamic (RAD)
+scheduler. We rigorously prove that, under mild assumptions, this combination achieves
+throughput optimality. See Section 4.
+(3) Insights for Practical Systems. Recognizing that in practical LLM inference systems it is
+desirable to meet latency SLOs, we provide insights into how real-world systems approximate
+and adapt the proposed design principles to satisfy these constraints. See Section 5.
+(4) A SLO-Aware Scheduler. We design a practical scheduler called SLO-Aware LLM Inference
+(SLAI) scheduler that aims to minimize online median TTFT when serving requests with
+heterogeneous TBT constraints. To achieve this, SLAI uses online measurements to decide
+when the execution of a decode-iteration has become time-critical, i.e., should be prioritized
+for scheduling. In addition, it uses the known prompt length information to order pre"ll-phase
+requests so as to reduce the median TTFT. See Section 6.
+(5) Experimental Performance. We evaluate SLAI on the openchat_shareGPT4 dataset using
+the Mistral-7B LLM on an NVIDIA RTX ADA 6000 GPU. Our results show that SLAI can
+reduce the median TTFT by 53% while meeting TBT requirements compared to Sarathi-serve,
+the current state-of-the-art scheduler. Additionally, when median TTFT can not exceed 0.5
+seconds, SLAI increases the serving capacity by 26%. See Section 7.
+1.1 Related Work
+LLM serving systems must make decisions about when to run the pre"ll and decode phases of
+a request, where to execute each request, and how to manage the growing KV cache produced
+by the model. Based on these challenges, prior work can be broadly categorized into three areas:
+(a) scheduling within a single inference node, (b) routing across multiple inference nodes, and (c)
+managing the KV cache. In this section, we focus exclusively on scheduling. For a discussion of
+related works on routing and KV cache management, we refer the reader to Appendix A.
+1.1.1 !eueing based analysis for schedulers. The queueing-theoretic study of LLM inference
+remains in its early stages, especially when compared to the more mature systems-oriented literature.
+A recent survey by Mitzenmacher et al. [19] highlights the distinctive characteristics of LLM
+inference workloads and emphasizes the importance of queueing-based analysis for such systems.
+A closely related work is [17], in which the authors develop a queueing-theoretic model for
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:4
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+LLM inference schedulers and analyze throughput optimality. The authors approximate the batchprocessing time, which is observed to have a staircase-behaviour in practice, by a linear function.
+They observe under their model that work conserving schedulers are throughput optimal. In our
+work, we model the detailed computations on a GPU to perform LLM inference, and obtain a
+formula for the batch processing time that re$ects the staircase-behaviour observed in practice. Our
+more detailed modeling framework yields novel structural insights—particularly on the optimal
+tiling and resource allocation strategies required for throughput optimality. These insights o#er
+new avenues for improving the performance of practical LLM inference systems. In [20], the authors
+study throughput-maximization in a setting where the system is backed up with requests, and the
+token generation times depend on the batch size, but not on the token positions.
+1.1.2 Scheduling policies. Schedulers di#er in how they prioritize pre"ll-phase and decode-phase
+requests, and in their batching granularity. Below, we highlight some of the key work in this
+literature.
+Decode-prioritizing (request-level) schedulers. Frameworks such as FasterTransformer [23, 24]
+and the request-level mode of TensorRT-LLM process a set of requests till completion, before
+admitting any new requests. Since new pre"ll-phase requests never interrupt ongoing decodephase requests, these schedulers perform well on TBT. However, they have low throughput when
+there is a imbalance in the total (prompt and output) length of requests and thus GPU may be
+under-utilized.
+Pre!ll-prioritizing (iteration-level) schedulers. Iteration-level batching, "rst introduced by
+Orca [33], enables dynamic admission and completion of requests at each forward pass. However, it
+relies on static memory allocation for the KV cache, which limits the number of concurrent requests
+to 16 on an A100 GPU. vLLM [15] overcomes this limitation using paged attention, allowing more
+$exible memory management and increasing the maximum number of concurrent requests to 128.
+Additionally, like FlashDecoding++ [8] and DeepSpeed-FastGen [7], vLLM aggressively admits
+new pre"ll-phase requests to improve throughput. However, this eager admission policy can delay
+decode iterations—especially for long prompts—leading to higher TBT latencies.
+Hybrid schedulers. Sarathi-Serve [2] introduces a token-budgeted, chunked-pre"ll strategy
+to balance throughput and TBT, e#ectively reducing decode-iteration stalls that are common in
+pre"ll-prioritizing schedulers. Beyond such scheduling-focused methods, recent systems propose
+orthogonal techniques aimed at improving overall LLM inference performance. BlendServe [34]
+targets o%ine workloads by reordering requests based on their resource usage pro"les to improve
+hardware e!ciency. POD-Attention [14] enables pipelined execution of pre"ll and decode phases
+to increase kernel overlap and improve GPU utilization. HydraGen [13] reduces redundant computation by identifying and merging shared prompt pre"xes across requests. DistServe [36] adopts
+a disaggregated architecture that separates pre"ll and decode execution across di#erent nodes,
+thereby eliminating intra-GPU contention; however, it introduces communication overhead due to
+the transfer of large KV caches.
+2
+2.1
+
+Background
+Transformer
+
+We focus on the widely used decoder-only Transformer architecture—referred to simply as the
+Transformer in this work—that forms the basis of GPT, LLaMA, PaLM and other families of LLM
+models. The Transformer is an autoregressive model that generates token 𝐿 𝐿+1 by conditioning on
+all previous tokens 𝐿 1, . . . , 𝐿 𝐿 . Token 𝐿 𝐿 is processed by the Transformer as shown in Fig. 1. A token
+is "rst converted into an embedding and then passed through 𝑀 layers. Let the input to the 𝑁 th
+layer be a vector 𝜴 𝑀 ↑ R𝑁𝐿 of dimension 𝑂𝑂 . Each layer comprises of three distinct sub-layers:
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:5
+
+Fig. 1. Transformer architecture.
+
+(1) QKV Projection: This sub-layer is parametrized by three matrices 𝑃𝑃𝑀 ,𝑃𝑄𝑀 and 𝑃𝑅𝑀 each of
+dimension 𝑂 ↓ 𝑂𝑂 . The corresponding Query, Key and Value (or, QKV) vectors are computed
+using a linear transformation as, 𝜶𝑀 = 𝑃𝑃𝑀 𝜴 𝑀 , 𝜷 𝑀 = 𝑃𝑄𝑀 𝜴 𝑀 and 𝜸𝑀 = 𝑃𝑅𝑀 𝜴 𝑀 , where 𝜶𝑀 , 𝜷 𝑀 , 𝜸𝑀
+are all vectors of dimension 𝑂 ↓ 1.
+(2) Self Attention: For the 𝑄 th token, the key and value vectors of all tokens up to and including
+token 𝑄 are stacked into matrices 𝑅 𝑀,𝐿 and 𝑆 𝑀,𝐿 of dimension 𝑂 ↓ 𝑄, and the self-attention is
+computed as,
+!
+"
+↔
+𝑅 𝑀,𝐿 𝜶𝑀
+𝑀
+𝑀,𝐿
+𝜹 = 𝑆 softmax
+,
+(1)
+↗
+𝑂
+where 𝜹𝑀 ↑ R𝑁 is the resulting context vector. (1) represents a single attention head. In
+practice, Transformers employ multiple attention heads [30], meaning that multiple sets of 𝑇,
+𝑅, and 𝑆 vectors are used in parallel in a layer. The resulting outputs are then concatenated
+and passed to a Feed-Forward Network (FFN) described below. For simplicity, and without
+loss of generality, we focus on a single attention head in our theoretical analysis. Our results
+are also applicable to memory-e!cient variants such as multi-query attention [27] and
+grouped-query attention [3].
+(3) Feed Forward Net (FFN): The output of the self-attention sublayer is passed through an FFN
+with one hidden-layer. The dimensions of the weight matrices of the FFN, 𝑃𝑆𝑀1 and 𝑃𝑆𝑀2 , are
+𝑂 𝑇 𝑇 ↓ 𝑂 and 𝑂𝑂 ↓ 𝑂 𝑇 𝑇 respectively. The output of the FFN serves as the input to the (𝑁+1) th
+layer.
+The output of layer N is passed through a linear transform followed by a softmax operation. The
+probability distribution output by the softmax is used to sample the next token in the sequence.
+2.2
+
+Inference on a Transformer
+
+An LLM inference system receives requests in the form of prompts, consisting of a variable length
+sequence of tokens 𝐿 1, 𝐿 2, . . . , 𝐿𝑈 𝑀 , where 𝑈 𝑉 denotes the prompt length. The inference task is to
+autoregressively sample output tokens 𝐿𝑈 𝑀 +1, 𝐿𝑈 𝑀 +2 . . . , 𝐿𝑈 𝑀 +𝑈 𝑁 from the Transformer until a stop
+token is sampled at an apriori unknown position 𝑈 𝑉 + 𝑈 𝑊 + 1, where 𝑈 𝑊 denotes the output length.
+A central technique used to speed up LLM inference is KV caching, wherein the key and value
+vectors (KV vectors) that have been computed for a token 𝐿 𝐿 are cached in GPU memory. This
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:6
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+allows subsequent tokens to directly retrieve the relevant KV vectors during attention computation,
+avoiding recomputation and signi"cantly improving inference e!ciency.
+The computation associated with completing an LLM inference request can be divided into two
+distinct phases,
+(1) Pre!ll-Phase: Although prompt tokens are speci"ed by the request and thus do not need to
+be sampled, the KV vectors for all prompt tokens do need to computed and cached for all
+layers since they are required to perform the self-attention computation for later tokens. The
+computation of the KV vectors corresponding to prompt tokens is called the pre"ll-phase.
+Since all the prompt tokens are available, the pre"ll-phase can be done in parallel for all the
+prompt tokens at once, or a chunk of tokens at a time. This is discussed further in Sections
+3.1 and 3.2.
+(2) Decode-Phase: The decode-phase denotes the computations involved in generating output
+tokens 𝐿𝑈 𝑀 +1, 𝐿𝑈 𝑀 +2, . . . , 𝐿𝑈 𝑀 +𝑈 𝑁 . The KV vectors computed in this phase are also cached in
+memory for use in the self-attention computation of future tokens. Since this is the token
+generation phase, it is autoregressive in nature unlike the pre"ll-phase, and thus due to
+dependencies cannot be parallelized across tokens of the request.
+See Fig. 2 for a visualization of the two phases of LLM inference.
+
+Fig. 2. Prefill and decode phases of a request during inference on a Transformer.
+
+2.3
+
+Computation on a GPU
+
+A signi"cant fraction of computations associated with LLM inference and, more generally, modern
+AI workloads involve matrix-matrix multiplication which can be sped up by specialized hardware.
+As such, modern GPUs have several components to perform matrix-matrix multiplication that is
+distinct from components used to perform general parallel computations. For concreteness, in this
+paper we focus our analysis on the terminology and convention used by NVIDIA TensorCore GPUs
+[25], while noting that GPUs produced by Intel[10], AMD[1] etc., have analogous components.
+From hereon, unless otherwise mentioned, by GPU we mean NVIDIA TensorCore GPU.
+A GPU consists of a set of 𝑉 independent processors called Streaming Multiprocessors (SMs). An
+SM in turn consists of a number of fundamental computational units, which can be categorized
+into two categories: 1) CUDA cores which are general purpose parallel computation units, and 2)
+Tensor Cores that are speci"cally designed to perform (generalized) matrix-matrix multiplications.
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:7
+
+Two types of computational tasks on a GPU are especially relevant in the context of LLM inference,
+Generalized Matrix-Matrix Multiplication (GeMM) and Generalized Matrix Vector Multiplication
+(GeMV), which are detailed below.
+GeMM. Let 𝑊 ↑ R𝑁row ↓𝑁red , 𝑋 ↑ R𝑁red ↓𝑁col , 𝑌 ↑ R𝑁row ↓𝑁col and let 𝑍, 𝑎 ↑ R; the GeMM operation
+computes 𝑌 ↘ 𝑍𝑊𝑋 + 𝑎𝑌. In this formulation 𝑂 row and 𝑂 col denote the row and column dimensions
+of the output matrix 𝑌, while 𝑂 red is the reduction dimension, corresponding to the shared inner
+dimension of input matrices 𝑊 and 𝑋.
+
+Fig. 3. Computation of a tile in a GeMM, 𝑌 ↘ 𝑍𝑊𝑋 + 𝑎𝑌, requires a sweep of a row of tiles of 𝑊 and a column
+of tiles of 𝑋.
+
+The GPU GeMM algorithm [22] partitions the output matrix 𝑌 into tiles of size 𝑏 row ↓𝑏 col (padding
+zeros if necessary to "t dimensions). The computation of a tile of 𝑌 is assigned to an SM. The input
+matrices 𝑊 and 𝑋 are tiled into tiles of dimensions 𝑏 row ↓ 𝑏 red and 𝑏 red ↓ 𝑏 col . Here, we shall refer to
+𝑏 red as the reduction tile dimension. Each SM loads the corresponding input tiles into local memory
+to compute its assigned output tile. See Fig. 3 for a visual representation of this process.
+Tensor Cores can only be used if the output tile dimensions belong to a particular GPU-dependent
+set, Tout and the reduction tile dimension belongs to a set Tred . Tile dimensions in Tout and Tred
+𝑋100 = {(256, 128), (128, 256), (128, 128),
+are always powers of 2. For instance, on the A100 GPU, Tout
+(256, 64), (64, 256), (128, 64), (64, 128), (64, 64)}, and typically Tred = {32, 64}. Moreover, Tensor
+Cores provide a substantially higher FLOP/s rate for GeMM with any of the allowed tile con"gurations as compared to CUDA cores. Therefore it is most often bene"cial to pad the input and
+output matrices with zeros in order to partition it into tiles that "t in Tout and Tred , even though it
+leads to redundant (zero-padding) computation. When zero padding is used, the FLOP/s rate only
+counts the useful computations and excludes redundant computations, i.e., the theoretical peak is
+computed using the original matrix sizes, not the padded sizes. For a detailed discussion on the
+characteristics of matrix sizes and FLOP/s rate of GeMMs, refer [22].
+Suppose the GeMM computation uses output tile dimensions 𝑏 row ↓ 𝑏 col and reduction tile
+dimension 𝑏 red . The output matrix 𝑌 then contains ≃𝑂 row /𝑏 row ⇐ · ≃𝑂 col /𝑏 col ⇐ tiles, and each output tile
+requires ≃𝑂 red /𝑏 red ⇐ tile-pairs of 𝑊 and 𝑋 to be multiplied (ref. Fig. 3). Let 𝑐 (𝑏 row, 𝑏 col, 𝑏 red ) denote the
+speed of computing the GeMM of a tile-pair with dimensions 𝑏 row ↓ 𝑏 red and 𝑏 red ↓ 𝑏 col , and recall
+that 𝑉 is the number of SMs on the GPU. Then, we model the total time to complete the GeMM as
+#
+$#
+$#
+$
+1
+𝑂 row 𝑂 col 𝑂 red
+𝑑GeMM (𝑂 row, 𝑂 col, 𝑂 red, 𝑏 row, 𝑏 col, 𝑏 red ) =
+.
+(2)
+𝑉𝑐 (𝑏 row, 𝑏 col, 𝑏 red ) 𝑏 row 𝑏 col 𝑏 red
+Here, 1/𝑉 accounts for the parallelism provided by the 𝑉 SMs, 1/𝑐 (𝑏 row, 𝑏 col, 𝑏 red ) captures the e#ective
+time to compute one tile-pair multiplication, and the remaining terms count the total number of
+tile-pair multiplications needed.
+⇒ , 𝑏⇒ ) ↑ T
+A!!"#$%&’( 1. There exists output tile dimensions (𝑏 row
+out and a reduction tile size
+col
+⇒
+𝑏 red ↑ Tred such that if a GeMM’s matrices are a) su"ciently large, i.e., can fully utilize the GPU’s
+
+compute resources, and b) are perfectly tiled i.e., there is no padding overhead, then the GPU achieves
+its maximal FLOP/s rate.
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:8
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+Assumption 1 is well supported by empirical studies of GeMM performance on modern GPUs
+⇒ ↓𝑏 ⇒
+[22]. Intuitively, when matrices are su!ciently large and partition exactly into the tile size 𝑏 row
+col
+⇒ along the reduction dimension, the GPU can fully utilize its
+along the output dimensions and 𝑏 red
+SMs by creating a large number of independent tile computations. These output tile dimensions
+⇒ ↓ 𝑏 ⇒ are typically the largest in T which leads to higher arithmetic intensity–the ratio of
+𝑏 row
+out
+col
+$oating-point operations to memory accesses–thereby enabling more e!cient use of memory
+bandwidth and allowing the GPU to operate at its peak throughput. For instance, in the A100 GPU,
+⇒ ↓ 𝑏 ⇒ is either 128 ↓ 256 or 256 ↓ 128 and 𝑏 ⇒ is 32.
+𝑏 row
+col
+red
+GeMV. Let 𝑊 ↑ R𝑁row ↓𝑁col , 𝜴 ↑ R𝑁col , and 𝜹 ↑ R𝑁row . Then, for scalars 𝑍, 𝑎, the GeMV operation
+computes 𝜹 ↘ 𝑍𝑊𝜴 + 𝑎𝜹. The GeMV is also implemented by tiling the output vector 𝜹 into
+sub-vectors of size 𝑏 row , which are assigned to individual SMs and computed using CUDA cores.
+Correspondingly, the matrix 𝑊 is partitioned into tiles of size 𝑏 row ↓ 𝑏 col , and the input vector 𝜴 into
+tiles of size 𝑏 col . Let 𝑐 (𝑏 row, 𝑏 col ) denote the speed of computing a single tile-pair GeMV. Then the
+total time to complete the GeMV is modeled as
+#
+$#
+$
+1
+𝑂 row 𝑂 col
+𝑑GeMV (𝑂 row, 𝑂 col, 𝑏 row, 𝑏 col ) =
+.
+(3)
+𝑉𝑐 (𝑏 row, 𝑏 col ) 𝑏 row 𝑏 col
+
+Because GeMV performs fewer $oating-point operations per byte of memory tra!c than GeMM,
+its arithmetic intensity is lower and thus it is less e!cient in terms of memory bandwidth utilization.
+This motivates the following assumption.
+A!!"#$%&’( 2. Let 𝑂 row, 𝑂 col, 𝑂 red ↑ N. Let 𝑊 ↑ R𝑁row ↓𝑁red . Let, 𝜴 (1), . . . , 𝜴 (𝑂 col ) ↑ R𝑁red ↓1
+and 𝜹(1), . . . , 𝜹(𝑂 col ) ↑ R𝑁row ↓1 be 2𝑂 col vectors. Denote the respective stacked vectors as, 𝑒 =
+[𝜴 (1) 𝜴 (2) . . . , 𝜴 (𝑂 col )] and 𝑓 = [𝜹(1) 𝜹(2) . . . 𝜹(𝑂 col )]. Let 𝑍, 𝑎 ↑ R. We will assume, that the
+time required to compute the set of GeMVs, 𝜹(𝑄) ↘ 𝑍𝑊𝜴 (𝑄) + 𝑎𝜹(𝑄) for all 𝑄 ↑ {1, . . . , 𝑂 col }, is greater
+than the time required to compute the GeMM, 𝑓 ↘ 𝑍𝑊𝑒 + 𝑎𝑓 .
+3
+
+LLM Inference System Model
+
+We shall consider an LLM inference system consisting of 𝑔 inference nodes coordinated by a central
+resource planner as shown in Fig. 4 which function as follows.
+Inference node: An inference node is the basic computational unit responsible for performing
+LLM inference. For large models such as GPT-3, PaLM, etc., inference is typically performed using
+multiple GPUs due to memory constraints. However, all GPUs within a node participate in a
+"xed execution pipeline using tensor-parallelism[21] or pipeline-parallelism[9]. Without loss of
+generality, it is convenient to model an inference node as operating on a single GPU.
+The primary decision process at an inference node lies in its LLM inference scheduler which
+decides the order in which to schedule tasks on the node’s GPU. The design of LLM inference
+schedulers is the focus of this work, and, we describe a general framework to study them in Section
+3.1, after a brief description of the resource planner below.
+Resource planner: The resource planner receives incoming requests in the form of prompts and
+assigns each one to an inference node, where the request joins a queue and waits to be served.
+The planner continuously monitors the status of all inference nodes—tracking metrics such as the
+number of pending requests, request latencies, and memory usage (including risks of over$ows).
+Based on this information, it may choose to reassign waiting requests or even migrate partially
+processed requests to other nodes. When a partially completed request is migrated, the source node
+must transfer the partially computed KV cache to the destination node, which might incur a cost
+such as the time required to complete the transfer.
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:9
+
+Fig. 4. An LLM inference system.
+
+A resource planner in some systems, such as in NVIDIA Dynamo[4], has the ability to turn o#
+some inference nodes when they are being underutilized, and turn them on when the system is
+congested. This feature is especially useful towards achieving energy e!ciency when the request
+arrival pattern is heterogeneous and may vary through time. We focus on stationary request arrivals
+in our work for analytical tractability, and do not study policies to turn nodes on or o#.
+3.1
+
+A General Framework for LLM Inference Schedulers
+
+We consider a class of schedulers that schedule batches of request iterations non-preemptively that
+captures a range of existing schedulers in the literature. In this context, the meaning of an iteration
+of a request depends on whether it is in the pre"ll-phase or the decode-phase, as de"ned below.
+D)*&(&%&’( 1 (P+)*&,,-I%)+.%&’(). For a request 𝑕, a chunk-size 𝑖, and starting token index 𝑄, a
+pre!ll-iteration, denoted 𝑗𝑘 (𝑕, 𝑄, 𝑖), involves computing the KV vectors for each layer corresponding
+to prompt token indices in the range 𝑄 to 𝑄 + 𝑖 ⇑ 1 (both inclusive). Once the iteration is complete, the
+starting token index is updates to 𝑄 + 𝑖.
+In order to schedule 𝑗𝑘 (𝑕, 𝑄, 𝑖) on the GPU, the KV vectors for tokens up to index 𝑄 ⇑ 1 must
+have been previously computed and cached in GPU memory, and 𝑄 + 𝑖 ⇑ 1 should not exceed the
+prompt length. Moreover, if 𝑄 + 𝑖 ⇑ 1 corresponds to the last prompt token, then the pre"ll-iteration
+generates the "rst output token.
+D)*&(&%&’( 2 (D)/’0)-I%)+.%&’(). An iteration of a request 𝑕 in the decode-phase, denoted
+𝑙𝑘 (𝑕, 𝑄), corresponds to the generation of the next output token which is at index 𝑄 + 1.
+
+In order to schedule 𝑙𝑘 (𝑕, 𝑄), all the KV vectors for tokens up to index 𝑄 ⇑ 1 must be previously
+computed and cached in GPU memory. Moreover, index 𝑄 should not correspond to a prompt token,
+and should not correspond to a token that follows the stop token.
+Let P𝑌 and D𝑌 be the sets of requests that are in their pre"ll-phase and decode-phase respectively
+just prior to the construction of batch 𝑚. Let B𝑌 denote the set of iterations to be scheduled in
+𝑉 of 𝑛 𝑉 pre"ll-phase requests from P
+batch 𝑚. Initialize B𝑌 = ⇓. A scheduler selects a subset S𝑌
+𝑌
+𝑌
+𝑊
+𝑊
+and subset S𝑌 of 𝑛𝑌 decode-phase requests from D𝑌 and constructs the batch as follows: 1) for
+𝑉 with starting token index 𝑄 , it chooses a chunk size
+each selected pre"ll-phase request 𝑕 𝑍 ↑ S𝑌
+𝑍
+𝑊 with the latest
+𝑖 𝑍 and adds 𝑗𝑘 (𝑕 𝑍 , 𝑄 𝑍 , 𝑖 𝑍 ) to B𝑌 ; 2) for each selected decode-phase request 𝑕 𝑍 ↑ S𝑌
+token index 𝑄 𝑍 , it adds 𝑙𝑘 (𝑕 𝑍 , 𝑄 𝑍 ) to B𝑌 . At most one decode-iteration can be scheduled per request
+in a batch. Then, it schedules B𝑌 on the GPU. Note that all the iterations within the batch may be
+processed in parallel by the GPU. A description of some existing LLM schedulers expressed in this
+framework is provided in Appendix E.
+Next, we discuss how computations corresponding to a batch are performed on the GPU.
+3.2
+
+LLM Inference Computation on the GPU
+
+We split the operations involved into 3 categories.
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:10
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+3.2.1 Linear transformations: This category includes the QKV projections in each layer, the
+linear computations in the FFN sub-layer of each layer and also the "nal linear projection. In all
+computations in this category, a weight matrix of the transformer multiplies a token feature vector.
+In particular, these computations involve the features of the present token, and do not involve any
+previous tokens in the sequence.
+In line with Assumption 2, this operation may be scheduled e!ciently as a GeMM instead of
+multiple GeMVs as follows. Let 𝑃 denote the weight matrix of the transformer. Let 𝑜𝑌 denote
+𝑊 +%
+the token-count of the 𝑚 th batch, which is, 𝑜𝑌 = 𝑛𝑌
+𝑀 𝑖 𝑍 . Stack all the 𝑜𝑌 corresponding
+𝑍:𝑎 𝑂 ↑ S𝑃
+𝐿𝑀
+𝑏𝑐𝑑
+𝐿𝑀
+feature vectors into a matrix 𝑝 and compute 𝑝
+= 𝑃 𝑝 . Let (𝑏 row, 𝑏 col ) ↑ Tout and 𝑏 red ↑ Tred
+denote the output tile dimensions and reduction tile dimension used respectively for all linear
+transformations. For simplicity, we use a common tile con"guration across transformations, as
+Assumption 1 implies a single tile con"guration can achieve optimal performance across di#erent
+GeMM dimensions.
+Consider the QKV projection in layer 𝑁. The dimensions of 𝑃𝑃𝑀 , 𝑃𝑄𝑀 and 𝑃𝑅𝑀 are 𝑂 ↓ 𝑂𝑂 . Then,
+𝑀
+𝑒 , which is the stack of 𝑜𝑌 number of 𝜴 𝑀 ’s, has a dimension of 𝑂𝑂 ↓ 𝑜𝑌 . And the 3 output matrices,
+which are the stacks of 𝜶𝑀 ’s, 𝜷 𝑀 ’s and 𝜸𝑀 ’s respectively of tokens in the batch, have a dimension
+of 𝑂 ↓ 𝑜𝑌 each. Since the model dimensions are designed with hardware in mind, 𝑂, 𝑂𝑂 (as well as
+other model dimensions) are divisible by the tile dimensions.
+according to (2), the time
+& Therefore,
+'
+𝑁𝐿 𝑁
+𝑔𝑃
+3
+required to complete the 3 GeMMs is, 𝑒𝑓 (𝑑row,𝑑col,𝑑red ) 𝑑red 𝑑row 𝑑col . The two FFN sub-layer matrices
+𝑃𝑆𝑀1 and 𝑃𝑆𝑀2 have dimensions 𝑂 # ↓ 𝑂 and 𝑂𝑂 ↓ 𝑂 # , respectively. Denote the dimension of the "nal
+linear projection matrix as 𝑂 out ↓𝑂𝑂 . Recalling that there are 𝑀 layers in the transformer, the amount
+of time required to compute the linear transformations for a batch with token count 𝑜𝑌 is,
+(
+)# $
+1
+𝑂𝑂 𝑂
+𝑂 𝑂#
+𝑂 # 𝑂𝑂
+𝑂𝑂 𝑂 out 𝑜𝑌
+3𝑀
++𝑀
++𝑀
++
+𝑉𝑐 (𝑏 row, 𝑏 col, 𝑏 red )
+𝑏 red 𝑏 row
+𝑏 red 𝑏 row
+𝑏 red 𝑏 row
+𝑏 red 𝑏 row 𝑏 col
+In the above formula, the scheduler can only modify the token count of the batch, but not any
+of the transformer’s parameters. So, we can abstract out "xed components, and express the time
+required to complete the linear transformation computations for the tokens in a batch as,
+# $
+1
+𝑜𝑌
+.
+(4)
+𝑐Lin (𝑏 row, 𝑏 col, 𝑏 red ) 𝑏 col
+
+3.2.2 Self-a"ention: This computation has di#erent characteristics in decode and pre"ll iterations.
+The self-attention for a decode-iteration of a request consists of performing GeMV operations
+which cannot be scheduled as a GeMM using batching across requests because each request has a
+unique KV cache. Consider a decode-iteration 𝑙𝑘 (𝑕 𝑍 , 𝑄 𝑍 ) in the batch. Its self-attention computation
+involves 2 GeMV’s: one with a matrix of size 𝑂 ↓ 𝑄 𝑍 and a vector of length 𝑄 𝑍 , and another with a
+matrix of size 𝑄 𝑍 ↓ 𝑂 and a vector of length 𝑂. Let (𝑏 row, 𝑏 col ) be the optimal tile con"guration for the
+GeMV. Then, from (3), the time required to perform Self-Attenion at layer 𝑁 for this decode-iteration
+is,
+(
+#
+$ # $
+)
+𝑄𝑍
+𝑄𝑍
+1
+𝑂
+𝑂
++
+⊋ 𝑑 𝑊,𝑕𝑋 (𝑄 𝑍 ).
+(5)
+𝑐 (𝑏 row, 𝑏 col ) 𝑏 col 𝑏 row
+𝑏 col 𝑏 row
+Above, we use 𝑑 𝑊,𝑕𝑋 (·) to encapsulate the "xed components of the self-attention computation time.
+On the other hand, since pre"ll-iterations may be scheduled for a chunk of tokens at a time, their
+self-attention may be computed as a GeMM as follows. Consider a pre"ll-iteration 𝑗𝑘 (𝑕 𝑍 , 𝑄 𝑍 , 𝑖 𝑍 )
+at layer 𝑁 of the Transformer. Stack the 𝑄 𝑍 + 𝑖 𝑍 ⇑ 1 each of key and value vectors of dimension 𝑂
+of the "rst 𝑄 𝑍 + 𝑖 𝑍 ⇑ 1 tokens into matrices 𝑅 𝑀 and 𝑆 𝑀 . Stack the 𝑖 𝑍 query vectors of dimension 𝑂
+corresponding to the current chunk into the matrix 𝑇 𝑀 . Let 𝑞 be a masking matrix of dimension
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:11
+
+(𝑄 𝑍 + 𝑖 𝑍 ⇑ 1) ↓ 𝑖 𝑍 , where each entry is 1 except in indices (𝑟 1, 𝑟 2 ) satisfying 𝑟 1 > 𝑄 and 𝑟 2 ⇔ 𝑟 1 ⇑ 𝑄,
+where it is set to 0. The masking matrix allows a token to only attend to previous tokens in
+the prompt sequence.
+the+stack of output vectors of the self-attention may be computed
+* Then,
+𝑄 𝑄 ↔𝑃 𝑄
+𝑀
+𝑀
+as, 𝑓 = 𝑆 softmax ↗
+↖ 𝑞 , where ↖ denotes an element-wise product. Observe that this
+𝑁
+requires: 1) a GeMM between matrices of dimensions (𝑄 𝑍 +𝑖 𝑍 ⇑1) ↓ 𝑂 and 𝑂 ↓ 𝑖 𝑍 , 2) element-wise
+multiplication with the mask 𝑞 followed by a non-linearity (softmax), and 3) another GeMM
+between 𝑂 ↓ (𝑄 𝑍 +𝑖 𝑍 ⇑1) and (𝑄 𝑍 +𝑖 𝑍 ⇑1) ↓ 𝑖 𝑍 matrices. Let (𝑏 row, 𝑏 col ) ↑ Tout and 𝑏 red ↑ Tred denote the
+output tile dimensions and reduction tile dimension used respectively for both the GeMMs. We
+assume the cost of masking and softmax is negligible for simplicity. Then, according to (2), the time
+required to compute the self-attention across all 𝑀 layers is:
+(#
+$# $
+# $#
+$)
+𝑄𝑍 + 𝑖𝑍 ⇑ 1 𝑖𝑍 𝑂
+𝑖𝑍 𝑄𝑍 + 𝑖𝑍 ⇑ 1
+𝑀
+𝑂
++
+.
+(6)
+𝑉𝑐 (𝑏 row, 𝑏 col, 𝑏 red )
+𝑏 row
+𝑏 col 𝑏 red
+𝑏 row 𝑏 col
+𝑏 red
+R)#.+1 1. For simplicity, we describe the computation of self-attention as two successive GeMM’s
+interleaved with non-linear operations. In practice, systems usually use FlashAttention [5]-a hardwaree"cient algorithm which minimizes the number of memory transfers by fusing operations and reordering computation using tiling. Our approach and analysis can be adapted for FlashAttention with
+appropriate modi!cations to (6). We leave this to future work.
+
+3.2.3 Non-Linear Operations: Each SM in a GPU has a Special-Function-Unit that e!ciently
+computes non-linear functions. Transformers include non-linear operations such as ReLU, softmax,
+etc., which—like Linear Transformations—operate only on the tokens being processed in the batch.
+1
+The time to compute all non-linear operations for a single token is denoted by 𝑓nLin
+. Thus, for a
+1
+batch containing 𝑜𝑌 tokens, the total computation time is 𝑓nLin 𝑜𝑌 , where 𝑐nLin denotes the rate at
+which non-linear operations are performed per token.
+Batch execution time: Recall that B𝑌 denotes the 𝑚 th batch with pre"ll-iterations from requests
+𝑉 and decode-iterations from requests in S 𝑊 . Then, summing up the computations times from
+in S𝑌
+𝑌
+(4), (5) and (6) for all the iterations, we express the batch computation time as,
+# $
+,
+1
+𝑜𝑌
+1
+𝑑𝑖 (B𝑌 ) =
++
+𝑜𝑌 + 𝑀
+𝑑 𝑊,𝑕𝑋 (𝑄 𝑍 )
+𝑐Lin (𝑏 row, 𝑏 col, 𝑏 red ) 𝑏 col
+𝑐nLin
+𝑁
+𝑍:𝑎 𝑂 ↑ S𝑃
+(#
+$# $
+# $#
+$)
+(7)
+,
+𝑄𝑍 + 𝑖𝑍 ⇑ 1 𝑖𝑍 𝑂
+𝑖𝑍 𝑄𝑍 + 𝑖𝑍 ⇑ 1
+𝑀
+𝑂
++
++
+.
+𝑉𝑐 (𝑏 row, 𝑏 col, 𝑏 red )
+𝑏 row
+𝑏 col 𝑏 red
+𝑏 row 𝑏 col
+𝑏 red
+𝑀
+𝑍:𝑎 𝑂 ↑ S𝑃
+
+The ceiling function in the batch execution time formula captures the staircase-behaviour observed
+in practice. See [17, Figure 4].
+Next, we present our main theoretical contribution: a simple resource planner and a scheduler that
+maximizes the throughput—measured in requests per second—under stationary request arrivals.
+4 A Throughput Optimal Inference System
+4.1 Throughput optimal resource planner
+
+For simplicity, we assume that all 𝑔 Inference Nodes in the system are identical and are running
+the same Transformer model. We consider a simple uniformly random resource planner, which
+distributes each incoming request uniformly at random to one of the 𝑔 inference nodes.
+The random-routing assumption represents a simpli"ed setting. The multi-node model is included
+to re$ect large-scale inference architectures, which typically involve multiple GPUs or servers.
+Within the homogeneous setup considered here, random routing su!ces to achieve throughput
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:12
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+optimality. In more realistic deployments—featuring heterogeneous nodes, bursty workloads, or
+latency-sensitive objectives—more sophisticated routing strategies may be required. This model
+thus serves as a foundational step toward analyzing such richer settings.
+A general resource planner in our model (see Fig. 4) has the ability to monitor node statuses
+and transfer pending or partially processed requests from one node to another. While the simple
+resource planner above does neither of these, we show that, combined with our proposed scheduler
+in Section 4.2, it maximizes resource utilization and is thus throughput-optimal, even when the
+cost of transferring the KV cache of partially processed requests between nodes is 0. The ability to
+monitor node status and transfer requests becomes particularly useful in practical systems that
+aim to minimize delay or satisfy strict latency SLO constraints [4].
+4.2
+
+RAD: A throughput optimal scheduler
+
+Our proposed Resource-Aware-Dynamic (RAD) Scheduler is shown in Algorithm 1. The time
+horizon of RAD can be partitioned into cycles, where in a cycle, RAD schedules a sequence of
+batches that start and complete up to 𝑁 requests, with 𝑁 being a parameter. Now, in addition to 𝑁,
+⇒ , 𝑏 ⇒ ) ↑ T and reduction tile dimension
+RAD also accepts the optimal output tile dimensions, (𝑏 row
+out
+col
+⇒
+𝑏 red ↑ Tred as in Assumption 1, for optimal GeMM computation on the GPU. The central design
+principle of RAD is two-fold.
+Optimal GeMM tiling. RAD schedules batches such that all GeMM computations in the batch are
+⇒ decode-iterations in a batch, or, scheduling a
+optimally tiled. It does so by either scheduling 𝑏 col
+⇒ , 𝑏 ⇒ , 𝑏 ⇒ ), where LCM stands for least-commonpre"ll-iteration with chunk size equal to LCM(𝑏 row
+col red
+multiple. This tiling strategy is violated only in rare cases—speci"cally, near the end of a cycle—as
+further explained in the description of Algorithm 1.
+Optimal resource allocation via dynamic scheduling of pre"ll and decode. RAD dynamically
+prioritizes pre"ll or decode iterations based on the request arrival pattern and its characteristics.
+For instance, if the requests have very long prompts but short output lengths, it spends more time
+performing pre"ll iterations. On the other hand, if the requests have relatively shorter prompt
+lengths and longer output lengths, it spends more time performing decode iterations. In this context,
+pre"ll and decode phases may be viewed as two classes of tasks, and that RAD partitions the node’s
+service capacity such that both pre"ll and decode tasks may be completed.
+In addition to the above principles, RAD also manages GPU memory and prevents over$ow
+by limiting the number of active requests —requests that currently store their KV cache in GPU
+⇒ , the number required for optimal tiling. See Assumption 4 for further details.
+memory— to 𝑏 col
+At a high level, RAD alternates between two operational modes—Pre"ll Mode and Decode
+⇒
+Mode—as illustrated in Figure 5. At the start of a cycle, RAD enters Pre"ll Mode, completing 𝑏 col
+pre"ll-phase requests, after which the same number of decode-phase requests become active. It then
+transitions to Decode Mode, scheduling decode iterations for these active requests in optimally tiled
+batches. When one or more decode-phase requests complete, RAD switches back to Pre"ll Mode
+⇒ active decode-phase
+to process additional pre"ll-phase requests until there are again exactly 𝑏 col
+requests, thereby re-enabling e!cient decode batching. Once a su!cient number of requests have
+been completed in the current cycle, RAD "nishes the remaining ones—even if their batches are
+not optimally tiled—before beginning the next cycle.
+Next, we provide a detailed explanation of RAD as shown in Algorithm 1. Let P and D denote
+the set of requests in pre"ll and decode phases respectively. A variable, 𝑔𝑠𝑡𝑢𝑠𝑉𝑏𝑉_𝑄𝑁_𝑖𝑣𝑖𝑈𝑠 keeps
+track of how many requests have started processing (i.e., have had an iteration scheduled) in the
+current cycle. During a cycle, we continue to update P with any requests that arrive. Then at the
+completion of a batch, the next batch is selected as follows. If there are no requests in P or Q, the
+scheduler simply waits until a new arrival happens (lines 5). Otherwise, 1) If there are enough decode
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:13
+
+Fig. 5. High-level operation of the RAD scheduler. In Prefill Mode, the scheduler completes prefill iterations
+⇒ active decode-phase requests, at which point it switches to Decode
+with optimal tiling until there are 𝑏 col
+Mode. In Decode Mode, it schedules decode iterations for these active requests until at least one completes,
+a!er which it switches back to Prefill Mode.
+
+phase requests, or there are no pre!ll phase requests, or 𝑁 requests have started processing in the current
+cycle (Lines 6-11): RAD selects one decode iteration per request in D and runs them together as a
+batch. After the GPU completes processing the batch, any requests that sampled the stop token
+are removed. If D is now empty, it signals the end of the current cycle, and 𝑔𝑠𝑡𝑢𝑠𝑉𝑏𝑉_𝑄𝑁_𝑖𝑣𝑖𝑈𝑠 is
+set to 0. 2) Else (Lines 12-21): RAD chooses a request in a "rst-come-"rst-serve (FCFS) manner
+from P and schedules its pre"ll-iterations in chunks of size LCM(𝑏 row, 𝑏 col, 𝑏 red ), unless there are
+fewer tokens, until its pre"ll phase is complete. The request is then moved to D, and the number
+𝑔𝑠𝑡𝑢𝑠𝑉𝑏𝑉_𝑄𝑁_𝑖𝑣𝑖𝑈𝑠 is updated.
+Algorithm 1 Resource Aware Dynamic (RAD) Scheduler
+Require: Parameter 𝑁
+// Max number of prefills per cycle
+⇒ , 𝑏 ⇒ ) and reduction tile dimension 𝑏 ⇒
+Require: Output tile size (𝑏 row
+col
+red // For optimal tiling
+1: P ↘ ⇓, D ↘ ⇓
+// Set of requests in prefill and decode phase
+2: 𝑔𝑠𝑡𝑢𝑠𝑉𝑏𝑉_𝑄𝑁_𝑖𝑣𝑖𝑈𝑠 ↘ 0
+3: while True do
+4:
+Update P based on new arrivals
+5:
+if P = ⇓ and D = ⇓ then continue
+// Do nothing
+⇒ or P = ⇓ or 𝑔𝑠𝑡𝑢𝑠𝑉𝑏𝑉_𝑄𝑁_𝑖𝑣𝑖𝑈𝑠 = 𝑁 then
+6:
+else if |D | = 𝑏 col
+7:
+Schedule a DI with appropriate token index for each request in D in a batch
+8:
+Remove requests that sampled the stop token from D
+9:
+If D = ⇓ then 𝑔𝑠𝑡𝑢𝑠𝑉𝑏𝑉_𝑄𝑁_𝑖𝑣𝑖𝑈𝑠 ↘ 0
+// End of cycle
+10:
+else
+11:
+Choose a request 𝑕 "rst-come-"rst-serve from P and set 𝑄 ↘ 1
+12:
+while pre"ll phase of the chosen request is incomplete do
+⇒ , 𝑤 𝑉 (𝑕) ⇑ 𝑄}
+⇒ = LCM(𝑏 ⇒ , 𝑏 ⇒ , 𝑏 ⇒ )
+13:
+𝑖 = min{𝑏 lcm
+// 𝑏 lcm
+row col red
+14:
+Schedule 𝑗𝑘 (𝑕, 𝑄, 𝑖) in a batch
+15:
+𝑄 ↘ 𝑄 +𝑖
+16:
+end while
+17:
+Move the request from P to D
+18:
+𝑔𝑠𝑡𝑢𝑠𝑉𝑏𝑉_𝑄𝑁_𝑖𝑣𝑖𝑈𝑠 ↘ 𝑔𝑠𝑡𝑢𝑠𝑉𝑏𝑉_𝑄𝑁_𝑖𝑣𝑖𝑈𝑠 + 1
+19:
+end if
+20: end while
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:14
+
+4.3
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+Throughput Optimality Characterization
+
+The following theorem characterizes the maximum arrival rate under which any routing and
+scheduling policy could be stable.
+T2)’+)# 1 (U$$)+ B’"(0). Consider a system with a resource planner and 𝑔 identical inference
+nodes. Let requests arrive to the system according to a Poisson-Point-Process (PPP) of rate 𝑥. Let the
+𝑦 th request arrival, 𝑕 𝑍 , have prompt and output lengths, 𝑤𝑉𝑍 and 𝑤𝑊𝑍 , sampled according to a bounded
+joint-distribution 𝑧 𝑗𝑀 ,𝑗𝑁 , i.i.d., across requests.
+⇒ , 𝑏⇒ ) ↑ T
+⇒
+Let (𝑏 row
+out and 𝑏 col ↑ Tred be the optimal output tile dimensions and reduction tile
+col
+⇒ = LCM(𝑏 ⇒ , 𝑏 ⇒ , 𝑏 ⇒ ). De!ne,
+dimension respectively from Assumption 1, and let, 𝑏 lcm
+row col red
+- 𝑉
+.
+.
+𝑁
+,
+
+𝑗
+
+E 𝑤 + 𝑤𝑊
+E 𝑤𝑉 + 𝑤𝑊
+1
+𝑎
+𝑊,𝑕𝑋 𝑉
+
+
+¯
+𝑑 =
++
++
+𝑀
+E
+𝑑
+(𝑤
++
+𝑄)
+⇒ , 𝑏⇒ , 𝑏⇒ )
+⇒
+
+
+𝑐Lin (𝑏 row
+𝑏 col
+𝑐nLin
+ 𝐿=1
+
+col red
+
+
+- 𝑉 𝑉 ⇒ .
+𝑀𝑂
++
+⇒ , 𝑏 ⇒ , 𝑏 ⇒ )𝑏 ⇒ 𝑏 ⇒ 𝑏 ⇒ E 𝑤 (𝑤 + 𝑏 lcm ) .
+𝑉𝑐 (𝑏 row
+col red row col red
+Denote 𝑇 (𝑏) to be the number of pending requests in the system at time 𝑏, i.e., those that have arrived
+but not yet completed service. Under Assumptions 1 and 2, if 𝑥𝑑¯ 𝑎 > 𝑔 , there exists an 𝑍 > 0 such that
+for any resource planner and scheduler, lim𝑑 →↙ 𝑃 𝑑(𝑑 ) > 𝑍 almost surely.
+
+The proof of Theorem 1 can be found in Appendix B. Intuitively, the argument proceeds by
+showing that, in the best case, an inference node may be viewed as a single server system with
+expected service time 𝑑¯ 𝑎 . Then, instability may be shown to occur when the load on the system
+exceeds its service capacity.
+Next, we proceed to analyze the range of arrival rates under which the RAD scheduler stabilizes
+the system. First, we make two assumptions.
+⇒ , 𝑏 ⇒ ) and 𝑏 ⇒ be output tile dimensions and reduction tile dimension used
+A!!"#$%&’( 3. Let (𝑏 row
+col
+red
+⇒ , 𝑏 ⇒ , 𝑏 ⇒ ) almost surely. Finally,
+by RAD. Then, prompt lengths 𝑤𝑉 ∝ 𝑧 𝑗𝑀 are multiples of LCM(𝑏 row
+col row
+𝑉,max
+assume the prompt and output lengths are upper bounded by 𝑈
+and 𝑈 𝑊,max respectively.
+
+The upper bound on the prompt and output lengths is natural since LLMs only support bounded
+⇒ , 𝑏 ⇒ , 𝑏 ⇒ ), then any scheduler
+context lengths. If the prompt length is not a multiple of LCM(𝑏 row
+col row
+may have to complete a part of the pre"ll-phase with non-optimal tiling. We make this assumption
+to simplify our scheduler and its analysis.
+⇒ , 𝑏 ⇒ ) be the output tile dimensions used by RAD. Each inference node is
+A!!"#$%&’( 4. Let (𝑏 row
+col
+⇒ concurrent requests, each with
+provisioned with su"cient GPU memory to store the KV cache for 𝑏 col
+𝑉,max
+𝑊,max
+𝑉,max
+𝑊,max
+prompt length 𝑈
+and output length 𝑈
+, where 𝑈
+and 𝑈
+are de!ned in Assumption 3.
+
+This assumption ensures that su!cient GPU memory is available to accommodate the worst-case
+KV cache requirements needed by the RAD scheduler. The above assumption is also a mild one
+⇒ is typically as small as 64 or 128. Modern LLM inference nodes that use paged-attention
+because 𝑏 col
+[15] are able to accommodate the KV-cache of these many requests in their GPU memory.
+Next, we state our result which characterizes the loads that the RAD scheduler combined with a
+simple resource planner can stabilize.
+T2)’+)# 2 (T2+’"32$"% O$%&#.,&%4 ’* RAD). Consider a system with a uniformly random
+resource planner, and 𝑔 identical Inference Nodes running the RAD scheduler. Let requests arrive
+according to a Poisson Point Process (PPP) of rate 𝑥. Let the 𝑦 th request arrival, 𝑕 𝑍 , have prompt and
+output lengths, 𝑤𝑉𝑍 and 𝑤𝑊𝑍 , sampled according to a joint-distribution 𝑧 𝑗𝑀 ,𝑗𝑁 , i.i.d., across requests.
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:15
+
+Suppose Assumptions 1, 2, 3, and 4 hold. Let 𝑑¯ 𝑎 be as de!ned in Theorem 1. De!ne the worst-case
+time to complete a request as:
+
+ 𝑉,max 𝑊,max
+
+𝑈 𝑀,max,
++𝑈 𝑁,max
+𝑉,max + 𝑈 𝑊,max
+ 𝑈
+
++
+𝑈
+𝑈
+𝑊,𝑕𝑋
+
+𝑑
+⊋
+max
++
++𝑀
+𝑑
+(𝑄)  .
+
+𝑐nLin
+(𝑑 row ,𝑑 col ) ↑ Tout , 𝑑 red ↑ Tred  𝑐 Lin (𝑏 row, 𝑏 col, 𝑏 red )
+
+𝐿=1
+
+
+𝑎
+Suppose there exists 𝛥 > 0 such that 𝑥𝑑¯ ⇔ 𝑔 (1 ⇑ 𝛥). Then, RAD with parameter 𝑁 satisfying
+max
+
+(𝑑 ⇒ ⇑1) 𝑘 max
+
+𝑁 > col 𝑙𝑘¯ 𝑅
+, is stable in the following sense. Let 𝑇𝑚 ′ (𝑏) denote the number of pending requests at
+node 𝑔 ′ at time 𝑏. For every 𝑔 ′ , (𝑇𝑚 ′ (𝑏))𝑑 ∞0 forms a positive-recurrent regenerative process[28].
+
+We outline the arguments used to prove the statement above. First we construct a discrete-time
+Markov chain (DTMC) for each node that tracks the number of requests at the node at the start of
+each cycle. We show that the DTMC is positive recurrent under the conditions of the Theorem.
+Further, we show that the expected time of a cycle is "nite. This leads us to conclude that the
+number of pending requests 𝑇𝑚 ′ (𝑏) at any time 𝑏 at a node 𝑔 ′ forms a positive-recurrent regenerative
+process— it visits 0 in "nite expected time. The proof can be found in Appendix C.
+5
+
+Practical Insights from Theory
+
+In Section 4, we identi"ed two key principles that make a system throughput optimal: 1) optimal
+GeMM tiling when there are su!cient requests in the system, 2) optimal resource allocation for
+pre"ll and decode iterations to account for variability and uncertainty of prompt and output lengths.
+In practice, LLM inference systems also have to meet other latency-based SLO constraints, such as
+TTFT and TBT as explained in the Section 1. We believe that designing a system that simultaneously
+achieves optimal GeMM tiling and optimal resource allocation, while maintaining low TTFT and
+TBT is challenging. As an illustrative example, consider an instance of running the RAD scheduler
+⇒ decode-iterations, one or more requests generate their stop token. In
+where in every batch of 𝑏 col
+this case, the RAD scheduler has to complete pre"ll-phases of an equal number of new requests
+in between every consecutive batch of decode-iterations. Since pre"ll-phases may take a while to
+complete because of long prompt lengths, all requests may experience high TBT. See Appendix D
+for a throughput-optimal scheduler with low TBT but which incurs high TTFT.
+In real-world deployments, meeting both TTFT and TBT constraints often necessitates a tradeo#
+between optimal tiling and optimal resource allocation. We examine two state-of-the-art LLM
+inference paradigms—single-node serving, where both the pre"ll and decode phases of each request
+are executed on the same inference node, and disaggregated serving, where these phases are
+distributed across di#erent nodes—and present a novel perspective on how these systems adopt
+complementary strategies to navigate this tradeo#.
+Single node serving maintains optimal resource allocation but sacri!ces optimal GeMM tiling.
+Consider, Sarathi-serve [2] a state-of-the-art single node serving scheduler. When enough requests
+are present, Sarathi-serve prioritizes "lling a batch with available decode iterations, then adds pre"ll
+⇒ . This dynamic batching
+iterations such that the total token count equals 𝑜budget , a multiple of 𝑏 col
+strategy is similar to the RAD scheduler’s, and preserves optimal allocation across pre"ll and decode.
+⇒ , 𝑏 ⇒ , 𝑏 ⇒ ), it
+However, since it does not enforce that pre"ll chunk sizes are multiples of LCM(𝑏 row
+col red
+does not guarantee optimal tiling. Other schedulers, such as vLLM [15] and Orca [33], also fall into
+the category of single-node serving schedulers.
+Disaggregated serving, by contrast, maintains optimal GeMM tiling but sacri!ces optimal resource
+allocation. Distserve [36], a state-of-the-art disaggregated serving scheduler, statically partitions
+inference nodes into pre"ll-nodes and decode-nodes. Pre"ll-nodes exclusively handle pre"ll iterations, which allows them to, in most cases, schedule with optimal chunk sizes, helping minimize
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:16
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+TTFT. Completed pre"ll-phase requests are transferred to decode-nodes. Decode-nodes handle
+⇒ decode requests when available, keeping TBT low. However,
+decode iterations and can batch 𝑏 col
+static partitioning may lead to resource imbalance: for instance, when prompt lengths are short
+but output lengths are long, decode-nodes may become overloaded while pre"ll-nodes remain
+underutilized.
+To address practical needs, we next consider the design of a scheduler that serves heterogeneous
+request classes subject to latency constraints at a single node. Since single node serving systems
+dynamically allocate resources and are therefore more robust to heterogeneity in request arrivals,
+we focus on this paradigm in the sequel.
+6
+
+SLO Aware LLM Inference Scheduler
+
+Request classes. In real-world LLM serving systems, requests may come from di#erent classes of
+user with heterogeneous latency SLOs. For example, paying users typically expect fast and smooth
+responses, especially during token generation, which requires stricter TBT deadlines. By contrast,
+free-tier users are generally more tolerant of delays and can be served with more relaxed TBT
+constraints. Managing these mixed latency requirements well is important to keep users satis"ed
+while making e!cient use of system resources.
+Recall that we consider a class of schedulers that executes pre"ll-phase and decode-phase requests
+as sequences of pre"ll-iterations and decode-iterations, respectively, see De"nitions 1 and 2.
+Motivation. The throughput-optimal RAD scheduler described in Section 4 focuses on maximizing throughput, but it does not consider latency SLOs during either the pre"ll or decode phases due
+to the challenges mentioned in Section 5. However, in practice, meeting these latency constraints is
+critical to deliver a good user experience.
+Sarathi-Serve, the current state-of-the-art scheduler, addresses this by chunking long pre"ll-phase
+requests into smaller chunks and interleaving them with decode-phase requests in each batch. Each
+batch is constrained by a token budget—the maximum number of tokens it can process. SarathiServe includes all active decode-phase requests from the previous batch in the current one and uses
+the remaining token budget to schedule pre"ll-iterations. However, it treats all decode-iterations of
+associated decode-phase requests as if they had the strictest TBT deadline, even when actual TBT
+deadlines vary across requests. While this conservative strategy ensures tail TBT latency is below
+some threshold, it can lead to ine!cient use of batch capacity and does not address reducing TTFT
+for pre"ll-phase requests. To overcome this limitation, we propose the SLO-Aware LLM Inference
+(SLAI) Scheduler. SLAI tracks each decode-iteration’s TBT deadline and delays its inclusion in a
+batch until necessary. This allows the scheduler to allocate more of the batch’s token budget to
+pre"ll-iterations earlier, without missing TBT deadlines on decode-iterations. As we will show, this
+approach better aligns scheduling decisions with request-speci"c needs, resulting in lower median
+TTFT for pre"ll-phase requests while still meeting tail TBT latency constraints on decode-iterations.
+Key concepts and parameters. We begin by explaining how SLAI dynamically decides when to
+include a decode-iteration in a batch. The key idea in this process is the last schedulable time, which
+determines when a decode-iteration becomes critical and must be included to meet its latency
+target.
+Let 𝛩 > 0 be an o#set parameter for SLAI that de"nes how early a decode-iteration should
+be considered critical. Consider the 𝑄 th decode iteration for a given request 𝑦 which has an SLO
+requirement of TBT 𝑍 , SLAI notes the end time of the most recent batch in which its (𝑄 ⇑ 1) th decodeiteration was included, denoted 𝑠𝐿 ⇑1,𝑍 . It also maintains the running average of batch execution
+times observed so far, denoted by 𝑏 batch . We de"ne its last schedulable time as:
+𝑌𝐿,𝑍 = 𝑠𝐿 ⇑1,𝑍 + TBT 𝑍 ⇑ 𝛩 · 𝑏 batch
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+(8)
+
+Optimal Scheduling for LLM Inference
+
+59:17
+
+This is the latest wall-clock time by which decode-iteration 𝑦 must be included in a batch to meet its
+TBT deadline. When constructing batch 𝑚 at time 𝑏𝑌 , the scheduler checks each active (in progress
+that currently occupies GPU memory) decode-phase request and labels its decode-iteration as
+critical if 𝑏𝑌 ∞ 𝑌𝐿,𝑍 ; otherwise, it is considered as non-critical and can be deferred to a later batch.
+Besides this dynamic prioritization, SLAI uses several key parameters to balance latency targets
+with e!cient GPU use. The token budget 𝑜 budget sets the maximum token count allowed in a batch,
+ensuring e#ective use of the GPU’s compute resources without violating TBT SLOs. A cap on
+the number of active requests 𝑍 limits how many active requests are allowed at once, helping
+prevent memory over$ows for large models or long prompts. A decode limit 𝑎 restricts how many
+of decode-iterations can be included in a batch, avoiding long batch execution times due to too
+many decode-iterations in a batch. Finally, the o#set parameter 𝛩 provides a safety margin for the
+last schedulable time computation to absorb variability in batch execution and reduce the risk of
+missing TBT SLOs. We will later discuss how these parameters interact and in$uence the behavior
+and performance of the scheduler. Next, we describe how the SLAI scheduler works.
+Batch construction. We now describe how a batch is constructed by the SLAI scheduler. At
+each decision point, the scheduler forms a batch from the set of active requests and new requests
+that have not yet been processed. While forming a batch, it must respect several system constraints:
+the token budget (𝑜 budget ), the cap on active requests (𝑍), and the decode request limit (𝑎). The batch
+construction follows these steps:
+(1) Identify critical decode-iterations: For each active decode-phase request, compute the last
+schedulable time for its decode-iteration. A decode-iteration is marked as critical if current
+time is past its last schedulable time; otherwise, it is marked as non-critical.
+(2) Add critical decode-iterations: Include critical decode-iterations in the batch, in the increasing
+order of last schedulable time. This ensures that decode-iterations that are closest to their
+TBT deadline are scheduled "rst.
+(3) Add pre!ll-phase requests: Next, add pre"ll-phase requests in a non-preemptive manner.
+Among these, requests that have already been scheduled at least once (i.e., active pre"ll-phase
+requests) are given a higher priority. If token budget and cap on number of active requests has
+not been exceeded, new pre"ll-phase requests are considered. We consider two possibilities
+for ordering the incoming requests: Shortest Pre"ll First (SPF) to reduce the average or median
+TTFT or First Come First Serve (FCFS) order to ensure fairness.
+(4) Add non-critical decode-iterations: Finally, if there further token budget remains and number
+of decodes in the batch are less than the decode limit, include additional non-critical decodeiterations in increasing order of their last schedulable time.
+Next, we discuss the impact of parameters other than the o#set (𝛩), which has already been
+covered in our earlier discussion of the scheduler.
+6.1
+
+Impact of di!erent scheduler parameters
+
+6.1.1 Token budget (𝑜 budget ). The token budget places an upper limit on the number of tokens that
+can be processed in a single batch—one token per decode-phase request and 𝑖 ∞ 1 tokens per pre"ll
+chunk. Fig. 6a shows how the choice of token budget 𝑜 budget a#ects TTFT and batch-execution
+time. When 𝑜 budget is small, a 2048-token pre"ll must be split into many small chunks. This leads
+to frequent kernel launches and synchronization, causing the GPU to spend more time idling. As
+a result, TTFT increases. Conversely, when 𝑜 budget is large, the scheduler can process the entire
+request in fewer large batches. This improves GPU utilization but each batch takes longer to execute.
+If a decode-iteration is scheduled during such a long batch, it must wait, increasing the risk of
+violating its TBT constraint. The scheduler must thus choose a token budget 𝑜 budget that balances
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:18
+
+(a) Median TTFT and mean batch
+execution time for 100 independent requests (each with a 2048token prefill and 1-token decode)
+as a function of the token budget.
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+(b) GPU memory usage versus
+number of concurrent decodephase requests (each with a 2048token prefill and 1-token decode).
+
+(c) Batch execution time for 𝑀
+decode-phase requests (token position 513), co-scheduled with one
+prefill-only request to fully utilize
+the token budget of 512 tokens.
+
+Fig. 6. Impact of token budget, concurrency, and batch composition on request execution latency and GPU
+memory usage for Mistral-7B on a single NVIDIA RTX ADA 6000 GPU.
+
+e!ciency and responsiveness. Batches should be large enough to use the GPU e#ectively, but not
+so long that they excessively delay latency-sensitive decode-phase requests. Choosing this value
+carefully is a key part of designing an e#ective scheduling policy.
+6.1.2 Cap on the number of active requests (𝑍). Each request generates KV tensors that must be
+stored in GPU memory until the request is completed. Fig. 6b shows how GPU memory utilization
+grows with the number of active decode-phase requests, based on runs with 𝑀 concurrent decodephase requests (each with a 2048-token pre"ll followed by a 1-token decode iteration) on Mistral-7B.
+As more requests become active, memory usage increases steadily.
+When too many requests are active, the scheduler may need to evict KV tensors to make room
+for new ones. If a request’s KV tensors are evicted, they must be recomputed before the request can
+resume decoding. This adds unnecessary delay and increases TTFT, even for requests that have not
+yet been scheduled. To avoid this, the scheduler should cap the number of active requests, ensuring
+that all necessary KV tensors can remain in memory without eviction. Doing so helps maintain
+low latency and avoids unnecessary recomputation overheads.
+6.1.3 Decode limit (𝑎). The decode limit sets an upper bound on how many decode-iterations can
+be included in a single batch. Fig. 6c shows how batch-execution time changes as the number of
+decode-iterations increases, while keeping the token budget "xed at 512. When only a few decode
+iterations are present, the batch "nishes quickly. However, as more decode-iterations are added,
+the batch takes signi"cantly longer to "nish due to increased pressure on compute and memory
+resources. Each decode-iteration triggers self-attention computation, which involves GeMVs per
+request—an ine!cient computation on GPU (see Section 3.2.2).
+When many decode-phase requests are active, limiting the number of decode-iterations in each
+batch helps control latency. In order to meet strict TBT deadlines, the scheduler can cap the number
+of decode-iterations per batch, reducing the number of TBT violations and maintaining better
+responsiveness under load.
+7
+
+Experimental results
+
+Implementation. We built SLAI on top of the open-source implementations of Sarathi-serve [2]
+and vLLM [15]. The complete source code is available at: https://github.com/agrimUT/SLAI.
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:19
+
+Evaluation. We evaluate SLAI using the Mistral-7B [12] model (mistralai/Mistral-7B-Instructv0.2) and run all experiments on a single NVIDIA RTX 6000 Ada GPU with 48 GB of memory. The environment uses CUDA 12.1 and Python 3.10. For our workload, we use the openchat_shareGPT4 [31]
+dataset, which contains multi-round conversations between users and ChatGPT4 [26]. Each round
+is treated as a separate request.
+Our baseline is Sarathi-serve con"gured with FCFS ordering for pre"ll-phase requests, referred to
+as Sarathi-serve (FCFS), which represents the current state-of-the-art in LLM inference scheduling
+on a single node. We also evaluate a variant of Sarathi-serve that uses shortest pre"ll "rst ordering,
+referred to as Sarathi-serve (SPF).
+Similarly, we assess SLAI under both FCFS and SPF pre"ll orderings, referred as SLAI (FCFS,
+"xed o#set) and SLAI (SPF, "xed o#set), respectively. In addition, we evaluate a dynamic version of
+SLAI, called SLAI (SPF, dynamic o#set), where the o#set 𝛩 is adjusted at runtime based on GPU
+memory utilization measurements. When GPU memory usage is low, a small o#set is used to allow
+more pre"ll-phase requests into the system. When memory usage is high, a larger o#set is applied
+so that decode-iterations are marked critical earlier and prioritized accordingly, thus clearing out
+memory. For completeness, we also include vLLM in our comparisons, a scheduler that prioritizes
+pre"ll-phase requests and serves as another relevant baseline.
+Metrics. We evaluate two key metrics. The "rst measures the median TTFT since this is measured
+only once per request. This re$ects how well the scheduler meets responsiveness objectives across
+requests. The second metric is the 99th percentile of the TBT, which is computed once per generated
+token and captures tail latency during the decode-iterations. This helps assess how smoothly tokens
+are generated over time.
+Workload. To emulate realistic tra!c, we generate synthetic traces based on request length
+distributions observed in the openchat_shareGPT4 dataset (see Table 1). Each synthetic request is
+generated by sampling one row from the dataset, which provides the number of pre"ll tokens and
+decode tokens for that request. We then cap the total length at 8192 tokens to respect our maximum
+sequence length. The sampled pre"ll and decode lengths are used directly in our trace generator.
+Inference requests are generated according to a Poisson process with rates 𝑥 ↑ {0.2, 0.4, . . . , 1.6}
+requests per second. Each experiment runs for 35 minutes of wall-clock time, including a short
+warm-up period before measurement begins. To ensure reproducibility, we "x random seeds for
+both the trace generation and scheduler runs. We consider two types of requests associated with
+paying and free-tier users. Paying users expect faster and smoother generation compared to free-tier
+users. To re$ect this, we assign a TBT SLO threshold of 0.1 seconds for paying users and 0.5 seconds
+for free-tier user. These values are slightly relaxed compared to real-world production settings
+because our implementation is in Python (which is not fully optimized), includes telemetry overhead,
+and also re$ects the inherent performance limitations of the model–hardware combination. Each
+incoming request is randomly marked as associated with a paying or free-tier user with some
+probability.
+Dataset
+openchat_sharegpt4
+
+Prompt length (tokens)
+Median P90
+Std.
+1730
+5696
+2088
+
+Decode length (tokens)
+Median P90
+Std.
+415
+834
+101
+
+Table 1. Prompt and decode length (token) statistics for requests in the openchat_sharegpt4 dataset.
+
+Results discussion. We "rst consider a scenario where each request has a 5% chance of coming
+from a paying user. This low percentage re$ects the user distribution seen on platforms like
+ChatGPT, where most users belong to the free tier and Figures 7a and 7b present the 99th percentile
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:20
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+TBT (P99 TBT) for paying and free-tier users, respectively. Figure 7c illustrates the median TTFT
+as a function of the request rate. In all experiments, we con"gure Sarathi-serve (both FCFS and
+SPF variants) with a token budget of 512 to ensure that the 0.1-second TBT target for paying users
+is met. For all SLAI variants, we use the same token budget, and set both the number of active
+requests and concurrent decode-phase request limit to 128. For SLAI (FCFS/SPF, "xed o#set), we
+set the o#set parameter to 10, which controls when a decode-phase request becomes time-critical,
+whereas for SLAI (SPF, dynamic o#set), the o#set is set to 5 if GPU memory utilization is below
+96%, and to 10 otherwise.
+
+(a) 99th percentile TBT for paying users across
+di"erent request rates for a target of 0.1 seconds.
+
+(b) 99th percentile TBT for free-tier users across
+di"erent request rates for a target of 0.5 seconds.
+
+(c) Median TTFT for all users as a function of request
+rate.
+Fig. 7. Performance comparison of SLAI, Sarathi-serve, and vLLM under mixed user workloads with 5%
+paying users. SLAI (SPF, dynamic o"set) achieves the best latency-throughput trade-o".
+
+TBT Behavior. Figures 7a and 7b show how SLAI dynamically prioritizes requests during their
+decode phase based on their TBT targets. Under Sarathi-serve, the 99th percentile TBT steadily
+increases for both paying and free-tier requests as the system load grows. This happens because
+every decode-iteration is included in every batch, and as load increases, so does the batch execution
+time, leading to higher delays for all requests. By contrast, SLAI handles decode-iterations di#erently.
+Requests from paying users have strict (low) TBT targets, which in most cases are always considered
+time-critical. As the load increases and batches take longer to run, their P99 TBT naturally increases.
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:21
+
+Free-tier requests, however, have more relaxed TBT targets. At lower loads, the scheduler can
+defer these decode-iterations to prioritize pre"lls, since they are not immediately time-critical. This
+initially causes their P99 TBT to rise. But as the load continues to increase and batch execution
+time becomes longer, the window during which a free-tier decode-iteration remains non-critical
+shortens. As a result, these decode-iterations become time-critical sooner and are prioritized earlier
+in scheduling. This leads to a drop in their P99 TBT. Eventually, at high loads, all free-tier decodeiterations are immediately marked as time-critical, and their TBT increases again—now dominated
+by the growing batch execution time, similar to paying users. Lastly, vLLM since it is a pre"llprioritizing scheduler ends up violating P99 TBT at a relatively low load and thus is not e#ective at
+managing decode-phase requests.
+TTFT behaviour. Figure 7c shows the median TTFT as a function of requests per second. The
+vLLM policy, which prioritizes pre"ll-phase requests, achieves the lowest median TTFT at low
+loads. However, it does so by aggressively batching pre"ll requests at the expense of violating 99th
+percentile TBT latency constraints, making it unsuitable for scenarios with strict QoS requirements.
+Sarathi-serve improves upon this by balancing pre"ll and decode phases to maintain both acceptable
+median TTFT and TBT tail latencies. When Sarathi-serve is combined with the SPF-based policy
+it yields a better median TTFT than its FCFS counterpart, highlighting the bene"t of reordering
+pre"ll requests by prompt length. However, Sarathi-serve does not adapt to heterogeneous TBT
+deadlines across requests. SLAI (SPF, "xed o#set) addresses this by selectively deferring decodephase requests with relaxed deadlines, achieving further improvements in median TTFT. Finally,
+SLAI (SPF, dynamic o#set) introduces dynamic decode-iteration deferral based on real-time GPU
+memory utilization, allowing the system to better utilize available token budget of a batch. As a
+result, SLAI delivers signi"cant performance improvements: it reduces the median TTFT from 1.5
+seconds (under Sarathi-Serve (FCFS)) to 0.7 seconds—a 53% improvement under high load—and
+increases the maximum sustainable request rate from 1.15 to 1.45 requests per second while
+maintaining a "xed median TTFT constraint of 0.5 seconds and meeting tail TBT latency targets,
+representing a 26% increase in serving capacity.
+See Appendix F for additional experimental results that highlight several important aspects: i)
+the performance of di#erent policies as a function of prompt lengths, ii) the impact of prioritizing
+paying users over free-tier users during the pre"ll phase, and iii) how the policies compare when
+the proportion of paying users increases to 50% or 95%.
+7.1
+
+Choosing the parameters for SLAI (SPF, dynamic o!set)
+
+Role of 𝛩. As described in Section 6, the last schedulable time for the 𝑄 th decode-iteration of request
+𝑦 is given by:
+𝑌𝐿,𝑍 = 𝑠𝐿 ⇑1,𝑍 + TBT 𝑍 ⇑ 𝛩 · 𝑏 batch
+
+(9)
+
+At the time of constructing batch 𝑚 (at time 𝑏𝑌 ), we mark a decode-iteration as time-critical if
+𝑏𝑌 ∞ 𝑌𝐿,𝑍 . Otherwise, it is considered non-critical and can be deferred to a future batch. The o#set
+parameter 𝛩 controls how aggressively we prioritize decode-iterations of decode-phase requests: a
+smaller 𝛩 delays when decode-iterations are considered critical (favoring pre"ll-phase requests),
+while a larger 𝛩 marks them critical sooner (favoring decode-phase requests).
+Empirical motivation. Recall that our goal is to reduce the median TTFT while ensuring that
+tail TBT constraints are always respected. Figure 8 shows GPU memory utilization under three
+di#erent policies: SLAI (SPF, "xed o#set 10), SLAI (SPF, "xed o#set 5), and SLAI (SPF, dynamic
+o#set). All experiments were conducted at a load of 1.6 requests per second.
+With a "xed o#set of 𝛩 = 10, decode-phase iterations are prioritized. This keeps TBT well within
+bounds but underutilizes the GPU memory. For example, requests from users with a relaxed TBT
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:22
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+Fig. 8. GPU memory utilization over time for SLAI (SPF, fixed o"set 10), SLAI (SPF, fixed o"set 5), and SLAI
+(SPF, dynamic o"set: 𝛩 = 5 below 96%, 𝛩 = 10 otherwise) for a fixed load of 1.6 requests per second.
+
+constraint of 0.5 seconds consistently achieve tail TBT values far below the target (see Fig. 7b).
+This suggests we are being too conservative and missing the chance to initiate more pre"ll-phase
+requests.
+We then tried a "xed o#set of 𝛩 = 5, which gives higher priority to pre"ll-phase requests and
+delays scheduling of decode-iterations of decode-phase requests. However, at high load (e.g., 1.6
+requests per second), this led to memory saturation, as seen in Fig. 8. This happens because decodephase requests’ KV tensors stayed in memory for too long, preventing the system from admitting
+new pre"ll-phase requests. As a result, TTFT blows up, and the SLAI policy with "xed o#set 5 is
+unable to sustain the 1.6 requests per second load.
+These results show a clear trade-o#: we want to be aggressive in admitting pre"ll-phase requests
+when memory allows, but we also need to ensure decode-phase requests do not build up and block
+future admissions.
+Dynamic o"set policy. To balance these needs, we propose a simple dynamic policy that
+switches 𝛩 based on current GPU memory usage:
+
+5, if GPU memory utilization < 96% (favor pre"ll-phase requests);
+𝛩 =
+10, otherwise (favor decode-phase iterations).
+When memory usage is below 96%, we assume there is enough headroom to safely admit more
+pre"ll-phase requests. When usage crosses 96%, we shift priority to decode-phase iterations to
+eventually complete requests and free up memory.
+The 96% threshold was chosen based on empirical observations. In our setup, each new pre"llphase request is allocated memory for its KV tensors at the time of admission—even before all
+pre"ll tokens are processed. We found that admitting a new pre"ll-phase request can consume up
+to 4% of GPU memory. To avoid admission failures, we ensure that this much headroom is always
+available, and thus set the switching threshold to 96%.
+Observed e"ect. As shown in Figure 8, the dynamic policy maintains high GPU memory utilization similar to "xed 𝛩 = 5, but avoids hitting 100%, which can cause admission stalls. This dynamic
+adjustment ensures that TBT constraints are met while also improving TTFT and overall system
+throughput.
+8
+
+Conclusion
+
+This paper presented a framework for designing e!cient LLM inference systems. By modeling the
+unique two-phase structure of LLM inference, we identi"ed two key design principles—optimal
+tiling and optimal resource allocation—as essential for achieving high throughput. Based on these
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:23
+
+insights, we introduced the RAD scheduler, which, when combined with a uniformly random
+resource planner, provably achieves throughput optimality. In real-world deployments, however,
+systems must also meet SLOs. We argued that practical schedulers often approximate only one of
+the two design principles, thereby sacri"cing some throughput to satisfy these SLOs. To handle
+heterogeneous request classes with di#erent latency needs, we proposed the SLAI scheduler. SLAI
+reduces TTFT by intelligently prioritizing requests while still meeting tail TBT constraints. In
+comparison to existing state-of-the-art, SLAI reduced the median TTFT by 53% and increased the
+maximum serving capacity by 26% for a "xed median TTFT, while meeting the TBT constraints.
+Acknowledgments
+This work was supported in part by NSF Award CNS-2212202 and NSF Award 2148224, which
+receives funding from OUSD R&E, NIST, and industry partners through the Resilient & Intelligent
+NextG Systems (RINGS) program. We would also like to thank the reviewers and shepherd of our
+ACM SIGMETRICS 2026 submission. Their thoughtful feedback and suggestions were instrumental
+in improving the quality and clarity of this paper.
+References
+[1] 2023. Introducing AMD CDNA™ 3 Architecture. White Paper. Advanced Micro Devices, Inc. https://www.amd.com/
+content/dam/amd/en/documents/instinct-tech-docs/white-papers/amd-cdna-3-white-paper.pdf Accessed: 2025-06-18.
+[2] Amey Agrawal, Nitin Kedia, Ashish Panwar, Jayashree Mohan, Nipun Kwatra, Bhargav Gulavani, Alexey Tumanov,
+and Ramachandran Ramjee. 2024. Taming Throughput-Latency Tradeo# in LLM Inference with Sarathi-Serve. In 18th
+USENIX Symposium on Operating Systems Design and Implementation (OSDI 24). USENIX Association, Santa Clara, CA,
+117–134. https://www.usenix.org/conference/osdi24/presentation/agrawal
+[3] Joshua Ainslie, James Lee-Thorp, Michiel De Jong, Yury Zemlyanskiy, Federico Lebrón, and Sumit Sanghai. 2023. Gqa:
+Training generalized multi-query transformer models from multi-head checkpoints. arXiv preprint arXiv:2305.13245
+(2023).
+[4] NVIDIA Corporation. 2025. NVIDIA Dynamo. https://developer.nvidia.com/dynamo. Accessed: 2025-07-07.
+[5] Tri Dao, Daniel Y. Fu, Stefano Ermon, Atri Rudra, and Christopher Ré. 2022. FlashAttention: Fast and Memory-E!cient
+Exact Attention with IO-Awareness. arXiv:2205.14135 [cs.LG] https://arxiv.org/abs/2205.14135
+[6] Frederic G Foster. 1953. On the stochastic matrices associated with certain queuing processes. The Annals of
+Mathematical Statistics 24, 3 (1953), 355–360.
+[7] Connor Holmes, Masahiro Tanaka, Michael Wyatt, Ammar Ahmad Awan, Je# Rasley, Samyam Rajbhandari, Reza Yazdani Aminabadi, Heyang Qin, Arash Bakhtiari, Lev Kurilenko, and Yuxiong He. 2024. DeepSpeed-FastGen: Highthroughput Text Generation for LLMs via MII and DeepSpeed-Inference. arXiv:2401.08671 [cs.PF] https://arxiv.org/
+abs/2401.08671
+[8] Ke Hong, Guohao Dai, Jiaming Xu, Qiuli Mao, Xiuhong Li, Jun Liu, Kangdi Chen, Yuhan Dong, and Yu Wang. 2024.
+FlashDecoding++: Faster Large Language Model Inference on GPUs. arXiv:2311.01282 [cs.LG] https://arxiv.org/abs/
+2311.01282
+[9] Yanping Huang, Youlong Cheng, Ankur Bapna, Orhan Firat, Mia Xu Chen, Dehao Chen, HyoukJoong Lee, Jiquan
+Ngiam, Quoc V. Le, Yonghui Wu, and Zhifeng Chen. 2019. GPipe: e"cient training of giant neural networks using
+pipeline parallelism. Curran Associates Inc., Red Hook, NY, USA.
+[10] Intel Corporation. 2024. Intel® Gaudi® 3 AI Accelerator White Paper. Technical Report. Intel Corporation. https:
+//www.intel.com/content/www/us/en/content-details/817486/intel-gaudi-3-ai-accelerator-white-paper.html Accessed:
+2025-06-18.
+[11] Kunal Jain, Anjaly Parayil, Ankur Mallick, Esha Choukse, Xiaoting Qin, Jue Zhang, Íñigo Goiri, Rujia Wang, Chetan
+Bansal, Victor Rühle, Anoop Kulkarni, Steve Kofsky, and Saravan Rajmohan. 2025. Intelligent Router for LLM
+Workloads: Improving Performance Through Workload-Aware Load Balancing. arXiv:2408.13510 [cs.DC] https:
+//arxiv.org/abs/2408.13510
+[12] Albert Q. Jiang, Alexandre Sablayrolles, Arthur Mensch, Chris Bamford, Devendra Singh Chaplot, Diego de las Casas,
+Florian Bressand, Gianna Lengyel, Guillaume Lample, Lucile Saulnier, Lélio Renard Lavaud, Marie-Anne Lachaux,
+Pierre Stock, Teven Le Scao, Thibaut Lavril, Thomas Wang, Timothée Lacroix, and William El Sayed. 2023. Mistral 7B.
+arXiv:2310.06825 [cs.CL] https://arxiv.org/abs/2310.06825
+[13] Jordan Juravsky, Bradley Brown, Ryan Ehrlich, Daniel Y. Fu, Christopher Ré, and Azalia Mirhoseini. 2024. Hydragen:
+High-Throughput LLM Inference with Shared Pre"xes. arXiv:2402.05099 [cs.LG] https://arxiv.org/abs/2402.05099
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:24
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+[14] Aditya K. Kamath, Ramya Prabhu, Jayashree Mohan, Simon Peter, Ramachandran Ramjee, and Ashish Panwar. 2025.
+POD-Attention: Unlocking Full Pre"ll-Decode Overlap for Faster LLM Inference. In Proceedings of the 30th ACM
+International Conference on Architectural Support for Programming Languages and Operating Systems, Volume 2 (ASPLOS
+’25). ACM, 897–912. doi:10.1145/3676641.3715996
+[15] Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying Sheng, Lianmin Zheng, Cody Hao Yu, Joseph E. Gonzalez, Hao
+Zhang, and Ion Stoica. 2023. E!cient Memory Management for Large Language Model Serving with PagedAttention.
+arXiv:2309.06180 [cs.LG] https://arxiv.org/abs/2309.06180
+[16] Yaniv Leviathan, Matan Kalman, and Yossi Matias. 2023. Fast Inference from Transformers via Speculative Decoding.
+arXiv:2211.17192 [cs.LG] https://arxiv.org/abs/2211.17192
+[17] Yueying Li, Jim Dai, and Tianyi Peng. 2025. Throughput-optimal scheduling algorithms for llm inference and ai agents.
+arXiv preprint arXiv:2504.07347 (2025).
+[18] Yuhan Liu, Hanchen Li, Yihua Cheng, Siddhant Ray, Yuyang Huang, Qizheng Zhang, Kuntai Du, Jiayi Yao, Shan Lu,
+Ganesh Ananthanarayanan, Michael Maire, Henry Ho#mann, Ari Holtzman, and Junchen Jiang. 2024. CacheGen:
+KV Cache Compression and Streaming for Fast Large Language Model Serving. arXiv:2310.07240 [cs.NI] https:
+//arxiv.org/abs/2310.07240
+[19] Michael Mitzenmacher and Rana Shahout. 2025. Queueing, Predictions, and LLMs: Challenges and Open Problems.
+arXiv preprint arXiv:2503.07545 (March 2025). arXiv:2503.07545 [cs.AI] https://arxiv.org/abs/2503.07545
+[20] Moonmoon Mohanty, Gautham Bolar, Preetam Patil, UmaMaheswari Devi, Felix George, Pratibha Moogi, and Parimal
+Parag. 2025. Deferred pre"ll for throughput maximization in LLM inference. In Proceedings of The 5th Workshop on
+Machine Learning and Systems (EuroMLSys’2025). ACM, New York, NY, USA, 100–106. doi:10.1145/3721146.3721962
+[21] Deepak Narayanan, Mohammad Shoeybi, Jared Casper, Patrick LeGresley, Mostofa Patwary, Vijay Korthikanti, Dmitri
+Vainbrand, Prethvi Kashinkunti, Julie Bernauer, Bryan Catanzaro, Amar Phanishayee, and Matei Zaharia. 2021. E!cient
+large-scale language model training on GPU clusters using megatron-LM. In Proceedings of the International Conference
+for High Performance Computing, Networking, Storage and Analysis (St. Louis, Missouri) (SC ’21). Association for
+Computing Machinery, New York, NY, USA, Article 58, 15 pages. doi:10.1145/3458817.3476209
+[22] NVIDIA. [n. d.]. Matrix Multiplication Background User’s Guide. https://docs.nvidia.com/deeplearning/performance/dlperformance-matrix-multiplication/index.html. Accessed: February 27, 2025.
+[23] NVIDIA. 2025. FasterTransformer. https://github.com/NVIDIA/FasterTransformer
+[24] NVIDIA. 2025. TensorRT-LLM: A TensorRT toolbox for optimized large-language-model inference. https://github.
+com/NVIDIA/TensorRT-LLM
+[25] NVIDIA Corporation. 2020. NVIDIA A100 Tensor Core GPU Architecture. Technical Report. NVIDIA Corporation.
+https://images.nvidia.com/aem-dam/en-zz/Solutions/data-center/nvidia-ampere-architecture-whitepaper.pdf Version
+1.0.
+[26] OpenAI. 2025. ChatGPT. https://chat.openai.com
+[27] Noam Shazeer. 2019. Fast transformer decoding: One write-head is all you need. arXiv preprint arXiv:1911.02150 (2019).
+[28] Karl Sigman and Ronald W Wol#. 1993. A review of regenerative processes. SIAM review 35, 2 (1993), 269–288.
+[29] Biao Sun, Ziming Huang, Hanyu Zhao, Wencong Xiao, Xinyi Zhang, Yong Li, and Wei Lin. 2024. Llumnix: Dynamic
+Scheduling for Large Language Model Serving. In 18th USENIX Symposium on Operating Systems Design and Implementation (OSDI 24). USENIX Association, Santa Clara, CA, 173–191. https://www.usenix.org/conference/osdi24/
+presentation/sun-biao
+[30] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N Gomez, &ukasz Kaiser, and Illia
+Polosukhin. 2017. Attention is all you need. Advances in neural information processing systems 30 (2017).
+[31] Guan Wang, Sijie Cheng, Xianyuan Zhan, Xiangang Li, Sen Song, and Yang Liu. 2024. OpenChat: Advancing Opensource Language Models with Mixed-Quality Data. arXiv:2309.11235 [cs.CL] https://arxiv.org/abs/2309.11235
+[32] Zihao Ye, Lequn Chen, Ruihang Lai, Wuwei Lin, Yineng Zhang, Stephanie Wang, Tianqi Chen, Baris Kasikci, Vinod
+Grover, Arvind Krishnamurthy, and Luis Ceze. 2025. FlashInfer: E!cient and Customizable Attention Engine for LLM
+Inference Serving. arXiv:2501.01005 [cs.DC] https://arxiv.org/abs/2501.01005
+[33] Gyeong-In Yu, Joo Seong Jeong, Geon-Woo Kim, Soojeong Kim, and Byung-Gon Chun. 2022. Orca: A distributed
+serving system for {Transformer-Based} generative models. In 16th USENIX Symposium on Operating Systems Design
+and Implementation (OSDI 22). 521–538.
+[34] Yilong Zhao, Shuo Yang, Kan Zhu, Lianmin Zheng, Baris Kasikci, Yang Zhou, Jiarong Xing, and Ion Stoica. 2024.
+BlendServe: Optimizing O%ine Inference for Auto-regressive Large Models with Resource-aware Batching. arXiv
+preprint arXiv:2411.16102 (2024).
+[35] Lianmin Zheng, Liangsheng Yin, Zhiqiang Xie, Chuyue Sun, Je# Huang, Cody Hao Yu, Shiyi Cao, Christos Kozyrakis,
+Ion Stoica, Joseph E. Gonzalez, Clark Barrett, and Ying Sheng. 2024. SGLang: E!cient Execution of Structured Language
+Model Programs. arXiv:2312.07104 [cs.AI] https://arxiv.org/abs/2312.07104
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:25
+
+[36] Yinmin Zhong, Shengyu Liu, Junda Chen, Jianbo Hu, Yibo Zhu, Xuanzhe Liu, Xin Jin, and Hao Zhang. 2024. {DistServe}:
+Disaggregating pre"ll and decoding for goodput-optimized large language model serving. In 18th USENIX Symposium
+on Operating Systems Design and Implementation (OSDI 24). 193–210.
+
+A
+A.1
+
+Other Related Work
+Cluster-level Routing
+
+Per-GPU schedulers rely on the router to provide a well-balanced stream of requests. Most production systems still use simple strategies like round-robin or shortest-queue routing. These methods
+overlook the complex relationship between request length, prompt size, and current GPU state. The
+Intelligent Router for LLM Workloads [11] addresses this by framing routing as a sequential decision
+problem. It trains a workload-aware reinforcement learning agent to minimize overall latency by
+predicting each request’s response length and estimating how much delay each placement would
+cause.
+A.2
+
+KV-Cache Management
+
+In transformer models, self-attention reuses all previous tokens, making KV-cache management
+critical for both speed and capacity.
+Memory layout. vLLM [15] uses paged attention, which divides GPU memory into "xed-size
+blocks that are dynamically assigned to requests. This reduces fragmentation and allows hundreds
+of requests to run in parallel. Llumnix [29] builds on this by migrating KV tensors across replicas
+in real time, balancing memory usage and lowering preemption costs.
+Pre!x reuse and compression. Some systems try to reduce the amount of KV data stored or
+recomputed. SGLang [35] introduces a radix-tree cache and orders batches to maximize pre"x
+reuse across multi-turn chats and speculative decoding. CacheGen [18] compresses KV blocks and
+streams them on demand, while FlashInfer [32] creates custom GPU kernels that operate directly
+on the compressed format. These techniques are independent of scheduling and routing and can be
+used alongside paged layouts or distributed setups.
+Preemption strategies. When GPU memory runs out, systems must either recompute or o%oad
+paused requests. vLLM [15] and Sarathi-Serve [2] evict stalled requests, splice their outputs back
+into the prompt, and later rebuild the KV cache. DistServe [36], on the other hand, moves the
+KV tensors to host memory and resumes decoding once space is available. Each method involves
+a trade-o# between memory tra!c and computation, and interacts closely with the scheduler’s
+design.
+A.3
+
+Speculative decoding
+
+Speculative decoding [16] o#ers a complementary approach that accelerates decode-phase computation by generating token drafts using a smaller auxiliary model, which are then validated by the
+larger target model. While originally proposed to reduce per-request latency, this technique can
+also bene"t scheduling by reducing decode durations, improving GPU throughput, and enabling
+more e!cient batch formation under tight latency constraints.
+B
+
+Upper Bound Proof
+
+In Section B.1, we establish a lower bound on the time required for any LLM inference system to
+serve a given set of requests. Building on this, Section B.2 derives a lower bound on the number of
+pending requests at a given time in any system. Finally, in Section B.3, we use these results to prove
+Theorem 1, showing that if the request arrival rate exceeds 𝑔 /𝑑¯ 𝑎 , the number of pending requests
+grows linearly over time—thereby establishing an upper bound on the system’s capacity region..
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:26
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+B.1
+
+Request Set Drain Time
+
+The "rst part of the proof is to consider a more powerful class of resource planners and schedulers
+(as described below) and lower bound the time required by them to start and complete 𝑟 requests.
+Consider a set, R = {𝑕1, . . . , 𝑕𝑛 }, of 𝑟 requests, where each request 𝑕 𝑍 ’s prompt and output
+lengths are, 𝑤𝑉𝑍 , 𝑤𝑊𝑍 ∝ 𝑧 𝑗𝑀 ,𝑗𝑁 , and are i.i.d., across requests. Further, consider a more powerful class
+of resource planners and schedulers which are able to, a) commence serving of all requests at time
+0, b) serve pre"ll and decode iterations of requests in an arbitrary order, c) serve the di#erent
+iterations of requests at any node, even simultaneously, while paying zero cost for request transfers.
+Clearly, the realistic class of schedulers considered in Theorem 1 which— a) may commence serving
+requests once they arrive, b) have to serve pre"ll and decode iterations in order according to
+De"nitions 1 and 2, and, c) may only transfer requests once the respective computations at the
+source node are completed— are a subset of this more powerful class of systems. To develop our
+bounds, we will compute the least time required by this powerful class of systems to completely
+serve all the 𝑟 requests.
+
+ 𝑜𝑆 ′
+Consider a sequence of batches B𝑌,𝑚 ′ 𝑌=1
+at node 𝑔 ′ , for every 𝑔 ′ ↑ {1, . . . , 𝑔 }. Let the set of
+batch sequences completely serve all the 𝑟 requests. Then, the request set drain time which is the
+time required to complete 𝑟 requests using all 𝑔 nodes, denoted 𝑑 (R), is given by,
+
+𝑑 (𝑕) = ′ max
+
+𝑚 ↑ {1,...,𝑚 }
+
+∞
+
+𝑜𝑆 ′
+,
+
+𝑑 𝑖 (B𝑌,𝑚 ′ ),
+
+𝑌=1
+′
+𝑜
+𝑚
+𝑆
+1 ,, 𝑖
+
+𝑔 𝑚 ′ =1 𝑌=1
+
+𝑑 (B𝑌,𝑚 ′ ).
+
+(10)
+
+Let 𝑜 (B) be the token count of batch B. Let S 𝑉 (B) and S 𝑊 (B) be the sets of pre"ll and decode
+phase requests in the batch. For a decode-phase request 𝑕 𝑍 let 𝑄 𝑍 denote the token position of its
+decode-iteration in the batch. And, similarly for a pre"ll-phase request 𝑕 𝑍 , let 𝑄 𝑍 and 𝑖 𝑍 denote the
+starting token index and chunk size of its pre"ll-iteration in the batch. Let 𝑏 row , 𝑏 col denote the
+output tile dimensions and 𝑏 red denotes the reduction tile dimension for the GeMM. Recall the batch
+computation time formula for a batch B,
+
+#
+$
+,
+1
+𝑜 (B)
+1
+𝑑 (B) =
++
+𝑜 (B) + 𝑀
+𝑑 𝑊,𝑕𝑋 (𝑄 𝑍 )
+𝑐Lin (𝑏 row, 𝑏 col, 𝑏 red ) 𝑏 col
+𝑐nLin
+𝑍:𝑎 𝑂 ↑ S 𝑁 ( B )
+(#
+$# $
+# $#
+$)
+,
+𝑄𝑍 + 𝑖𝑍 ⇑ 1 𝑖𝑍 𝑂
+𝑖𝑍 𝑄𝑍 + 𝑖𝑍 ⇑ 1
+𝑀
+𝑂
++
++
+,
+𝑉𝑐 (𝑏 row, 𝑏 col, 𝑏 red )
+𝑏 row
+𝑏 col 𝑏 red
+𝑏 row 𝑏 col
+𝑏 red
+𝑀
+𝑖
+
+𝑍:𝑎 𝑂 ↑ S ( B )
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+Then,
+
+59:27
+
+,
+1
+𝑜 (B)
+1
++
+𝑜 (B) + 𝑀
+𝑑 𝑊,𝑕𝑋 (𝑄 𝑍 )
+𝑐Lin (𝑏 row, 𝑏 col, 𝑏 red ) 𝑏 col
+𝑐nLin
+𝑍:𝑎 𝑂 ↑ S 𝑁 ( B )
+(
+)
+,
+𝑄𝑍 + 𝑖𝑍 ⇑ 1 𝑖𝑍 𝑂
+𝑀
+𝑂 𝑖𝑍 𝑄𝑍 + 𝑖𝑍 ⇑ 1
++
++
+,
+𝑉𝑐 (𝑏 row, 𝑏 col, 𝑏 red )
+𝑏 row 𝑏 col 𝑏 red
+𝑏 row 𝑏 col
+𝑏 red
+𝑀
+
+(𝑝)
+
+𝑑𝑖 (B) ∞
+
+𝑍:𝑎 𝑂 ↑ S ( B )
+
+,
+1
+𝑜 (B)
+1
++
+𝑜
+(B)
++
+𝑀
+𝑑 𝑊,𝑕𝑋 (𝑄 𝑍 )
+⇒ , 𝑏⇒ , 𝑏⇒ ) 𝑏⇒
+𝑐Lin (𝑏 row
+𝑐nLin
+𝑁
+col red
+col
+𝑍:𝑎 𝑂 ↑ S ( B )
+(
+)
+,
+𝑄𝑍 + 𝑖𝑍 ⇑ 1 𝑖𝑍 𝑂
+𝑀
+𝑂 𝑖𝑍 𝑄𝑍 + 𝑖𝑍 ⇑ 1
++
++ ⇒ ⇒
+,
+⇒ , 𝑏⇒ , 𝑏⇒ )
+⇒
+⇒ 𝑏⇒
+⇒
+𝑉𝑐 (𝑏 row
+𝑏 row
+𝑏 col
+𝑏 row 𝑏 col
+𝑏 red
+𝑀
+col red
+red
+
+(𝑞 )
+
+∞
+
+(11)
+
+𝑍:𝑎 𝑂 ↑ S ( B )
+
+where (a) follows by simply removing the ceiling function, and (b) follows from Assumption 1.
+⇒
+⇒ , 𝑏 ⇒ , 𝑏 ⇒ ). By Assumption 3, 𝑤 𝑉 is a multiple of 𝑏 ⇒ .
+Consider request 𝑕 𝑍 . Let 𝑏 lcm
+= LCM(𝑏 row
+𝑍
+col red
+lcm
+Therefore, the optimal set of chunk positions and chunk size to complete the self-attention in the
+pre"ll phase in minimal time is,
+
+
+⇒
+⇒
+⇒
+⇒
+⇒
+I𝑍 = (1, 𝑏 lcm
+, (𝑏 lcm
++ 1, 𝑏 lcm
+), . . . , (𝑤𝑉 ⇑ 𝑏 lcm
+, 𝑏 lcm
+) .
+Then, de"ne its “optimal e#ective completion time” as,
+
+𝑗 𝑂 +𝑗 𝑂
+,
+𝑤𝑉𝑍 + 𝑤𝑊𝑍
+1
+1
+𝑎
+𝑉
+𝑊
+𝑑⇒ ( 𝑦) =
++
+(𝑤
++
+𝑤
+)
++
+𝑀
+𝑑 𝑊,𝑕𝑋 (𝑄)
+𝑍
+𝑍
+⇒ , 𝑏⇒ , 𝑏⇒ )
+⇒
+𝑐Lin (𝑏 row
+𝑏 col
+𝑐nLin
+𝑀
+col red
+𝑀
+
+𝑀
++
+⇒
+⇒ , 𝑏⇒ )
+𝑉𝑐 (𝑏 row, 𝑏 col
+red
+
+,
+
+(𝐿 𝑂 ,𝑟 𝑂 ) ↑ I𝑂
+
+(
+
+𝑁
+
+𝐿=𝑗 𝑂 +1
+
+)
+𝑄𝑍 + 𝑖𝑍 ⇑ 1 𝑖𝑍 𝑂
+𝑂 𝑖𝑍 𝑄𝑍 + 𝑖𝑍 ⇑ 1
++ ⇒ ⇒
+,
+⇒
+⇒ 𝑏⇒
+⇒
+𝑏 row
+𝑏 col
+𝑏 row 𝑏 col
+𝑏 red
+red
+
+(12)
+
+𝑗 𝑂 +𝑗 𝑂
+,
+𝑤𝑉𝑍 + 𝑤𝑊𝑍
+1
+1
+𝑉
+𝑊
+=
++
+(𝑤
++
+𝑤
+)
++
+𝑀
+𝑑 𝑊,𝑕𝑋 (𝑄)
+𝑍
+𝑍
+⇒ , 𝑏⇒ , 𝑏⇒ )
+⇒
+𝑐Lin (𝑏 row
+𝑏
+𝑐
+nLin
+𝑀
+col red
+col
+𝑀
+
++
+
+*
+
++
+
+𝑁
+
+𝐿=𝑗 𝑂 +1
+
+𝑀𝑂
+𝑉
+𝑉
+⇒
+⇒ , 𝑏 ⇒ , 𝑏 ⇒ )𝑏 ⇒ 𝑏 ⇒ 𝑏 ⇒ 𝑤 𝑍 𝑤 𝑍 + 𝑏 lcm .
+𝑉𝑐 (𝑏 row
+col red row col red
+
+(13)
+
+Then, we have the following alternate lower bound for the request set drain time.
+%
+P+’$’!&%&’( 1. 𝑑 (R) ∞ 𝑚1 𝑛𝑍=1 𝑑⇒𝑎 ( 𝑦).
+P+’’*. From (10) we have,
+
+𝑚
+𝑆
+
+
+1 ,,
+𝑑 (R) ∞
+𝑑 𝑖 B𝑌,𝑚 ′ ,
+𝑔 𝑚 ′ =1 𝑌=1
+
+
+where recall that B𝑌,𝑚 ′ : 𝑔 ′ ↑ {1, . . . , 𝑔 }, 𝑚 ↑ {1, . . . , 𝑞𝑚 ′ } is a set of batches that complete all the
+pre"ll and decode iterations of all the 𝑟 requests in R. The batch execution time of a batch is
+lower-bounded in (11). By rearranging the terms in the summation of batch execution times, and
+using (12), we obtain the result.
+⫅̸
+𝑜 ′
+
+Then, the following limit follows by the strong law of large numbers.
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:28
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+P+’$’!&%&’( 2. For any 𝑟 ↑ N, let the set of 𝑟 requests 𝑕1, . . . , 𝑕𝑛 have prompt and output lengths
+distributed according to 𝑧 𝑗𝑀 ,𝑗𝑁 , and let these lengths be i.i.d., across requests. Then,
+1 %𝑛
+𝑎
+𝑑¯ 𝑎
+𝑍=1 𝑑⇒ ( 𝑦)
+𝑚
+lim
+=
+,
+𝑛→↙
+𝑟
+𝑔
+where 𝑑¯ 𝑎 is as in Theorem 1.
+B.2
+
+A lower bound on the pending requests in the system
+
+cont. (𝑏) denotes the
+Let A cont. (𝑏) 𝑑 ∞0 denote the arrival process of requests to
+system,
+ the
+ where A
+cont.
+set of requests that have arrived by time 𝑏. Let, 𝑊(𝑏) ⊋ A
+(𝑏)  denote the number of arrivals
+by time 𝑏. Then, recall that by the premise of the theorem, (𝑊(𝑏))𝑑 ∞0 is a Poisson point process of
+rate 𝑥, and each request has prompt and output lengths distributed according to 𝑧 𝑗𝑀 ,𝑗𝑁 i.i.d., across
+requests. Finally, recall that 𝑇 (𝑏) denotes the number of pending requests in the system at time 𝑏.
+Consider the worst-case amount of time, 𝑑 max , required to complete a request. This is when
+the prompt and output lengths are the longest possible, i.e., 𝑈 𝑉,max and 𝑈 𝑊,max . Moreover, in this
+worst case, the scheduler schedules pre"ll-iterations with chunk size 1 at a time without batching
+to complete the pre"ll-phase, and schedules all the decode-iterations as well without batching.
+Therefore, we have,
+ 𝑉,max 𝑊,max
+
+𝑈 𝑀,max,
++𝑈 𝑁,max
+ 𝑈
+
++𝑈
+𝑈 𝑉,max + 𝑈 𝑊,max
+max
+𝑊,𝑕𝑋
+
+𝑑
+=
+max
++
++𝑀
+𝑑
+(𝑄)  . (14)
+
+𝑐nLin
+(𝑑 row ,𝑑 col ) ↑ Tout , 𝑑 red ↑ Tred  𝑐 Lin (𝑏 row, 𝑏 col, 𝑏 red )
+
+𝐿=1
+
+
+Then, we can prove the following lower bound on the number of pending requests in the system.
+
+
+L)##. 1. Consider a system with any resource planner and scheduler. Let A cont. (𝑏) denote the set
+of requests that have arrived by time 𝑏. Let the “optimal request completion time” function 𝑑⇒𝑎 (·) be as
+in (13). Let 𝑑 max be as in (14). Then, the number of pending requests in the system at any time 𝑏 is
+lower bounded as,
+1 %
+
+𝑎
+𝑍 ⇔𝑋(𝑑 ) 𝑑⇒ ( 𝑦) ⇑ 𝑏
+𝑚
+𝑇 (𝑏) ∞
+.
+𝑑 max
+
+P+’’*. The proof is by contradiction. Suppose there is a time time 𝑏 when,
+1 %
+
+𝑎
+𝑍 ⇔𝑋(𝑑 ) 𝑑⇒ ( 𝑦) ⇑ 𝑏
+𝑚
+𝑇 (𝑏) <
+.
+𝑑 max
+%
+If 𝑚1 𝑍 ⇔𝑋cont. (𝑑 ) 𝑑⇒𝑎 ( 𝑦) ⇔ 𝑏, this immediately leads to a contradiction since it implies 𝑇 (𝑏) < 0.
+The number of%pending requests in the system has to be non-negative.
+Consider 𝑚1 𝑍 ⇔𝑋cont. (𝑑 ) 𝑑⇒𝑎 ( 𝑦) ⇔ 𝑏 . In this case, the worst-case amount of time taken to complete
+the 𝑇 (𝑏) requests happens is, a) the prompt and output lengths are the longest possible, b) none of
+the requests have started processing by time 𝑏, and c) the iterations of each request are scheduled
+without batching. Due to (14), the worst-case amount of time taken to complete the 𝑇 (𝑏) requests
+is 𝑇 (𝑏)𝑑 max . This implies that the amount of time it took to complete all the requests in A cont. (𝑏) is,
+𝑑 (A cont. (𝑏)) ⇔ 𝑏 + 𝑇 (𝑏)𝑑 max,
+1 %
+<𝑏+
+<
+
+𝑚
+
+𝑎
+𝑍 ⇔𝑋(𝑑 ) 𝑑⇒ ( 𝑦) ⇑ 𝑏
+𝑑 max
+
+1 , 𝑎
+𝑑⇒ ( 𝑦).
+𝑔
+
+
+
+𝑑 max,
+
+𝑍 ⇔𝑋(𝑑 )
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:29
+
+This is a contradiction to Proposition 1 which lowers bound the time to complete a set of requests
+for any pair of resource planner and scheduler.
+This completes the proof by contradiction.
+⫅̸
+B.3
+
+Proof of Theorem 1
+
+
+Recall that A cont. (𝑏) 𝑑 ∞0 denotes the arrival process of requests to
+system,
+where A cont. (𝑏)
+ the
+
+denotes the set of requests that have arrived by time 𝑏. And, 𝑊(𝑏) ⊋ A cont. (𝑏)  denotes the number
+of arrivals by time 𝑏. By the premise of the Theorem, 𝑊(𝑏) is a Poisson point process of rate 𝑥.
+Therefore, by the strong law of large numbers,
+lim
+
+𝑑 →↙
+
+𝑊(𝑏)
+= 𝑥,
+𝑏
+
+almost surely.
+
+(15)
+
+𝑉 𝑊
+Consider the sequence of requests (𝑕 𝑍 ) ↙
+𝑍=1 , such that 𝑤 𝑍 , 𝑤 𝑍 ∝ 𝑧 𝑗𝑀 ,𝑗𝑁 i.i.d., across requests. Then,
+again by the strong law of large numbers,
+𝑛
+.
+1, 𝑎
+𝑑⇒ ( 𝑦) = E 𝑑⇒𝑎 (1) ,
+𝑛→↙ 𝑟
+𝑍=1
+
+lim
+
+almost surely,
+
+= 𝑑¯ 𝑎 ,
+
+(𝑝)
+
+where (a) follows from the formula for 𝑑⇒𝑎 () in (13) and the expression for 𝑑¯ 𝑎 in Theorem 1.
+  𝑋(𝑑 )
+For any 𝑏 ∞ 0, requests 𝑕 𝑍 𝑍=1 arrive by time 𝑏 . Moreover, since 𝑊(𝑏) is a Poisson point process,
+𝑊(𝑏) → ↙ almost surely as 𝑏 → ↙. Therefore,
+1 , 𝑎
+lim
+𝑑⇒ ( 𝑦) = 𝑑¯ 𝑎 , almost surely.
+(16)
+𝑑 →↙ 𝑊(𝑏)
+Combining (15) and (16), we get,
+
+𝑍 ⇔𝑋(𝑑 )
+
+(
+)
+1 , 𝑎
+ 1 , 𝑎  𝑊(𝑏)
+lim
+𝑑⇒ ( 𝑦) = lim 
+𝑑⇒ ( 𝑦) 
+,
+𝑑 →↙ 𝑏
+𝑑 →↙ 𝑊(𝑏)
+𝑏
+𝑍 ⇔𝑋(𝑑 )
+𝑍
+⇔𝑋(𝑑
+)
+
+
+(
+)
+,
+1
+𝑊(𝑏)
+
+
+𝑎
+=  lim
+𝑑⇒ ( 𝑦)  lim
+,
+𝑑 →↙ 𝑊(𝑏)
+𝑑 →↙ 𝑏
+𝑍
+⇔𝑋(𝑑
+)
+
+
+= 𝑥𝑑¯ 𝑎 .
+
+(17)
+
+From Lemma 1 we have,
+
+1 1 %
+
+𝑎
+1
+𝑍 ⇔𝑋(𝑑 ) 𝑑⇒ ( 𝑦) ⇑ 1
+𝑚 𝑑
+𝑇 (𝑏) ∞
+.
+𝑏
+𝑑 max
+Taking the limit and substituting (17), we get,
+1 
+
+
+1%
+𝑎
+1
+𝑍 ⇔𝑋(𝑑 ) 𝑑⇒ ( 𝑦) ⇑ 1
+𝑚 lim𝑑 →↙ 𝑑
+lim 𝑇 (𝑏) ∞
+,
+𝑑 →↙ 𝑏
+𝑑 max
+𝑅
+𝑠𝑘¯
+⇑1
+= 𝑚 max , almost surely.
+𝑑
+𝑎
+Since, 𝑥𝑑¯ > 𝑔 , the right hand side of the above equation is positive. Therefore, substituting
+𝑍=
+
+𝑇𝑈¯ 𝑅
+𝑆 ⇑1
+𝑘 max
+
+completes the proof of Theorem 1.
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:30
+
+C
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+Throughput Optimality Of RAD Proof
+
+This section contains the proof of Theorem 2. The outline of the proof is as follows:
+(1) In Section C.1, we construct a discrete-time process that tracks the number of pending
+requests at a node at the start of cycles of RAD. We show that this forms a discrete-time
+Markov chain (DTMC).
+(2) In Section C.2, we bound the expected cycle times for RAD when there are at least 𝑁 pending
+requests at the start of the cycle.
+(3) Building on this, in Section C.3, we show that under the conditions in Theorem 2, the DTMC
+tracking the number of requests at the start of cycles is positive-recurrent.
+(4) Finally, in Section C.4 we show that the number of pending requests at any node forms a
+positive-recurrent regenerative process by showing that the expected cycle time is bounded.
+C.1
+
+The Discrete Time Markov Chain (DTMC) Model
+
+Here, we analyze the discrete-time process that tracks the number of pending requests at a node at
+the start of cycles. To do so, we introduce some stochastic processes. Consider node 𝑔 ′ .
+
+
+(1) Let A𝑚cont.
+(𝑏) 𝑑 ∞0 denote the arrival process at the node. The arrival times form a Poisson
+′
+point process of rate 𝑥/𝑔 , and the 𝑦 th request arrival to this node, 𝑕 𝑍 , has prompt and output
+lengths, 𝑤𝑉𝑍 , 𝑤𝑊𝑍 ∝ 𝑧 𝑗𝑀 ,𝑗𝑁 , independent of other requests.
+(2) Let (F𝑚 ′ (𝑏))𝑑 ∞0 denote the corresponding "ltration with F𝑚 ′ (𝑏) = 𝛬 (A𝑚cont.
+(𝑏 ′ ) : 0 ⇔ 𝑏 ′ ⇔ 𝑏).
+′
+th cycle of the RAD scheduler, for a cycle 𝑖 ↑ N.
+(3) Let 𝑌𝑚⇑1
+′ [𝑖] denote the start time of the 𝑖
+Since the RAD scheduler only uses causal information, it can be easily shown that 𝑌𝑚⇑1
+′ [𝑖] is
+a stopping-time with respect to (F𝑚 ′ (𝑏))𝑑 ∞0 for any 𝑖.
+(4) Let 𝑌𝑚 ′ (𝑏) denote the cycle that the RAD scheduler is in at time 𝑏, i.e., 𝑌𝑚 ′ (𝑏) = max{𝑖 ↑ N :
+𝑌𝑚⇑1
+′ [𝑖] ⇔ 𝑏 }.
+(5) Let X𝑚cont.
+(𝑏) denote the set of pending requests at time 𝑏.
+′
+(6) Let X𝑚 ′ [𝑖] ⊋ X𝑚cont.
+(𝑌𝑚⇑1 [𝑖]) denote the set of pending requests at the start of cycle 𝑖.
+′
+(7) Let A𝑚 ′ [𝑖] denote the set of arrivals
+ that happen during
++ cycle 𝑖. That is, it is the set of arrivals
+ cont. 
+⇑1
+⇑1
+in A𝑚 ′ (𝑏) 𝑑 ∞0 between times 𝑌𝑚 ′ [𝑖], 𝑌𝑚 ′ [𝑖 + 1] .
+(8) Let R𝑚 ′ [𝑖] denote
+the set
+
+ of requests that complete in cycle 𝑖.
+(9) Let 𝑇𝑚 ′ (𝑏) ⊋ X𝑚cont.
+(𝑏)  denote the number of pending requests at the node at time 𝑏.
+′
+(10) Let 𝑒𝑚 ′ [𝑖] = |X𝑚 ′ [𝑖] | denote the number of pending requests at the node at the start of cycle
+𝑖.
+We prove the following.
+↙
+L)##. 2. (𝑒𝑚 ′ [𝑖])𝑟=1
+is a DTMC. That is,
+
+𝑗 (𝑒𝑚 ′ [𝑖 + 1] = 𝛯 [𝑖 + 1] | 𝑒𝑚 ′ [𝑖] = 𝛯 [𝑖], 𝑒𝑚 ′ [𝑖 ⇑ 1] = 𝛯 [𝑖 ⇑ 1], . . . ) =
+
+for any 𝑖 ↑ N and 𝛯 [0], . . . , 𝛯 [𝑖 + 1] ↑ N.
+
+𝑗 (𝑒𝑚 ′ [𝑖 + 1] = 𝛯 [𝑖 + 1] | 𝑒𝑚 ′ [𝑖] = 𝛯 [𝑖]),
+
+The result will hold true due to the following three reasons,
+(1) The arrivals follow a Poisson point process, making future arrivals independent of past
+arrivals.
+(2) The RAD scheduler is “memoryless” across cycles. It does not use information about past
+cycles in order to schedule the requests in the latest cycle.
+(3) The prompt and output lengths are i.i.d., across requests, and the RAD scheduler chooses
+requests in FCFS. Therefore, after knowing the number of requests at the start of the latest
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:31
+
+cycle, the prompt and output lengths of these requests are independent of the number of
+requests in previous cycles.
+We provide a formal proof below.
+P+’’*. Since 𝑌𝑚⇑1
+′ [𝑖] is a stopping time, by the strong Markov property of the Poisson point
+process, we have,
+ cont. 
+A𝑚 ′ (𝑏) 𝑑 >𝑡 ⇑1′ [𝑟 ] ∈
+∈ F𝑚 ′ (𝑌𝑚⇑1
+∋𝑖 ↑ N,
+(18)
+′ [𝑖]),
+𝑆
+
+where ∈∈ denotes statistical independence. Since RAD is a causal scheduler, we have that X𝑚cont.
+(𝑏)
+′
+is causal, i.e., it is measurable in F𝑚 ′ (𝑏). This is denoted as X𝑚cont.
+(𝑏) ↑𝑌 F𝑚 ′ (𝑏). Therefore, we have,
+′
+X𝑚 ′ [𝑖] ↑𝑌 F𝑚 ′ (𝑌𝑚⇑1
+′ [𝑖]),
+
+(19)
+
+∋𝑖 ↑ N,
+
+In the 𝑖 th cycle, the set of requests completed by the RAD scheduler is a function of the
+set
+of requests
+at the start of the cycle, X𝑚 ′ [𝑖], and arrival pattern after the start of the cycle,
+ cont.
+
+A𝑚 ′ (𝑏) 𝑑 >𝑡 ⇑1 [𝑟 ] . Therefore, the start time of the (𝑖 + 1) th cycle, 𝑌𝑚⇑1
+′ [𝑖 + 1], the sets of arrived
+𝑆′
+
+and completed requests in the 𝑖 th cycle, A𝑚 ′ [𝑖] and R𝑚 ′ [𝑖], are all measurable functions of,
+(1) the set of requests at the node at the start of the 𝑖 th cycle X𝑚 ′ [𝑖],
+(2) the arrival process after the start of the 𝑖 th cycle, A𝑚cont.
+(𝑏) 𝑑 >𝑡 ⇑1 [𝑟 ] .
+′
+𝑆′
+
+Moreover, X𝑚*′ [𝑖 + 1] = X𝑚 ′ [𝑖] A𝑚 ′ [𝑖]+\ R𝑚 ′ [𝑖]. So, for some function, 𝛱 , that is measurable with
+
+
+respect to 𝛬 X𝑚 ′ [𝑖], A𝑚cont.
+(𝑏) 𝑑 >𝑡 ⇑1 [𝑟 ] ,
+′
+𝑆′
+*
++
+
+
+X𝑚 ′ [𝑖 + 1] = 𝛱 X𝑚 ′ [𝑖], A𝑚cont.
+(𝑏)
+.
+(20)
+′
+𝑑 >𝑡𝑆⇑1
+′ [𝑟 ]
+
+
+Recall, 𝑒𝑚 ′ [𝑖] = |X𝑚 ′ [𝑖] |. From (19), for any 𝑖 ′ < 𝑖, we have 𝑒𝑚 ′ [𝑖 ′ ] ↑𝑌 F𝑚 ′ 𝑌𝑚⇑1
+′ [𝑖] . Therefore,
+from (20) and the strong Markov property in (18), we can establish the following property,
+𝑗 (𝑒𝑚 ′ [𝑖 + 1] = 𝛯 [𝑖 + 1] | X𝑚 ′ [𝑖] = S, 𝑒𝑚 ′ [𝑖 ⇑ 1] = 𝛯 [𝑖 ⇑ 1], . . . ) =
+𝑗 (𝑒𝑚 ′ [𝑖 + 1] = 𝛯 [𝑖 + 1] | X𝑚 ′ [𝑖] = S),
+
+for any 𝑖 ↑ N and 𝜴 [0], . . . , 𝜴 [𝑖 + 1] ↑ N and any set of requests S. Also, since 𝑗 (𝑒 = 𝛯 |𝑓 =
+𝑣, 𝛴(𝑓 ) = 𝛴(𝑣)) = 𝑗 (𝑒 = 𝛯 |𝑓 = 𝑣) for any random variables 𝑒 and 𝑓 and measurable function 𝛴(·),
+we can add 𝑒𝑚 ′ [𝑖] = |S| to the conditioning on both sides,
+𝑗 (𝑒𝑚 ′ [𝑖 + 1] = 𝛯 [𝑖 + 1] | X𝑚 ′ [𝑖] = S, 𝑒𝑚 ′ [𝑖] = |S| , 𝑒𝑚 ′ [𝑖 ⇑ 1] = 𝛯 [𝑖 ⇑ 1], . . . ) =
+𝑗 (𝑒𝑚 ′ [𝑖 + 1] = 𝛯 [𝑖 + 1] | X𝑚 ′ [𝑖] = S, 𝑒𝑚 ′ [𝑖] = |S|),
+
+(21)
+
+Since
+RADchooses requests FCFS, given 𝑒𝑚 ′ [𝑖] = 𝛯, X𝑚 ′ [𝑖] is simply the set of the last 𝛯 requests
+ cont.
+in A𝑚 ′ (𝑏) 𝑑 ⇔𝑡 ⇑1 [𝑟 ] . Given the cardinality of X𝑚 ′ [𝑖], which is 𝑒𝑚 ′ [𝑖], the prompt and output
+𝑆′
+lengths of the requests in X𝑚 ′ [𝑖] is i.i.d., by the premise of the Theorem. Therefore, we have,
+*
++
+
+𝑗 (X𝑚 ′ [𝑖] = S | 𝑒𝑚 ′ [𝑖] = |S|) =
+𝑧 𝑗𝑀 ,𝑗𝑁 𝑈 𝑉𝑍 , 𝑈 𝑊
+(22)
+𝑍
+𝑍:𝑎 𝑂 ↑ S
+
+where 𝑈 𝑉𝑍 and 𝑈 𝑊
+𝑍 denotes the prompt and output length realizations of request 𝑕 𝑍 .
+
+Again, since given 𝑒𝑚 ′ [𝑖] = 𝛯, X𝑚 ′ [𝑖] is simply the set of the last 𝛯 requests in A𝑚cont.
+(𝑏) 𝑑 ⇔𝑡 ⇑1 [𝑟 ] ,
+′
+𝑆′
+we have that X𝑚 ′ [𝑖] is independent of the number of requests at the start of previous cycles.
+Therefore we have,
+
+𝑗 (X𝑚 ′ [𝑖] = S | 𝑒𝑚 ′ [𝑖] = |S| , 𝑒𝑚 ′ [𝑖 ⇑ 1] = 𝛯 [𝑖 ⇑ 1], . . . ) =
+𝑧 𝑗𝑀 ,𝑗𝑅 (𝑈 𝑉𝑍 , 𝑈 𝑊
+(23)
+𝑍 ),
+𝑍:𝑎 𝑂 ↑ S
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:32
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+Then, multiplying (22) on the right-hand-side of (21) and multiplying (23) on the left-hand-size,
+and integrating over all sets S of size 𝛯 [𝑖], we obtain the desired Markov property,
+𝑗 (𝑒𝑚 ′ [𝑖 + 1] = 𝛯 [𝑖 + 1] | 𝑒𝑚 ′ [𝑖] = 𝛯 [𝑖], 𝑒𝑚 ′ [𝑖 ⇑ 1] = 𝛯 [𝑖 ⇑ 1], . . . ) =
+𝑗 (𝑒𝑚 ′ [𝑖 + 1] = 𝛯 [𝑖 + 1] | 𝑒𝑚 ′ [𝑖] = 𝛯 [𝑖]),
+
+⫅̸
+C.2
+
+Cycle Times
+
+The RAD scheduler in Algorithm 1 proceeds in cycles. We will bound the expected time of a cycle
+given that there are at least 𝑁 requests at the start of the cycle whose prompt and output lengths
+are distributed according to 𝑧 𝑗𝑀 ,𝑗𝑁 . Recall that in this case RAD starts and completes 𝑁 requests
+chosen in FCFS manner in the cycle.
+Let the set of 𝑁 chosen requests be denoted by R = {𝑕1, . . . , 𝑕𝑀 } (where the indexing is without loss
+⇒ = LCM(𝑏 ⇒ , 𝑏 ⇒ , 𝑏 ⇒ )
+of generality). Consider a request 𝑕 𝑍 ↑ R. Recall that, due to Assumption 3, 𝑏 lcm
+row col red
+⇒ for the
+divides the prompt length 𝑤𝑉𝑍 . In this case, the RAD scheduler schedules chunks of size 𝑏 lcm
+request, 𝑕 𝑍 alone in a batch. Let,
+
+
+⇒
+⇒
+⇒
+⇒
+⇒
+I𝑍 = (1, 𝑏 lcm
+), (𝑏 lcm
++ 1, 𝑏 lcm
+), . . . , (𝑤𝑉𝑍 ⇑ 𝑏 lcm
+, 𝑏 lcm
+)
+
+denote the set of chunk positions and chunk sizes scheduled to complete the pre"ll-phase. Then,
+required time to complete its pre"ll-phase, once scheduled, is,
+𝑑 𝑍𝑉 =
+
+𝑤𝑉𝑍
+1
+1 𝑉
++
+𝑤
+⇒
+⇒
+⇒
+⇒
+𝑐Lin (𝑏 row, 𝑏 col, 𝑏 red ) 𝑏 col 𝑐nLin 𝑍
+)
+, (𝑄𝑍 + 𝑖𝑍 ⇑ 1 𝑖𝑍 𝑂
+𝑀
+𝑂 𝑖𝑍 𝑄𝑍 + 𝑖𝑍 ⇑ 1
++
++ ⇒ ⇒
+,
+⇒ , 𝑏⇒ , 𝑏⇒ )
+⇒
+⇒ 𝑏⇒
+⇒
+𝑉𝑐 (𝑏 row
+𝑏 row
+𝑏 col
+𝑏 row 𝑏 col
+𝑏 red
+col red
+red
+(𝐿 𝑂 ,𝑟 𝑂 ) ↑ I𝑂
+
+Taking the sum and the expectation, the expected amount of time to complete the pre"ll-phases of
+all the 𝑁 requests can be expressed as,
+D
+- .
+- .
+- 𝑉𝑜
+.
+E 𝑤𝑉
+E 𝑤𝑉
+1
+E 𝑑 (R) = 𝑁 ·
++
+⇒ , 𝑏⇒ , 𝑏⇒ ) 𝑏⇒
+𝑐Lin (𝑏 row
+𝑐nLin
+col red
+col
+E
+(24)
+- 𝑉 𝑉 ⇒ .
+𝑀𝑂
++
+.
+⇒ , 𝑏 ⇒ , 𝑏 ⇒ )𝑏 ⇒ 𝑏 ⇒ 𝑏 ⇒ E 𝑤 (𝑤 + 𝑏 lcm )
+𝑉𝑐 (𝑏 row
+col red row col red
+
+Next, we will focus on bounding the e#ective execution time of decode-iterations. For this,
+consider the set of batch indices, M 𝑊 , where only decode-iterations are scheduled, and denote the
+𝑊
+𝑊
+batches by B𝑌
+𝑌↑ M 𝑁 . Moreover, let M ⇒ denote the subset of these batch indices that contain
+⇒
+exactly 𝑏 col decode-iterations. In other words, these batches are optimally tiled. Therefore, for
+𝑚 ↑ M⇒𝑊 we have the batch execution time given as,
+𝑊
+𝑑⇒𝑖 (B𝑌
+)=
+
+𝑏 col
+1
+1 ⇒
++
+𝑏 +𝑀
+⇒
+⇒
+⇒
+⇒
+𝑐Lin (𝑏 row, 𝑏 col, 𝑏 red ) 𝑏 col 𝑐nLin col
+⇒
+
+,
+
+𝑁)
+𝑍:𝑎 𝑂 ↑ S 𝑁 ( B𝑃
+
+𝑑 𝑊,𝑕𝑋 (𝑄 𝑍 ).
+
+where recall that 𝑄 𝑍 is the token position corresponding to the decode-iteration of request 𝑕 𝑍 in the
+batch.
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:33
+
+For all other batches 𝑚 ↑ M 𝑊 \ M⇒𝑊 , the batch execution times are upper bounded as,
+F G
+B 𝑊 
+,
+1
+1  𝑊 
+𝑌
+𝑊
+𝑑 𝑖 (B𝑌
+)⇔
+max
++
+B𝑌 + 𝑀
+𝑑 𝑊,𝑕𝑋 (𝑄 𝑍 ).
+𝑏 col
+𝑐nLin
+(𝑑 row ,𝑑 col ) ↑ Tout ,𝑑 red ↑ Tout 𝑐 Lin (𝑏 row, 𝑏 col, 𝑏 red )
+𝑁
+𝑁
+𝑍:𝑎 𝑂 ↑ S ( B𝑃 )
+
+Let R ⇒ denote the set of requests whose every decode iteration is scheduled in an optimally tiled
+
+batch. For 𝑕 𝑍 ⇒ ↑ R ⇒ , denote the “e#ective completion time” it took to complete its decode-phase as,
+⇒
+𝑂,
+𝑂⇒
+𝑤𝑊𝑍⇒
+1
+1 𝑊
+𝑊 ⇒
+𝑑⇒ ( 𝑦 ) =
+𝑤𝑍⇒ + 𝑀
+𝑑 𝑊,𝑕𝑋 (𝑄).
+⇒ , 𝑏⇒ , 𝑏⇒ ) 𝑏⇒ + 𝑐
+𝑐Lin (𝑏 row
+nLin
+𝑀
+col red col
+
+𝑗𝑀 +𝑗𝑁
+
+𝐿=𝑗 𝑂 ⇒ +1
+
+For all other requests, 𝑕 𝑍 ′ ↑ R \ R ⇒ , their “e#ective completion times” can be bounded as,
+
+′
+𝑂,
+𝑂′
+1
+1 𝑊
+𝑊,max ′
+𝑊
+𝑑
+(𝑦 ) ⇔
+max
+𝑤𝑍′ +
+𝑤 ′ +𝑀
+𝑑 𝑊,𝑕𝑋 (𝑄).
+𝑐nLin 𝑍
+(𝑑 row ,𝑑 col ) ↑ Tout ,𝑑 red ↑ Tout 𝑐 Lin (𝑏 row, 𝑏 col, 𝑏 red )
+𝑀
+
+𝑗𝑀 +𝑗𝑁
+
+𝐿=𝑗 𝑂 ′ +1
+
+Due to Assumption 3,
+
+𝑑 𝑊,max ( 𝑦 ′ ) ⇔ 𝑑 max,
+
+almost surely,
+
+where 𝑑 max is as de"ned in Theorem 2.
+The condition in Line 6 of Algorithm 1 ensures that when 𝑁 requests are being processed in the
+⇒ + 1 requests are optimally tiled,
+cycle, i.e., |R| = 𝑁, then all the decode-iterations of at least 𝑁 ⇑ 𝑏 col
+⇒
+⇒
+⇒
+⇒
+i.e., |R | ∞ 𝑁 ⇑ 𝑏 col . Therefore, |R \ R | ⇔ 𝑏 col ⇑ 1.
+The amount of time required to complete the decode-phase of requests in this cycle can thus be
+bounded as,
+,
+𝑊
+𝑑 𝑊𝑜 =
+𝑑 𝑖 (B𝑌
+),
+=
+
+,
+
+𝑌↑ M 𝑁
+
+,
+
+𝑌↑ M⇒𝑁
+
+⇔
+⇔
+⇔
+
+𝑊
+𝑑 𝑖 (B𝑌
+)+
+
+𝑍 ⇒ :𝑎 𝑂 ⇒ ↑ R ⇒
+
+,
+,
+
+𝑍:𝑎 𝑂 ↑ R
+𝑍:𝑎 𝑂 ↑ R
+
+,
+
+𝑌↑ M 𝑁 \M⇒𝑁
+
+𝑑⇒𝑊 ( 𝑦 ⇒ ) +
+
+𝑑⇒𝑊 ( 𝑦) +
+
+,
+
+𝑊
+𝑑 𝑖 (B𝑌
+),
+
+𝑍 ′ :𝑎 𝑂 ′ ↑ R\R ⇒
+
+,
+
+𝑍:𝑎 𝑂 ′ ↑ R\R ⇒
+
+𝑑 𝑊,max ( 𝑦 ′ ),
+
+𝑑 𝑊,max ( 𝑦 ′ ),
+
+⇒
+𝑑⇒𝑊 ( 𝑦) + (𝑏 col
+⇑ 1)𝑑 max .
+
+Since each request has prompt and output length distributed according to 𝑧 𝑗𝑀 ,𝑗𝑁 , the expected time
+to complete the decode-phase of all the requests in the cycle can be upper bounded as,
+- .
+𝑁
+𝑗𝑀,
+
+ +𝑗 𝑊,𝑕𝑋  
+- 𝑊𝑜 .
+- 𝑊.
+E 𝑤𝑊
+1
+1
+
+
+E 𝑑
+⇔ 𝑁
++
+E 𝑤 + 𝑀E 
+𝑑
+(𝑄)  
+⇒ , 𝑏⇒ , 𝑏⇒ ) 𝑏⇒
+𝑐Lin (𝑏 row
+𝑐
+(25)
+nLin
+
+
+𝑀
+col red
+col
+
+𝐿=𝑗 +1
+
+⇒
++ (𝑏 col
+⇑ 1)𝑑 max .
+Therefore, the expected cycle time is upper bounded as,
+.
+.
+.
+E 𝑑 cycle = E 𝑑 𝑉𝑜 + E 𝑑 𝑊𝑜 ,
+⇔ 𝑁𝑑¯ 𝑎 + (𝑏 ⇒ ⇑ 1)𝑑 max,
+col
+
+(26)
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:34
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+where the upper bound is obtained by combining (24), (25), and the de"nition of 𝑑¯ 𝑎 from Theorem
+1.
+C.3
+
+Positive recurrence of the DTMC
+
+↙
+L)##. 3. Under the same conditions as in Theorem 2, (𝑒𝑚 ′ [𝑖])𝑟=1
+is positive recurrent.
+
+P+’’*. Consider a state 𝑒𝑚 ′ [𝑖] with 𝑒𝑚 ′ [𝑖] ∞ 𝑁. Denote 𝑊𝑚 ′ [𝑖] = |A𝑚 ′ [𝑖] | to be the number of
+request arrivals that happen during the 𝑖 th cycle of RAD. Then, 𝑒𝑚 ′ [𝑖 + 1] = 𝑒𝑚 ′ [𝑖] ⇑ 𝑁 + 𝑊𝑚 ′ [𝑖],
+since RAD completes exactly 𝑁 requests in a cycle if there are at least 𝑁 requests at the start of the
+cycle.
+Since there are already at least 𝑁 requests at the start of the cycle, and RAD chooses requests in
+a FCFS manner, the set of requests completed in the cycle is a subset of these requests. That is,
+R𝑚 ′ [𝑖] △ X𝑚 ′ [𝑖]
+
+and
+
+|𝑕𝑚 ′ [𝑖]| = 𝑁,
+
+if 𝑒𝑚 ′ [𝑖] ∞ 𝑁.
+
+Therefore, in this case, the duration of this cycle is independent of the arrivals after the cyle starts,
+i.e.,
+
+
+⇑1
+𝑌𝑚⇑1
+∈ A𝑚cont.
+(𝑏) 𝑑 >𝑡 ⇑1′ [𝑟 ] , if 𝑒𝑚 ′ [𝑖] ∞ 𝑁.
+′ [𝑖 + 1] ⇑ 𝑌𝑚 ′ [𝑖] ∈
+′
+𝑆
+
+Requests arrive according to a Poisson point process of rate 𝑥/𝑔 . Therefore, by the independence
+of the cycle duration to the arrival process, we have the expected number of arrivals during the
+cycle given as,
+.
+⇑1
+E [𝑊𝑚 ′ [𝑖]] = 𝑥E 𝑌𝑚⇑1
+if 𝑒𝑚 ′ [𝑖] ∞ 𝑁.
+′ [𝑖 + 1] ⇑ 𝑌𝑚 ′ [𝑖] ,
+From the upper bound on the expected duration of the cycle in (26), we have,
++
+𝑥 * ¯𝑎
+⇒
+E [𝑊𝑚 ′ [𝑖]] ⇔
+𝑁𝑑 + (𝑏 col
+⇑ 1)𝑑 max , if 𝑒𝑚 ′ [𝑖] ∞ 𝑁.
+𝑔
+Then the drift for all the states 𝛯 with 𝛯 ∞ 𝑁 is,
+(
+)
+
+.
+𝑥
+⇒
+E 𝑒𝑚 ′ [𝑖 + 1] ⇑ 𝑒𝑚 ′ [𝑖] 𝑒𝑚 ′ [𝑖] = 𝛯 = 𝑁 𝑑¯ 𝑎 ⇑ 1 + 𝑥(𝑏 col
+⇑ 1)𝑑 max,
+𝑔
+(𝑝)
+
+⇒
+⇔ ⇑𝑁𝛥 + (𝑏 col
+⇑ 1)𝑥𝑑 max,
+
+(𝑞 )
+
+< 0,
+
+∋𝑖 ↑ N.
+
+(a) follows by the premise, 𝑥𝑑¯ 𝑎 ⇔ 𝑔 (1 ⇑ 𝛥), and (b) follows from the choice of 𝑁 in Theorem 2.
+
+.
+And clearly E 𝑒𝑚 ′ [𝑖 + 1] 𝑒𝑚 ′ [𝑖] = 𝛯 < ↙ for any 𝛯 ↑ N.
+↙
+Therefore, by Foster’s Theorem[6], (𝑒𝑚 ′ [𝑖])𝑟=1
+is positive recurrent.
+
+C.4
+
+⫅̸
+
+Proof of Theorem 2
+
+First we show that the expected cycle times are "nite.
+L)##. 4. Under the same conditions as Theorem 2, for any cycle index 𝑖 ↑ N:
+. 𝑔
+⇑1
+E 𝑌𝑚⇑1
++ 𝑁𝑑 max .
+′ [𝑖 + 1] ⇑ 𝑌𝑚 ′ [𝑖] ⇔
+𝑥
+P+’’*. Consider 𝑒𝑚 ′ [𝑖] > 0. Then, the RAD scheduler completes at most 𝑁 requests in this cycle.
+The worst case time that a scheduler may take to complete 𝑁 requests is when, a) the prompt and
+output lengths of all requests are the longest possible, and, b) the scheduler processes the requests
+one after the other. 𝑑 max bounds the worst-case time required to complete a request. Therefore, the
+worst-case cycle time of the RAD scheduler is bounded by 𝑁𝑑 max .
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:35
+
+Consider 𝑒𝑚 ′ [𝑖] = 0. In this case, the RAD scheduler waits for a request to arrive, which takes
+expected time 𝑔 /𝑥. Then, similar to above, the RAD scheduler may complete up to 𝑁 requests (in
+the case where more requests arrive before RAD proceeds to the next cycle). We know that that
+worst-case cycle time to complete 𝑁 requests is 𝑁𝑑 max . Therefore, in this case, the expected cycle
+time is bounded as 𝑔 /𝑥 + 𝑁𝑑 max .
+⫅̸
+2.
+
+Finally, we using the previous Lemmas proved in this section, we present the proof of Theorem
+
+
+
+P+’’* ’* T2)’+)# 2. By de"nition, 𝑇𝑚 ′ 𝑌 ⇑1 [𝑖] = 0, if and only if 𝑒𝑚 ′ [𝑖] = 0. And, by Lemma
+↙
+3, (𝑒𝑚 ′ [𝑖])𝑟=1
+is positive-recurrent. And, by Lemma 4, for any 𝑖 1, 𝑖 2 ↑ N such that 𝑖 1 < 𝑖 2 ,
+.
+(𝑖 2 ⇑ 𝑖 1 )𝑔
+⇑1
+E 𝑌𝑚⇑1
++ (𝑖 2 ⇑ 𝑖 1 )𝑁𝑑 max .
+′ [𝑖 2 ] ⇑ 𝑌𝑚 ′ [𝑖 1 ] ⇔
+𝑥
+We know the systems starts empty: 𝑇𝑚 ′ (0) = 0. De"ne, 𝑑 regen = min{𝑏 > 0 : 𝑇𝑚 ′ (𝑏) = 0}. Then
+by the above results, E [𝑑 regen ] < ↙. Moreover, RAD starts a new cycle whenever 𝑇𝑚 ′ (𝑏) = 0.
+↙
+Therefore, 𝑑 regen is aligned with the start of a new cycle: 𝑑 regen = 𝑌 ⇑1 [𝑌 (𝑑 regen )]. Since (𝑒𝑚 ′ [𝑖])𝑟=0
+is a DTMC, this implies that (𝑇𝑚 ′ (𝑏))𝑑 >𝑘 regen is independent of (𝑇𝑚 ′ (𝑏))𝑑 ⇔𝑘 regen . Therefore, (𝑇𝑚 ′ (𝑏))𝑑 ∞0
+is a regenerative process, with regeneration point 0. Further it is positive recurrent since E [𝑑 regen ] <
+↙.
+⫅̸
+D
+
+Another Throughput-Optimal Scheduler
+
+Another throughput-optimal scheduler is presented in Algorithm 2. It has the same high level
+design principle as the RAD scheduler. It proceeds in cycles, where in each cycle it starts and
+completes up to 𝑁 requests. This scheduler di#ers from RAD in the order in which it schedules
+pre"ll and decode iterations.
+Algorithm 2 "rst completes up to 𝑁 pre"ll-phase requests (if enough are available) with optimal
+⇒ of the
+tiling (see Lines 3-13). Then it moves to the decode mode, where it "rst chooses the "rst 𝑏 col
+decode phase requests, D, and marks them as active, denoted Dactive . It then proceeds to schedules
+batches of decode-iterations of each request in Dactive . After each request it removes requests that
+sampled their stop token, and replaces them with remaining requests in D, if there are any. This
+proceeds until all the requests in this cycle have completed.
+It may be shown that Algorithm 2 schedules optimally tiled batches most of the time, and also
+performs dynamic optimal resource allocation between pre"ll and decode phase requests just
+like the RAD scheduler. As such, Theorem 2 applies when the RAD scheduler is replaced by the
+scheduler in Algorithm 2 as well. The proof would be very similar to the one presented in Appendix
+C for the RAD scheduler. We omit the proof to avoid repetition.
+The primary di#erence in the operation of the two schedulers would be the TTFT and TBT
+observed by requests. For the scheduler in Algorithm 2, consider that the "rst output token of a
+request is only produced when it has been moved to the active decode set, Dactive . In this case, the
+decode-iterations of this request keep getting scheduled in consecutive batches until the request is
+complete. Therefore, the TBT of requests will be low. However, since the scheduler has to complete
+a large number, 𝑁, of requests before it starts generating the tokens for any of the requests, the TTFT
+of the requests will be very high. This is complementary to the RAD scheduler, where requests
+observe a hight TBT, but a relatively lower TTFT.
+E
+
+Other Schedulers in the Framework
+
+As a way of illustration, we provide a description of request-level batching, Sarathi-serve and
+DistServe in our scheduler framework introduced in Section 3.1.
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:36
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+Algorithm 2 Another Throughput Optimal Scheduler
+Require: Parameter 𝑁
+1: P ↘ ⇓, D ↘ ⇓
+2: while True do
+// Cycle starts in PREFILL MODE
+3:
+𝑔𝑠𝑡𝑢𝑠𝑉𝑏𝑉_𝑄𝑁_𝑖𝑣𝑖𝑈𝑠 ↘ 0
+4:
+while P ω ⇓ and 𝑔𝑠𝑡𝑢𝑠𝑉𝑏𝑉_𝑄𝑁_𝑖𝑣𝑖𝑈𝑠 < 𝑁 do
+5:
+Choose a request 𝑕 "rst-come-"rst-serve from P and set 𝑄 ↘ 1
+6:
+while pre"ll phase of the chosen request is incomplete do
+⇒ , 𝑏 ⇒ , 𝑏 ⇒ ), 𝑤 (𝑕) ⇑ 𝑄}
+7:
+𝑖 = min{LCM(𝑏 row
+𝑉
+col red
+8:
+Schedule 𝑗𝑘 (𝑕, 𝑄, 𝑖) in a batch.
+9:
+𝑄 ↘ 𝑄 +𝑖
+10:
+end while
+11:
+Move the request from P to D
+12:
+𝑔𝑠𝑡𝑢𝑠𝑉𝑏𝑉_𝑄𝑁_𝑖𝑣𝑖𝑈𝑠 ↘ 𝑔𝑠𝑡𝑢𝑠𝑉𝑏𝑉_𝑄𝑁_𝑖𝑣𝑖𝑈𝑠 + 1
+13:
+end while
+//Change mode to DECODE MODE
+14:
+Dactive = ⇓
+⇒ , |D|) requests from D to D
+15:
+Move min(𝑏 col
+active
+16:
+while |Dactive | > 0 do
+17:
+Schedule one DI for each request in Dactive in a batch.
+18:
+Remove requests that sampled the !stop! token from Dactive
+⇒ ⇑ |D
+19:
+Move min(𝑏 col
+active | , |D|) requests from D to Dactive .
+20:
+end while
+21: end while
+E.1
+
+Request level batching
+
+This scheduler is inspired by FasterTransformer[23], which schedules a batch of 𝑛 requests at a
+time, and only proceeds to other requests after all these requests have completed. We adapt this
+scheduler and express it in the “sequences of batches of iterations” framework in Algorithm 3. Here
+the scheduler alternates between two modes. It starts in Pre"ll Mode in which it selects 𝑛 requests
+from the pre"ll-queue in FCFS order and completes their pre"ll phases. It then switches to Decode
+Mode where it schedules one decode iteration for all active decode-phase requests until all of them
+complete. It then switches back to Pre"ll Mode.
+E.2
+
+Sarathi-serve
+
+This scheduler, as shown in Algorithm 4, enforces a "xed token budget per batch and prioritizes
+decode-phase requests. It "rsts selects a decode iteration for each decode-phase request (the number
+of these is guaranteed to be below the budget). It then "lls the remaining capacity with chunked
+pre"ll iterations. Completed pre"lls are transitioned to the decode queue, while completed decodes
+are removed.
+E.3
+
+DistServe
+
+This is a distributed scheduler, as shown in Algorithm 5, and runs on dedicated pre"ll and decode
+nodes. In pre"ll nodes, pre"ll requests are handled one at a time in FCFS order, with entire prompts
+processed in a single iteration. Completed requests are transferred to the decode node. At the
+decode node, it continuously batches and schedules decode iterations. Here we note that it is
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:37
+
+Algorithm 3 Request-Level Batching Scheduler [23]
+Require: Batch size 𝑛
+1: P ↘ ⇓, D ↘ ⇓
+// Prefill and decode phase queues
+2: 𝑚𝛶𝑂𝑠 ↘ Decode
+3: while True do
+4:
+Update P based on arrivals
+5:
+if 𝑚𝛶𝑂𝑠 = Prefill then
+6:
+if D ω ⇓ then
+7:
+Schedule 𝑙𝑘 for each 𝑕 ↑ D in a batch with appropriate token positions
+8:
+Remove from D any request that sampled the stop token
+9:
+else
+10:
+𝑚𝛶𝑂𝑠 ↘ Prefill
+11:
+end if
+12:
+else if 𝑚𝛶𝑂𝑠 = Prefill then
+13:
+if P ω ⇓ then
+14:
+Choose up to 𝑛 requests from P in FCFS order
+15:
+for all selected requests 𝑕 𝑍 do
+16:
+Schedule 𝑗𝑘 (𝑕, 1, 𝑤𝑉𝑍 )
+// Full prompt in one iteration
+17:
+Move 𝑕 from P to D
+18:
+end for
+19:
+end if
+20:
+𝑚𝛶𝑂𝑠 ↘ Decode
+21:
+end if
+22: end while
+possible to run both pre"ll and decode requests with optimal tiling at the pre"ll and decode nodes
+respectively.
+F
+
+Additional experimental results
+
+F.1 Results for the scenario of 5% split
+Figure 9 presents a comparative evaluation of scheduling policies under heterogeneous TTFT and
+TBT constraints, with a workload comprising 5% paying users. Figure 9a shows the median TTFT
+for all requests as a function of request rate, plotted on a log-scaled y-axis to highlight di#erences
+at low load. This view reveals how various schedulers handle contention-free versus saturated
+conditions. Figure 9b reports the number of requests completed at the peak load of 1.6 requests
+per second, bucketed by prompt length. Notably, SLAI (SPF, dynamic o#set) serves nearly as many
+requests as Sarathi-serve while achieving substantially lower median TTFT, whereas vLLM exhibits
+instability and fails to maintain throughput under high load. Finally, Figure 9c plots the mean
+TTFT at 1.6 requests per second as a function of prompt length. Despite favoring shorter prompts,
+SPF-based schedulers yield a lower overall TTFT compared to FCFS variants, demonstrating the
+bene"t of prioritizing short requests even in the presence of heterogeneous job sizes.
+F.2 Prioritizing prefill-phase requests of paying users over free-tier users
+In this section, we evaluate an additional policy: SLAI (SPF with priority, dynamic o#set). This
+policy gives strict priority to pre"ll-phase requests from paying users over those from free-tier
+users, regardless of prompt length. In other words, it always schedules a paying user’s request
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:38
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+Algorithm 4 Sarathi-Serve Scheduler[2]
+Require: Token budget 𝑜 budget
+// Max tokens per batch
+1: P ↘ ⇓, D ↘ ⇓
+// Requests in prefill and decode phases
+2: while True do
+3:
+Update P based on arrivals
+4:
+B↘⇓
+// Current batch and used tokens
+5:
+for all requests 𝑕 ↑ D do
+6:
+Add 𝑙𝑘 (𝑕, 𝑄) to batch B
+7:
+Mark 𝑄 ↘ 𝑄 + 1 for 𝑕
+8:
+end for
+9:
+𝑜 ↘ |D|
+10:
+for all 𝑕 ↑ P in arrival order do
+11:
+while 𝑜 < 𝑜 budget do
+12:
+𝑖 ↘ min{𝑜 budget ⇑ 𝑜, 𝑤𝑉𝑍 ⇑ 𝑄} // i is starting token index left to prefill
+13:
+Add 𝑗𝑘 (𝑕, 𝑄, 𝑖) to batch B
+14:
+𝑜 ↘ 𝑜 +𝑖
+15:
+Mark 𝑄 ↘ 𝑄 + 𝑖 for 𝑕
+16:
+end while
+17:
+end for
+18:
+Schedule batch B
+19:
+for all requests 𝑕 ↑ P do
+20:
+if pre"ll of 𝑕 complete then
+21:
+Move 𝑕 from P to D
+22:
+end if
+23:
+end for
+24:
+for all requests 𝑕 ↑ D do
+25:
+if decode of 𝑕 sampled stop token then
+26:
+Remove 𝑕 from D
+27:
+end if
+28:
+end for
+29: end while
+"rst. All other parameters are the same as in SLAI (SPF, dynamic o#set). Figure 10 compares this
+priority-based policy with other scheduling strategies. At high load (1.6 requests per second), we
+observe that the mean TTFT for paying users is lower than that for free-tier users. However, the
+improvement in TTFT for paying users is relatively small.
+F.3 Results for the scenario of 50% and 95% split
+In this section, we present additional results for scenarios with less heterogeneity in user workloads.
+Figures 11 and 12 show results similar to those discussed earlier, but for cases where the percentage
+of paying users is 50% and 95%, respectively. As the proportion of paying users increases, the
+improvement in serving capacity under SLAI (SPF, dynamic o#set) compared to Sarathi-serve
+(FCFS) becomes smaller. This is because a larger share of tra!c now has stricter TBT constraints,
+leaving fewer opportunities for SLAI to defer decode-phase requests dynamically.
+Received July 2025; revised September 2025; accepted October 2025
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+59:39
+
+Algorithm 5 DistServe Scheduler [36]
+Require: Separate compute nodes for pre"ll and decode phases
+— Pre!ll Node —
+
+1: P ↘ ⇓
+2: while True do
+
+// Requests awaiting prefill
+
+Update P based on new arrivals
+if P = ⇓ then
+continue
+end if
+Choose request 𝑕 𝑍 from P in "rst-come-"rst-serve order
+8:
+Schedule 𝑗𝑘 (𝑕 𝑍 , 1, 𝑤𝑉𝑍 )
+// chunked prefill-iteration may be done too
+9:
+Transfer KV-cache of 𝑕 to a Decode Node
+10:
+Remove 𝑕 from P
+11: end while
+3:
+4:
+5:
+6:
+7:
+
+— Decode Node —
+
+12: D ↘ ⇓
+13: while True do
+
+// Requests in decode phase
+
+Update D received from a Pre"ll Node
+if D = ⇓ then
+continue
+end if
+⇒ requests may also be scheduled
+Schedule 𝑙𝑘 (𝑕) for each 𝑕 ↑ D in a batch
+// 𝑏 col
+for optimal tiling
+19:
+Remove from D any request that sampled the stop token
+20: end while
+14:
+15:
+16:
+17:
+18:
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:40
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+(a) Median TTFT for all users as a function of request
+rate, shown on a log-scaled 𝑣-axis to illustrate the gap
+at lower request rates.
+
+(b) Requests served at high load (1.6 req/s) versus
+prompt length.
+
+(c) Mean TTFT at the high load (1.6 req/s) versus prompt
+length.
+Fig. 9. Performance comparison of di"erent policies under mixed user workloads with 5% paying users.
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+(a) Mean TTFT for paying users as a
+function of requests per second.
+
+59:41
+
+(b) Mean TTFT for free-tier users as a
+function of requests per second.
+
+Fig. 10. Performance comparison of di"erent policies under mixed user workloads with 5% paying users.
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+59:42
+
+Agrim Bari, Parikshit Hegde, and Gustavo de Veciana
+
+(a) 99th percentile TBT for paying users across
+di"erent request rates for a target of 0.1 seconds.
+
+(b) 99th percentile TBT for free-tier users across
+di"erent request rates for a target of 0.5 seconds.
+
+(c) Median TTFT for all users as a function of request
+rate. SLAI (SPF, dynamic o"set) reduces TTFT from 1.5
+seconds (under Sarathi-serve (FCFS)) to 0.73 seconds,
+and increases peak serving capacity from 1.15 to 1.4
+requests per second subject to latency constraints.
+Fig. 11. Performance comparison of SLAI, Sarathi-serve, and vLLM under mixed user workloads with 50%
+paying users. SLAI (SPF, dynamic o"set) achieves the best latency-throughput trade-o".
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+Optimal Scheduling for LLM Inference
+
+(a) 99th percentile TBT for paying users across
+di"erent request rates for a target of 0.1 seconds.
+
+59:43
+
+(b) 99th percentile TBT for free-tier users across
+di"erent request rates for a target of 0.5 seconds.
+
+(c) Median TTFT for all users as a function of request
+rate. SLAI (SPF, dynamic o"set) reduces TTFT from 2
+seconds (under Sarathi-serve (FCFS)) to 0.75 seconds,
+and increases peak serving capacity from 1.15 to 1.25
+requests per second subject to latency constraints.
+Fig. 12. Performance comparison of SLAI, Sarathi-serve, and vLLM under mixed user workloads with 95%
+paying users. SLAI (SPF, dynamic o"set) achieves the best latency-throughput trade-o".
+
+Proc. ACM Meas. Anal. Comput. Syst., Vol. 9, No. 3, Article 59. Publication date: December 2025.
+
+

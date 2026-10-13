@@ -1,0 +1,542 @@
+M/G/1 Queues
+
+Eytan Modiano
+Massachusetts Institute of Technology
+
+Eytan Modiano
+Slide 1
+
+M/G/1 QUEUE
+
+Poisson arrivals
+
+M/G/1
+General independent
+Service times
+
+•
+
+Poisson arrivals at rate λ
+
+•
+
+Service time has arbitrary distribution with given E[X] and E[X2]
+–
+–
+–
+–
+
+Eytan Modiano
+Slide 2
+
+Service times are independent and identically distributed (IID)
+Independent of arrival times
+E[service time] = 1/µ
+Single Server queue
+
+Pollaczek-Khinchin (P-K) Formula
+
+!E[X 2 ]
+W=
+2(1" #)
+where ρ = λ/µ = λE[X] = line utilization
+
+From Little’s Theorem,
+NQ = λW
+T = E[X] + W
+N = λT= NQ + ρ
+
+Eytan Modiano
+Slide 3
+
+M/G/1 EXAMPLES
+
+•
+
+Example 1: M/M/1
+E[X] = 1/µ ; E[X2] = 2/µ2
+
+W=
+
+•
+
+!
+#
+=
+µ 2 (1 " # ) µ (1 " # )
+
+Example 2: M/D/1 (Constant service time 1/µ)
+E[X] = 1/µ ; E[X2] = 1/µ2
+
+!
+#
+W=
+=
+2
+2µ (1 " # ) 2µ (1 " # )
+Eytan Modiano
+Slide 4
+
+Proof of Pollaczek-Khinchin (P-K) formula
+•
+
+Let
+
+Wi = waiting time in queue of ith arrival
+Ri = Residual service time seen by i
+(i.e., amount of time for current customer receiving service to be done)
+
+Ni = Number of customers found in queue by i
+
+i arrives
+
+Wi
+
+Ri
+
+Xi-3
+
+Xi-2
+
+Xi-1
+
+Xi
+
+time
+
+Ni =3
+
+i !1
+
+Wi = Ri +
+
+"X
+
+j
+
+j = i ! Ni
+
+•
+
+E[Wi] = E[Ri] + E[X]E[Ni] = R + NQ/µ
+–
+
+•
+
+W = R + λW/µ ⇒ W = R/(1-ρ)
+–
+
+Eytan Modiano
+Slide 5
+
+Here we have used the PASTA property plus the independent service time property
+
+Using little’s formula
+
+What is R?
+(Time Average Residual Service Time)
+Residual Service
+Time R(t)
+X4
+
+X1
+
+X2
+X1
+
+X2
+
+X3
+X3
+
+X4
+
+time →
+
+Let M(t) = Number of customers served by time t
+E[R(t)] = 1/t (sum of area in triangles)
+
+1
+Rt =
+t
+As t ! " ,
+
+t
+
+"
+
+0
+
+M( t )
+
+#
+
+M(t)
+= Average departure rate = Average arrival rate = #
+t
+M( t )
+
+!
+
+Eytan Modiano
+Slide 6
+
+M( t )
+
+1
+M(t )
+X i2
+R(! )d! =
+=
+t i =1 2
+2t i =1 M(t )
+
+#
+
+X i2
+
+X i2
+
+[ ]
+
+M(t )
+= E X2 " R =
+t i =1 M(t )
+
+[ ]
+
+#E X 2
+2
+
+M/G/1 Queue with Vacations
+•
+•
+•
+
+Useful for polling and reservation systems (e.g., token rings)
+When the queue is empty, the server takes a vacation
+Vacation times are IID and independent of service times and arrival times
+–
+–
+
+If system is empty after a vacation, the server takes another vacation
+The only impact on the analysis is that a packet arriving to an empty system
+must wait for the end of the vacation
+
+i arrives
+Vi
+
+Ni =3
+
+Wi
+Xi-3
+
+Xi-2
+
+Xi-1
+
+Xi
+
+time
+i !1
+
+Wi = Ri +
+
+"X
+
+j
+
+j = i ! Ni
+
+E[Wi] = E[Ri] + E[X]E[Ni] = R + NQ/m = R/(1-r)
+Eytan Modiano
+Slide 7
+
+Average Residual Service Time
+(with vacations)
+Residual Service
+Time R(t)
+
+X4
+
+V1
+
+X1
+
+X3
+
+X2
+X1
+
+X2
+
+V1
+
+X3
+
+X4
+
+time →
+
+M( t ) 2
+L( t ) 2
+L( t )
+Vj ' M(t ) M( t ) X i2
+Vj2
+1
+1$
+Xi
+L(t )
+Rt =
+R(! )d! = &
++
++) =
++
+t
+t & i =1 2
+2 )
+2t i =1 M(t )
+2t j =1 L(t )
+j =1
+0
+%
+(
+t
+
+#
+
+"
+
+#
+
+#
+
+M(t ) E[X 2 ]
+L(t ) E[V 2 ]
+R = lim
++
+t!"
+t
+2
+t
+2
+–
+–
+Eytan Modiano
+Slide 8
+
+Where L(t) is the number of vacations taken up to time t
+M(t) is the number of customers served by time t
+
+#
+
+Average Residual Service Time
+(with vacations)
+As t ! " ,
+
+•
+•
+
+M(t)
+L(t)
+! # and
+! # v = vacation rate
+t
+t
+
+Let I = 1 if system is on vacation and I = 0 if system is busy
+Little’s Theorem ⇒
+E[I] = P(system idle) = 1-ρ = λv E[V]
+
+⇒ λv = (1-ρ)/E[V]
+
+•
+
+Hence,
+
+!E[X 2 ] (1 " # )E[V 2 ]
+R=
++
+2
+2E[V]
+
+!E[X 2 ] E[V 2 ]
+W=
++
+2(1 " # ) 2E[V]
+Eytan Modiano
+Slide 9
+
+(recall W = R/(1-ρ))
+
+Example: Slotted M/D/1 system
+1/µ
+Each slot = one packet transmission time = 1/µ
+
+Eytan Modiano
+Slide 10
+
+•
+
+Transmission can begin only at start of a slot
+
+•
+
+If system is empty at the start of a slot, server not available for the duration of the
+slot (vacation)
+
+! / µ2
+1/ µ 2
+! /µ
+1/ µ
+W=
++
+=
++
+2(1" ! / µ ) 2 / µ 2( µ " !)
+2
+
+•
+•
+
+E[X] = E[v] = 1/µ
+
+•
+
+Notice that an average of 1/2 slot is spent waiting for the start of a slot
+
+E[X2] = E[v2] = 1/µ2
+
+= WM / D /1 + E[X]/ 2
+
+FDM EXAMPLE
+•
+
+Assume m Poisson streams of fixed length packets of arrival rate λ/m each
+multiplexed by FDM on m subchannels. Total traffic = λ
+Suppose it takes m time units to transmit a packet, so µ=1/m.
+The total system load: ρ = λ
+
+FDM Frames
+User 1
+User 2
+
+User m
+
+•
+
+IDLE
+
+SLOT for User 1
+SLOT for User 2
+
+SLOT for User m
+
+We have an M/D/1 system W=λE[x2]/2(1-ρ)
+
+(! / m ) m 2
+
+#m
+WFDM =
+=
+2(1 " # )
+2(1 " # )
+Eytan Modiano
+Slide 11
+
+IDLE
+
+SLOT for User m
+
+Slotted FDM
+•
+
+Suppose now that system is slotted and transmissions start only on m time unit
+boundaries.
+
+SLOTTED FDM Frames
+User 1
+User 2
+
+SLOT for User 1
+SLOT for User 2
+
+User m
+
+•
+
+Vacation for User m
+
+SLOT for User m
+
+This is M/D/1 with vacations
+–
+
+Server goes on vacation for m time units when there is nothing to transmit
+E[V] = m; E[V2] = m2.
+
+WSFDM = WFDM + E[V2]/2E[V]
+= WFDM + m/2
+Eytan Modiano
+Slide 12
+
+SLOT for User 2
+
+TDM
+
+slot m
+
+•
+
+slot 1
+
+EXAMPLE
+
+TDM Frame
+...
+slot 2
+
+slot m
+
+TDM with one packet slots is the same
+–
+
+A session has to wait for its own slot boundary
+W = R/(1-ρ)
+
+!E[X 2 ] (1 " # )E[V 2 ]
+R=
++
+2
+2E[V]
+!E[X 2 ] E[V 2 ]
+W=
++
+2(1 " # ) 2E[V]
+Eytan Modiano
+Slide 13
+
+TDM
+
+EXAMPLE
+
+•
+
+Therefore,
+
+•
+
+Adding the packet transmission time, TDM comes out best because
+transmission time is 1 instead of m
+
+WTDM = WFDM + m/2
+
+TFDM = [WFDM ] + m
+TSFDM = [WFDM + m/2]+m
+TTDM = [WFDM + m/2]+1
+= TFDM - [m/2-1]
+
+Eytan Modiano
+Slide 14
+
+

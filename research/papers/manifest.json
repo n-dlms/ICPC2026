@@ -1,0 +1,212 @@
+{
+  "1606.09395": {
+    "bytes": 572449,
+    "id": "1606.09395",
+    "path": "/home/dlamini/ICPC2026/research/papers/1606.09395.pdf",
+    "status": "ok"
+  },
+  "1707.06063": {
+    "bytes": 598240,
+    "id": "1707.06063",
+    "path": "/home/dlamini/ICPC2026/research/papers/1707.06063.pdf",
+    "status": "ok"
+  },
+  "1711.00081": {
+    "bytes": 107864,
+    "id": "1711.00081",
+    "path": "/home/dlamini/ICPC2026/research/papers/1711.00081.pdf",
+    "status": "ok"
+  },
+  "1806.03377": {
+    "bytes": 629717,
+    "id": "1806.03377",
+    "path": "/home/dlamini/ICPC2026/research/papers/1806.03377.pdf",
+    "status": "ok"
+  },
+  "1811.06965": {
+    "bytes": 539195,
+    "id": "1811.06965",
+    "path": "/home/dlamini/ICPC2026/research/papers/1811.06965.pdf",
+    "status": "ok"
+  },
+  "1912.10769": {
+    "bytes": 346945,
+    "id": "1912.10769",
+    "path": "/home/dlamini/ICPC2026/research/papers/1912.10769.pdf",
+    "status": "ok"
+  },
+  "2006.09503": {
+    "bytes": 2191490,
+    "id": "2006.09503",
+    "path": "/home/dlamini/ICPC2026/research/papers/2006.09503.pdf",
+    "status": "ok"
+  },
+  "2104.06210": {
+    "bytes": 100566,
+    "id": "2104.06210",
+    "path": "/home/dlamini/ICPC2026/research/papers/2104.06210.pdf",
+    "status": "ok"
+  },
+  "2111.06564": {
+    "bytes": 224354,
+    "id": "2111.06564",
+    "path": "/home/dlamini/ICPC2026/research/papers/2111.06564.pdf",
+    "status": "ok"
+  },
+  "2303.06127": {
+    "bytes": 238701,
+    "id": "2303.06127",
+    "path": "/home/dlamini/ICPC2026/research/papers/2303.06127.pdf",
+    "status": "ok"
+  },
+  "2305.05920": {
+    "bytes": 617185,
+    "id": "2305.05920",
+    "path": "/home/dlamini/ICPC2026/research/papers/2305.05920.pdf",
+    "status": "ok"
+  },
+  "2305.07164": {
+    "bytes": 1932419,
+    "id": "2305.07164",
+    "path": "/home/dlamini/ICPC2026/research/papers/2305.07164.pdf",
+    "status": "ok"
+  },
+  "2306.06003": {
+    "bytes": 448703,
+    "id": "2306.06003",
+    "path": "/home/dlamini/ICPC2026/research/papers/2306.06003.pdf",
+    "status": "ok"
+  },
+  "2401.09670": {
+    "bytes": 647352,
+    "id": "2401.09670",
+    "path": "/home/dlamini/ICPC2026/research/papers/2401.09670.pdf",
+    "status": "ok"
+  },
+  "2401.10241": {
+    "bytes": 649126,
+    "id": "2401.10241",
+    "path": "/home/dlamini/ICPC2026/research/papers/2401.10241.pdf",
+    "status": "ok"
+  },
+  "2403.02310": {
+    "bytes": 1945812,
+    "id": "2403.02310",
+    "path": "/home/dlamini/ICPC2026/research/papers/2403.02310.pdf",
+    "status": "ok"
+  },
+  "2404.09526": {
+    "bytes": 984324,
+    "id": "2404.09526",
+    "path": "/home/dlamini/ICPC2026/research/papers/2404.09526.pdf",
+    "status": "ok"
+  },
+  "2410.10759": {
+    "bytes": 835589,
+    "id": "2410.10759",
+    "path": "/home/dlamini/ICPC2026/research/papers/2410.10759.pdf",
+    "status": "ok"
+  },
+  "2504.07347": {
+    "bytes": 1938635,
+    "id": "2504.07347",
+    "path": "/home/dlamini/ICPC2026/research/papers/2504.07347.pdf",
+    "status": "ok"
+  },
+  "2507.00217": {
+    "bytes": 1362137,
+    "id": "2507.00217",
+    "path": "/home/dlamini/ICPC2026/research/papers/2507.00217.pdf",
+    "status": "ok"
+  },
+  "2508.01002": {
+    "bytes": 4344829,
+    "id": "2508.01002",
+    "path": "/home/dlamini/ICPC2026/research/papers/2508.01002.pdf",
+    "status": "ok"
+  },
+  "2510.08055": {
+    "bytes": 607521,
+    "id": "2510.08055",
+    "path": "/home/dlamini/ICPC2026/research/papers/2510.08055.pdf",
+    "status": "ok"
+  },
+  "2606.09061": {
+    "bytes": 743932,
+    "id": "2606.09061",
+    "path": "/home/dlamini/ICPC2026/research/papers/2606.09061.pdf",
+    "status": "ok"
+  },
+  "2607.16347": {
+    "bytes": 620309,
+    "id": "2607.16347",
+    "path": "/home/dlamini/ICPC2026/research/papers/2607.16347.pdf",
+    "status": "ok"
+  },
+  "splitwise-2311.18677": {
+    "id": "splitwise-2311.18677",
+    "path": "splitwise-2311.18677.pdf",
+    "source": "https://arxiv.org/pdf/2311.18677 (ISCA 2024, Patel/Choukse et al., MSR+UW)",
+    "status": "ok (added SA08 2026-08-23)"
+  },
+  "mooncake-2407.00079": {
+    "id": "mooncake-2407.00079",
+    "path": "mooncake-2407.00079.pdf",
+    "source": "https://arxiv.org/pdf/2407.00079 (FAST 2025, Qin et al., Moonshot AI)",
+    "status": "ok (added SA08 2026-08-23)"
+  },
+  "alpaserve-2302.11665": {
+    "id": "alpaserve-2302.11665",
+    "path": "alpaserve-2302.11665.pdf",
+    "source": "https://arxiv.org/pdf/2302.11665 (OSDI 2023, Li/Zheng et al.)",
+    "status": "ok (added SA08 2026-08-23)"
+  },
+  "clockwork-2006.02464": {
+    "id": "clockwork-2006.02464",
+    "path": "clockwork-2006.02464.pdf",
+    "source": "https://arxiv.org/pdf/2006.02464 (OSDI 2020, Gujarati et al.)",
+    "status": "ok (added SA08 2026-08-23)"
+  },
+  "elidrissi2020-single-server-thesis": {
+    "id": "elidrissi2020-single-server-thesis",
+    "path": "elidrissi2020-single-server-thesis.pdf",
+    "source": "https://uphf.hal.science/tel-03429508v1/document (HAL, El Idrissi PhD thesis; ch.1 = survey of parallel machine scheduling with a single server)",
+    "status": "ok (added SA08 2026-08-23)"
+  },
+  "botsali2019-lot-streaming": {
+    "id": "botsali2019-lot-streaming",
+    "path": "botsali2019-lot-streaming.pdf",
+    "source": "https://dergipark.org.tr/tr/download/article-file/904347 (Botsali, IJESA 2019; compact survey of 2/3/m-machine lot streaming procedures after Trietsch-Baker/Baker-Pyke)",
+    "status": "ok (added SA08 2026-08-23)"
+  },
+  "eos-ch04-weighted-completion": {
+    "id": "eos-ch04-weighted-completion",
+    "path": "eos-ch04-weighted-completion.pdf",
+    "source": "https://elementsofscheduling.nl/PDF/Ch04.pdf (Elements of Scheduling, Lawler/Queyranne/Schulz/Shmoys, ch.4 incl. SRPT Thm 4.25/4.26)",
+    "status": "ok (added SA08 2026-08-23)"
+  },
+  "federgruen-groenevelt-1986": {
+    "id": "federgruen-groenevelt-1986",
+    "path": "federgruen-groenevelt-1986.pdf",
+    "source": "https://drupalgsb-test.paas.cc.columbia.edu/.../federgruen_preemptive.pdf (Columbia GSB mirror, Management Science 1986)",
+    "status": "ok (non-arXiv, author/institution mirror)"
+  },
+  "kvv1990": {
+    "id": "kvv1990",
+    "path": "kvv1990.pdf",
+    "source": "https://ics.uci.edu/~vazirani/KVV.pdf (author site, STOC 1990 paper)",
+    "status": "ok (non-arXiv, author/institution mirror)"
+  },
+  "bertsekas-rollouts-survey": {
+    "bytes": 578160,
+    "id": "bertsekas-rollouts-survey",
+    "path": "/home/dlamini/ICPC2026/research/papers/bertsekas-rollouts-survey.pdf",
+    "status": "ok"
+  },
+  "whitehouse-determinization-cig11": {
+    "bytes": 269399,
+    "id": "whitehouse-determinization-cig11",
+    "path": "/home/dlamini/ICPC2026/research/papers/whitehouse-determinization-cig11.pdf",
+    "status": "ok"
+  }
+}

@@ -1,0 +1,1292 @@
+
+Jump to content
+
+	
+		
+			
+				
+
+	
+	
+
+Main menu
+	
+	
+
+				
+		
+
+	
+	Main menu
+	move to sidebar
+	hide
+
+	
+
+	
+		Navigation
+	
+	
+		
+		
+			
+			Main page
+Contents
+Current events
+Random article
+About Wikipedia
+Contact us
+
+		
+		
+	
+
+	
+
+	
+		Contribute
+	
+	
+		
+		
+			
+			Help
+Learn to edit
+Community portal
+Recent changes
+Upload file
+Special pages
+
+		
+		
+	
+
+				
+
+	
+
+		
+			
+
+	
+	
+		
+		
+	
+
+		
+		
+			
+
+	
+
+Search
+	
+	
+		
+			
+				
+					
+						
+						
+					
+					
+				
+				Search
+			
+		
+	
+
+			
+	
+	
+
+	
+		
+		
+			
+			
+		
+		
+	
+
+	
+
+	
+		
+		
+			
+			
+		
+		
+	
+
+	
+		
+
+	
+	
+
+Appearance
+	
+	
+
+			
+				
+			
+		
+	
+
+	
+	
+
+	
+		
+		
+			
+			
+		
+		
+	
+
+	
+
+	
+		
+		
+			Donate
+
+Create account
+
+Log in
+
+			
+		
+		
+	
+
+	
+	
+
+	
+	
+
+Personal tools
+	
+	
+
+		
+
+	
+		
+		
+			
+
+Donate
+
+Create account
+
+Log in
+
+			
+		
+		
+	
+
+	
+	
+
+		
+	
+
+	
+		
+			
+		
+		
+			
+		
+			
+				
+				
+				
+		
+		
+	
+	
+				
+					
+					
+	
+	Contents
+
+	move to sidebar
+	hide
+
+	
+		
+			
+				(Top)
+			
+		
+
+		
+		
+			
+				1
+				Method
+			
+		
+		
+		
+		
+	
+
+	
+		
+			
+				2
+				Example
+			
+		
+		
+		
+		
+	
+
+	
+		
+			
+				3
+				Variants
+			
+		
+		
+		
+		
+	
+
+	
+		
+			
+				4
+				References
+			
+		
+		
+		
+		
+	
+
+	
+		
+			
+				5
+				Further reading
+			
+		
+		
+		
+		
+	
+
+	
+		
+			
+				6
+				External links
+			
+		
+		
+		
+		
+	
+
+					
+		
+			
+		
+		
+			
+				
+					
+						
+
+	
+	
+
+Toggle the table of contents
+	
+	
+
+							
+			
+		
+	
+
+					
+					CUSUM
+							
+
+	
+	
+
+6 languages
+	
+	
+
+		
+			
+			
+				
+				Català
+Deutsch
+Bahasa Indonesia
+Română
+Русский
+中文
+
+			
+			Edit links
+		
+
+	
+
+				
+					
+						
+							
+								
+
+	
+		
+		
+			Article
+
+Talk
+
+			
+		
+		
+	
+
+								
+
+	
+	English
+	
+	
+
+					
+
+	
+		
+		
+			
+			
+		
+		
+	
+
+				
+	
+
+							
+						
+						
+							
+			    
+
+	
+		
+		
+			Read
+
+Edit
+
+View history
+
+			
+		
+		
+	
+
+			
+
+							
+								
+
+	
+	
+
+Tools
+	
+	
+
+									
+						
+
+	
+	Tools
+	move to sidebar
+	hide
+
+	
+
+	
+		Actions
+	
+	
+		
+		
+			
+
+Read
+
+Edit
+
+View history
+
+			
+		
+		
+	
+
+	
+		General
+	
+	
+		
+		
+			
+			What links here
+Related changes
+Upload file
+Permanent link
+Page information
+Cite this page
+Get shortened URL
+Switch to legacy parser
+
+		
+		
+	
+
+	
+		Print/export
+	
+	
+		
+		
+			
+			Download as PDF
+Printable version
+
+		
+		
+	
+
+	
+		In other projects
+	
+	
+		
+		
+			
+			Wikidata item
+
+		
+		
+	
+
+									
+				
+	
+
+							
+						
+					
+				
+				
+					
+						
+							
+				
+							
+		
+						
+							
+				
+	
+	Appearance
+	move to sidebar
+	hide
+
+							
+		
+					
+				
+				
+					
+							
+		
+
+						From Wikipedia, the free encyclopedia
+					
+					
+					
+					
+					Sequential analysis technique
+CUSUM chartOriginally proposed byE. S. PageProcess observationsRational subgroup sizen = 1Measurement typeCumulative sum of a quality characteristicQuality characteristic typeVariables dataUnderlying distributionNormal distributionPerformanceSize of shift to detect≤ 1.5σProcess variation chartNot applicableProcess mean chartCenter lineThe target value, T, of the quality characteristicUpper control limit
+  
+    
+      
+        
+          C
+          
+            i
+          
+          
+            +
+          
+        
+        =
+        max
+        [
+        0
+        ,
+        
+          x
+          
+            i
+          
+        
+        −
+        
+          (
+          
+            T
+            +
+            K
+          
+          )
+        
+        +
+        
+          C
+          
+            i
+            −
+            1
+          
+          
+            +
+          
+        
+        ]
+      
+    
+    {\displaystyle C_{i}^{+}=\max \lbrack 0,x_{i}-\left(T+K\right)+C_{i-1}^{+}\rbrack }
+  
+Lower control limit
+  
+    
+      
+        
+          C
+          
+            i
+          
+          
+            −
+          
+        
+        =
+        max
+        [
+        0
+        ,
+        
+          (
+          
+            T
+            −
+            K
+          
+          )
+        
+        −
+        
+          x
+          
+            i
+          
+        
+        +
+        
+          C
+          
+            i
+            −
+            1
+          
+          
+            −
+          
+        
+        ]
+      
+    
+    {\displaystyle C_{i}^{-}=\max \lbrack 0,\left(T-K\right)-x_{i}+C_{i-1}^{-}\rbrack }
+  
+Plotted statistic
+  
+    
+      
+        
+          C
+          
+            i
+          
+        
+        =
+        
+          ∑
+          
+            j
+            =
+            1
+          
+          
+            i
+          
+        
+        
+          
+            
+              
+                x
+                ¯
+              
+            
+          
+          
+            j
+          
+        
+        −
+        T
+      
+    
+    {\displaystyle C_{i}=\sum _{j=1}^{i}{\bar {x}}_{j}-T}
+  
+
+In statistical quality control, the CUSUM (or cumulative sum control chart) is a sequential analysis technique developed by E. S. Page of the University of Cambridge. It is typically used for monitoring change detection.[1]
+CUSUM was announced in Biometrika, in 1954, a few years after the publication of Wald's sequential probability ratio test (SPRT).[2]
+
+Page referred to a "quality number" 
+  
+    
+      
+        θ
+      
+    
+    {\displaystyle \theta }
+  
+, by which he meant a parameter of the probability distribution; for example, the mean. He devised CUSUM as a method to determine changes in it, and proposed a criterion for deciding when to take corrective action. When the CUSUM method is applied to changes in mean, it can be used for step detection of a time series.
+
+A few years later, George Alfred Barnard developed a visualization method, the V-mask chart, to detect both increases and decreases in 
+  
+    
+      
+        θ
+      
+    
+    {\displaystyle \theta }
+  
+.[3]
+
+Method
+[edit]
+As its name implies, CUSUM involves the calculation of a cumulative sum (which is what makes it "sequential"). Samples from a process 
+  
+    
+      
+        
+          x
+          
+            n
+          
+        
+      
+    
+    {\displaystyle x_{n}}
+  
+ are assigned weights 
+  
+    
+      
+        
+          ω
+          
+            n
+          
+        
+      
+    
+    {\displaystyle \omega _{n}}
+  
+, and summed as follows:
+
+  
+    
+      
+        
+          S
+          
+            0
+          
+        
+        =
+        0
+      
+    
+    {\displaystyle S_{0}=0}
+  
+
+  
+    
+      
+        
+          S
+          
+            n
+            +
+            1
+          
+        
+        =
+        max
+        (
+        0
+        ,
+        
+          S
+          
+            n
+          
+        
+        +
+        
+          x
+          
+            n
+            +
+            1
+          
+        
+        −
+        
+          ω
+          
+            n
+          
+        
+        )
+      
+    
+    {\displaystyle S_{n+1}=\max(0,S_{n}+x_{n+1}-\omega _{n})}
+  
+
+When the value of S exceeds a certain threshold value, a change in value has been found. The above formula only detects changes in the positive direction. When negative changes need to be found as well, the min operation should be used instead of the max operation, and this time a change has been found when the value of S is below the (negative) value of the threshold value.
+
+Page did not explicitly say that 
+  
+    
+      
+        ω
+      
+    
+    {\displaystyle \omega }
+  
+ represents the likelihood function, but this is common usage.
+
+This differs from SPRT by always using zero function as the lower "holding barrier" rather than an actual lower "holding barrier".[1] Also, CUSUM does not require the use of the likelihood function.
+
+As a means of assessing CUSUM's performance, Page defined the average run length (A.R.L.) metric; "the expected number of articles sampled before action is taken." He further wrote:[2]
+
+When  the  quality  of  the output  is  satisfactory  the A.R.L.  is  a measure  of  the expense incurred by the scheme when it gives false alarms, i.e., Type I errors (Neyman & Pearson, 1936[4]).  On  the other  hand,  for  constant  poor  quality  the A.R.L.  measures  the delay and thus  the amount of scrap produced before the rectifying action is taken,  i.e., Type II errors.
+
+Example
+[edit]
+The following example shows 20 observations 
+  
+    
+      
+        X
+      
+    
+    {\displaystyle X}
+  
+ of a process with a mean of 0 and a standard deviation of 0.5.
+
+From the 
+  
+    
+      
+        Z
+      
+    
+    {\displaystyle Z}
+  
+ column, it can be seen that 
+  
+    
+      
+        X
+      
+    
+    {\displaystyle X}
+  
+ never deviates by 3 standard deviations (
+  
+    
+      
+        3
+        σ
+      
+    
+    {\displaystyle 3\sigma }
+  
+), so simply alerting on a high deviation will not detect a failure, whereas CUSUM shows that the 
+  
+    
+      
+        
+          S
+          
+            H
+          
+        
+      
+    
+    {\displaystyle S_{H}}
+  
+ value exceeds 4 at the 17th observation.
+
+ColumnDescription
+
+  
+    
+      
+        X
+      
+    
+    {\displaystyle X}
+  
+The observations of the process with an expected mean 
+  
+    
+      
+        
+          
+            
+              x
+              ¯
+            
+          
+        
+      
+    
+    {\displaystyle {\bar {x}}}
+  
+ of 0 and an expected standard deviation 
+  
+    
+      
+        
+          σ
+          
+            X
+          
+        
+      
+    
+    {\displaystyle \sigma _{X}}
+  
+ of 0.5
+
+  
+    
+      
+        Z
+      
+    
+    {\displaystyle Z}
+  
+The normalized observations, i.e. centered around the mean and scaled by the standard deviation 
+  
+    
+      
+        
+          Z
+          
+            n
+          
+        
+        =
+        
+          
+            
+              
+                X
+                
+                  n
+                
+              
+              −
+              
+                
+                  
+                    x
+                    ¯
+                  
+                
+              
+            
+            
+              σ
+              
+                X
+              
+            
+          
+        
+      
+    
+    {\displaystyle Z_{n}={\frac {X_{n}-{\bar {x}}}{\sigma _{X}}}}
+  
+
+  
+    
+      
+        
+          S
+          
+            H
+          
+        
+      
+    
+    {\displaystyle S_{H}}
+  
+The high CUSUM value, detecting a positive anomaly, 
+  
+    
+      
+        
+          
+            
+              S
+              
+                H
+              
+            
+          
+          
+            n
+            +
+            1
+          
+        
+        =
+        max
+        (
+        0
+        ,
+        
+          
+            
+              S
+              
+                H
+              
+            
+          
+          
+            n
+          
+        
+        +
+        
+          Z
+          
+            n
+            +
+            1
+          
+        
+        −
+        ω
+        )
+      
+    
+    {\displaystyle {S_{H}}_{n+1}=\max(0,{S_{H}}_{n}+Z_{n+1}-\omega )}
+  
+
+  
+    
+      
+        
+          S
+          
+            L
+          
+        
+      
+    
+    {\displaystyle S_{L}}
+  
+The low CUSUM value, detecting a negative anomaly, 
+  
+    
+      
+        
+          
+            
+              S
+              
+                L
+              
+            
+          
+          
+            n
+            +
+            1
+          
+        
+        =
+        max
+        (
+        0
+        ,
+        
+          
+            
+              S
+              
+                L
+              
+            
+          
+          
+            n
+          
+        
+        −
+        
+          Z
+          
+            n
+            +
+            1
+          
+        
+        −
+        ω
+        )
+      
+    
+    {\displaystyle {S_{L}}_{n+1}=\max(0,{S_{L}}_{n}-Z_{n+1}-\omega )}
+  
+
+where 
+  
+    
+      
+        ω
+      
+    
+    {\displaystyle \omega }
+  
+ is a critical level parameter (tunable, same as threshold T) that's used to adjust the sensitivity of change detection: larger 
+  
+    
+      
+        ω
+      
+    
+    {\displaystyle \omega }
+  
+ makes CUSUM less sensitive to the change and vice versa.
+
+Variants
+[edit]
+
+Cumulative observed-minus-expected plots[1]  are a related method.
+
+References
+[edit]
+
+1 2 3 Grigg; Farewell, VT; Spiegelhalter, DJ; et al. (2003). "The Use of Risk-Adjusted CUSUM and RSPRT Charts for Monitoring in Medical Contexts". Statistical Methods in Medical Research. 12 (2): 147–170. doi:10.1177/096228020301200205. PMID 12665208.
+
+1 2 Page, E. S. (June 1954). "Continuous Inspection Scheme". Biometrika. 41 (1/2): 100–115. doi:10.1093/biomet/41.1-2.100. hdl:10338.dmlcz/135207. JSTOR 2333009.
+
+↑ Barnard, G.A. (1959). "Control charts and stochastic processes". Journal of the Royal Statistical Society. B (Methodological) (21, number 2): 239–71. doi:10.1111/j.2517-6161.1959.tb00336.x. JSTOR 2983801.
+
+↑ "Sufficient statistics and uniformly most powerful tests of statistical hypotheses". Statistical Research Memoirs. I: 113–137.
+
+Further reading
+[edit]
+Michèle Basseville and Igor V. Nikiforov (April 1993). Detection of Abrupt Changes: Theory and Application. Englewood Cliffs, NJ: Prentice-Hall. ISBN 0-13-126780-9.
+
+Mishra, S., Vanli, O. A., & Park, C (2015). "A Multivariate Cumulative Sum Method for Continuous Damage Monitoring with Lamb-wave Sensors", International Journal of Prognostics and Health Management, ISSN 2153-2648
+
+External links
+[edit]
+"Engineering Statistics Handbook - Cusum Control Charts" 
+
+Retrieved from "https://en.wikipedia.org/w/index.php?title=CUSUM&oldid=1328039568"
+					Categories: Statistical charts and diagrams
+Quality control tools
+Sequential methods
+Hidden categories: Articles with short description
+Short description matches Wikidata
+CS1: long volume value
+
+				
+			
+			
+		
+		
+			
+				
+	 This page was last edited on 17 December 2025, at 15:50 (UTC).
+
+	Page was rendered with Parsoid.
+
+	Text is available under the Creative Commons Attribution-ShareAlike 4.0 License;
+additional terms may apply. By using this site, you agree to the Terms of Use and Privacy Policy. Wikipedia® is a registered trademark of the Wikimedia Foundation, Inc., a non-profit organization.
+
+				
+	Privacy policy
+
+	About Wikipedia
+
+	Disclaimers
+
+	Contact Wikipedia
+
+	Legal & safety contacts
+
+	Code of Conduct
+
+	Developers
+
+	Statistics
+
+	Cookie statement
+
+	Mobile view
+
+				
+	
+
+	
+
+			
+		
+	 
+ 
+
+	
+		
+			
+				
+
+Search
+			
+		
+			
+		
+			
+				
+					
+						
+							
+								
+								
+							
+							
+						
+						Search
+					
+				
+			
+		
+		
+				
+						
+					
+						
+						
+
+Toggle the table of contents
+						
+						
+					
+						
+						
+					
+						
+					
+			
+				CUSUM
+			
+		
+		
+			
+				
+
+			
+			
+
+			
+			
+
+			
+			
+
+			
+			
+
+			
+			
+
+			
+			
+
+			
+		
+			
+				
+
+6 languages
+			
+			
+
+Add topic
+			
+		
+			
+				
+				
+			
+		
+	
+
+	
+		
+	
+

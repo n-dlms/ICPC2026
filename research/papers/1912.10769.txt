@@ -1,0 +1,1533 @@
+Online Throughput Maximization on Unrelated Machines:
+Commitment is No Burden
+
+arXiv:1912.10769v2 [cs.DS] 30 Nov 2021
+
+Franziska Eberle∗
+
+Nicole Megow†
+
+Kevin Schewior‡
+
+December 2, 2021
+
+Abstract
+We consider a fundamental online scheduling problem in which jobs with processing
+times and deadlines arrive online over time at their release dates. The task is to determine a feasible preemptive schedule on a single or multiple possibly unrelated machines
+that maximizes the number of jobs that complete before their deadline. Due to strong
+impossibility results for competitive analysis on a single machine, we require that jobs
+contain some slack ε > 0, which means that the feasible time window for scheduling a job
+is at least 1 + ε times its processing time on each eligible machine. Our contribution is
+two-fold: (i) We give the first non-trivial online algorithms for throughput maximization
+on unrelated machines, and (ii), this is the main focus of our paper, we answer the question on how to handle commitment requirements which enforce that a scheduler has to
+guarantee at a certain point in time the completion of admitted jobs. This is very relevant,
+e.g., in providing cloud-computing services, and disallows last-minute rejections of critical
+tasks. We present an algorithm for unrelated machines that is Θ 1ε -competitive when
+the scheduler must commit upon starting a job. Somewhat surprisingly, this is the same
+optimal performance bound (up to constants) as for scheduling without commitment on
+a single machine. If commitment decisions must be made before a job’s
+ slack becomes
+1
+less than a δ-fraction of its size, we prove a competitive ratio of O ε−δ
+for 0 < δ < ε.
+This result nicely interpolates between commitment upon starting a job and commitment
+upon arrival. For the latter commitment model, it is known that no (randomized) online
+algorithm admits any bounded competitive ratio. While we mainly focus on scheduling
+without migration, our results also hold when comparing against a migratory optimal
+solution in case of identical machines.
+
+1
+
+Introduction
+
+We consider the following online scheduling problem: there are given m unrelated parallel
+machines. Jobs from an unknown job set arrive online over time at their release dates rj .
+Each job j has a deadline dj and a processing time pij ∈ R+ ∪ {∞}, which is the execution
+∗
+
+Department of Mathematics, London School of Economics and Political Sciences, UK. Email:
+franziska.eberle@posteo.de.
+†
+Faculty for Mathematics and Computer Science, University of Bremen, Germany.
+Email:
+nicole.megow@uni-bremen.de. Partially supported by the German Science Foundation (DFG) under contract ME 3825/1.
+‡
+Departement of Mathematics and Computer Science, University of Cologne, Germany.
+Email:
+kschewior@gmail.com. Partially supported by the DAAD within the PRIME program using funds of BMBF
+and the EU Marie Curie Actions.
+
+1
+
+time of j when processing on machine i; both job parameters become known to an algorithm
+at job arrival. We denote a machine i with pij < ∞ as eligible for job j. If all machines are
+identical, pij = pj holds for every job j, and we omit the index i. are m identical parallel
+machines to process these jobs or a subset of them. When scheduling these jobs or a subset
+of them, we allow preemption, i.e., the processing of a job can be interrupted at any time and
+may resume later without any additional cost. We mainly study scheduling without migration
+which means that a job must run completely on one machine. In case that we allow migration,
+a preempted job can resume processing on any machine, but no job can run simultaneously
+on two or more machines.
+In a feasible schedule, two jobs are never processing at the same time on the same machine.
+A job is said to complete if it receives pij units of processing time on machine i within
+the interval [rj , dj ) if j is processed by machine i. The number of completed jobs in a
+feasible schedule is called throughput. The task is to find a feasible schedule with maximum
+throughput. We refer to this problem as throughput maximization.
+As jobs arrive online and scheduling decisions are irrevocable, we cannot hope to find an
+optimal schedule even when scheduling on a single machine [12]. To assess the performance
+of online algorithms, we resort to standard competitive analysis. This means, we compare
+the throughput of an online algorithm with the throughput achievable by an optimal offline
+algorithm that knows the job set in advance.
+On a single machine, it is well-known that “tight” jobs with dj − rj ≈ pj prohibit competitive online decision making as jobs must start immediately and do not leave a chance for
+observing online arrivals [7]. Thus, it is commonly required that jobs contain some slack ε > 0,
+i.e., every job j satisfies dj − rj ≥ (1 + ε)pj . In the more general setting with unrelated machines, we assume that each job j satisfies dj − rj ≥ (1 + ε)pij for each machine i that is
+eligible for j, i.e., each machine i with pij < ∞. The competitive ratio of our online algorithm will be a function of ε; the greater the slack, the better should the performance of our
+algorithm be. This slackness parameter has been considered in a multitude of previous work,
+e.g., in [2, 5, 10, 16, 17, 30, 34]. Other results for scheduling with deadlines use speed scaling,
+which can be viewed as another way to add slack to the schedule, see, e.g., [1, 3, 21, 23, 32].
+In this paper, we focus on the question how to handle commitment requirements in online
+throughput maximization. Modeling commitment addresses the issue that a high-throughput
+schedule may abort jobs close to their deadlines in favor of many shorter and more urgent
+tasks [15], which may not be acceptable for the job owner. Consider a company that starts
+outsourcing mission-critical processes to external clouds and that needs a guarantee that jobs
+complete before a certain time point when they cannot be moved to another computing cluster
+anymore. In other situations, a commitment to complete jobs might be required even earlier
+just before starting the job, e.g., for a faultless copy of a database [10].
+Different commitment models have been formalized [2,10,30]. The requirement to commit
+at a job’s release date has been ruled out for online throughput maximization by strong
+impossibility results (even for randomized algorithms) [10]. We distinguish two commitment
+models.
+(i) Commitment upon job admission: an algorithm may discard a job any time before its
+start, we say its admission. This reflects a situation such as the faultless copy of a
+database.
+(ii) δ-commitment: given 0 < δ < ε, an algorithm must commit to complete a job while
+the job’s remaining slack is at least a δ-fraction of its original processing time. This
+2
+
+models an early enough commitment (parameterized by δ) for mission-critical jobs. For
+identical parallel machines, the latest time for committing to job j is then dj − (1 + δ)pj .
+When given unrelated machines, such a commitment model might be arguably less
+relevant. We consider it only for non-migratory schedules and include also the choice of
+a processor in the commitment; we define the latest time point for committing to job j
+as dj − (1 + δ)pij when processing j on machine i.
+Recently, a first unified approach has been presented for these models for a single machine [10]. In this and other works [2, 30], there remained gaps in the performance bounds
+and it was left open whether scheduling with commitment is even “harder” than without
+commitment. Moreover, it remained unsettled whether the problem is tractable on multiple
+identical or even heterogeneous machines.
+In this work, we give tight results for online throughput maximization on unrelated parallel
+machines and answer the “hardness” question to the negative. We give an algorithm that
+achieves the provably best competitive ratio (up to constant factors) for the aforementioned
+commitment
+models. Somewhat surprisingly, we show that the same competitive ratio of
+
+1
+O ε can be achieved for both, scheduling without commitment and with commitment upon
+admission. For unrelated machines, this is the first nontrivial result for online throughput
+maximization with and without commitment. For identical parallel machines, this is the first
+online algorithm with bounded competitive ratio for arbitrary slack parameter ε. Interestingly,
+for this machine environment, our algorithm does not require job migration in order to be
+competitive against a migratory algorithm.
+
+1.1
+
+Related work
+
+Preemptive online scheduling and admission control have been studied rigorously. There are
+several results regarding the impact of deadlines on online scheduling; see, e.g., [6, 16, 17] and
+references therein. In the following we give an overview of the literature focused on (online)
+throughput maximization.
+Offline scheduling. In case that the jobs and their characteristics are known to the scheduler in advance, the notion of commitment is irrelevant as an offline algorithm only starts jobs
+that will be completed on time; there is no benefit in starting jobs without completing them.
+The offline problem is well understood: For throughput maximization on a single machine,
+there is a polynomial-time algorithm by Lawler [28]. The more general model, in which each
+job j has a weight wj and the task is to maximize the total weight of jobs completed on time
+(weighted throughput), is NP-hard, and we do not expect polynomial time algorithms. The algorithm by Lawler solves this problem optimally in time O(n5 wmax ), where wmax = maxj wj ,
+and can be used to design a fully polynomial-time approximation scheme (FPTAS) [33].
+When given multiple identical machines, (unweighted) throughput maximization becomes
+NP-hard even for identical release dates [29]. Kalyanasundaram and Pruhs [24] show a 6approximate reduction to the single-machine problem which implies a (6 + δ)-approximation
+algorithm for weighted throughput maximization on identical parallel machines, for any δ > 0,
+using the FPTAS for the single-machine problem [33]. Preemptive throughput maximization
+on unrelated machines is much less understood from an approximation point of view. The
+problem is known to be strongly NP-hard [14], even without release dates [35]. We are not
+aware of any approximation results for preemptive throughput maximization on unrelated
+3
+
+machines. The situation is different for non-preemptive scheduling. In this case, throughput
+maximization is MAX-SNP hard [4] and several approximation algorithms for this general
+problem as well as for identical parallel machines and other special cases are known; see,
+e.g., [4, 9, 20].
+Online scheduling without commitment. For single-machine throughput maximization, Baruah, Haritsa, and Sharma [6] show that, in general, no deterministic online algorithm achieves a bounded competitive ratio. Thus, their result justifies our assumption
+on ε-slackness of each job. Moreover, they consider special cases such as unit-size jobs or
+agreeable deadlines where they provide constant-competitive algorithms even without further
+assumptions on the slack of the jobs. Here, deadlines are agreeable if rj ≤ rj ′ for two jobs j
+and j ′ implies dj ≤ dj ′ . In our prior work [10], we improve upon previous bounds [23, 30] for
+general instances by giving an O 1ε -competitive algorithm, and we show an asymptotically
+matching lower bound for deterministic algorithms.
+
+For maximizing weighted throughput, Lucier et al. [30] give an O ε12 -competitive online algorithm for scheduling on identical parallel machines. In a special case of this problem,
+called machine utilization the goal is to maximize the total processing time of completed jobs,
+i.e., for pj = wj for any job j. This problem is much more tractable. On a single machine,
+Baruah et al. [7,8] provide a best-possible online algorithm achieving a competitive ratio of 4,
+even without any slackness assumptions. Baruah and Haritsa [5] are the first to investigate
+the problem under the assumption of ε-slack and give a 1+ε
+ε -competitive algorithm which
+is asymptotically best possible. For parallel identical machines (though without migration),
+DasGupta and Palis [11] give a simple greedy algorithm that achieves the same performance
+guarantee of 1+ε
+ε and give an asymptotically matching lower bound. Schwiegelshohn and
+Schwiegelshohn [34] p
+show that migration helps an online algorithm and improves the comm
+1/ε for m machines.
+petitive ratio to O
+In a line of research without slackness assumption, Baruah et al. [8] show a lower bound
+√
+max w /p
+of (1 + k)2 for deterministic single-machine algorithms, where k = minjj wjj/pjj is the importance ratio of a given instance. Koren and Shasha give a matching upper bound [27] and
+generalize it to Θ(ln k) for parallel machines if k > 1 [26]. Interestingly, Kalyanasundaram
+and Pruhs [25] give a randomized O(1)-competitive algorithm for throughput maximization
+on a single machine without slackness assumption, which is in stark contrast to the impossibility result for deterministic single-machine algorithms. Very recently, Moseley et al. [31] give
+a remarkable O(1)-competitive deterministic algorithm for m ≥ 2 parallel identical machines.
+Online scheduling with commitment upon job arrival. In our prior work [10], we rule
+out bounded competitive ratios for any (even randomized) online algorithm for throughput
+maximization with commitment upon job arrival, even on a single machine. Previously, such
+impossibility results where only shown exploiting weights [30].
+Again, the special case wj = pj , or machine utilization, is much more tractable than
+weighted or unweighted throughput maximization. A simple greedy algorithm already
+on a single machine, even for commitachieves the best possible competitive ratio 1+ε
+ε
+ment upon arrival, as shown by DasGupta and Palis [11] and the matching lower bound
+by Garay et al. [16]. Forp
+scheduling with commitment upon arrival on m parallel identical
+machines, there is an O( m 1/ε)-competitive algorithm and an almost matching lower bound
+by Schwiegelshohn and Schwiegelshohn [34] Suprisingly, this model also allows for bounded
+4
+
+competitive ratios when preemption is not allowed. In this setting, Goldwasser and Kerbikov [18] give a best possible 2 + 1ε -competitive algorithm on a single machine. Very
+recently, Jamalabadi, Schwiegelshohn, and Schwiegelshohn [22] extend this model to parallel
+machines; their algorithm is near optimal with a performance guarantee approaching ln 1ε
+as m tends to infinity.
+Online scheduling with commitment upon admission and δ-commitment. In our
+previous work [10], we design an online single-machine algorithm, called the region algorithm,
+that simultaneously (with the respective choice of parameters) achieves the first non-trivial
+upper bounds
+for both commitment models. For commitment
+
+ upon job admission, our bound
+ε
+1
+is O ε2 , and in the δ-commitment model it is O (ε−δ)δ2 , for 0 < δ < ε. For scheduling
+on identical parallel machines and commitment upon admission, Lucier et al. [30] give a
+heuristic that empirically performs very well but for which they cannot show a rigorous worstcase bound. In fact, Azar et al. [2] show that no bounded competitive ratio is possible for
+weighted throughput maximization for small ε. For δ = 2ε in the δ-commitment model, they
+design (in the context of truthful mechanisms)
+ an online algorithm for weighted throughput
+1
+1
+√
+√
+maximization that is Θ 3 1+ε−1 + ( 3 1+ε−1)2 -competitive if the slack ε is sufficiently large,
+i.e., if ε > 3. For weighted throughput, this condition on the slack is necessary as is shown by a
+strong general lower bound, even on a single machine [10]. For the unweighted setting, we give
+the first rigorous upper bound for arbitrary ε in this paper for both models, commitment upon
+admission and δ-commitment, in the identical and even in the unrelated machine environment.
+Machine utilization is again better understood. As commitment upon arrival is more
+restrictive than commitment upon admission and δ-commitment, the previously mentioned
+results immediately carry over and provide bounded competitive ratios.
+
+1.2
+
+Our results and techniques
+
+Our main result is an algorithm that computes a non-migratory schedule that is best possible
+(up to constant factors) for online throughput maximization with and without commitment on
+identical parallel machines and, more generally, on unrelated machines. This is the first nontrivial online result for unrelated machines and it closes gaps for identical parallel machines.
+Our algorithm is universally applicable (by setting parameters properly) to both commitment
+models as well es scheduling without commitment.
+Theorem 1. Consider
+throughput maximization on unrelated machines without migration.
+
+1
+-competitive
+non-migratory online algorithm for scheduling with commitThere is an O ε−δ
+′
+ε
+′
+ment, where δ = 2 in the model with commitment upon admission and δ′ = max{δ, 2ε } in the
+δ-commitment model.
+For scheduling with commitment upon admission,
+ this is (up to constant factors) an
+optimal online algorithm with competitive ratio Θ 1ε , matching the lower bound of Ω 1ε for
+m = 1 [10]. For scheduling with δ-commitment, our result interpolates between the models
+with commitment
+upon starting a job and commitment upon arrival. If δ ≤ 2ε , the competitive
+
+1
+ratio is Θ ε , which is again best possible [10]. For δ → ε, the commitment requirements
+essentially implies commitment upon job arrival which has unbounded competitive ratio [10].
+In our analysis, we compare a non-migratory schedule, obtained by our algorithm, with an
+optimal non-migratory schedule. However, in the case of identical machines the throughput
+5
+
+of an optimal migratory schedule can only be larger by a constant factor than the throughput
+of an optimal non-migratory schedule. In fact, Kalyanasundaram and Pruhs [24] showed that
+this factor is at most 6m−5
+m . Thus, the competitive ratio for our non-migratory algorithm,
+when applied to identical machines, holds (up to this constant factor) also in a migratory
+setting.
+Corollary 1. Consider throughput maximization with or without migration on parallel iden1
+tical machines. There is an O ε−δ
+′ -competitive non-migratory online algorithm for schedul′
+ing with commitment, where δ = 2ε in the model with commitment upon admission and
+δ′ = max{δ, 2ε } in the δ-commitment model.
+The challenge in online scheduling with commitment is that, once we committed to complete a job, the remaining slack of this job has to be spent very carefully. The key component
+is a job admission scheme which is implemented by different parameters. The high-level objectives are:
+1. never start a job for the first time if its remaining slack is too small (parameter δ),
+2. during the processing of a job, admit only significantly shorter jobs (parameter γ), and
+3. for each admitted shorter job, block some time period (parameter β) during which no
+other jobs of similar size are accepted.
+While the first two goals are quite natural and have been used before in the single and
+identical machine setting [10, 30], the third goal is crucial for our new tight result. The
+intuition is the following: Think of a single eligible machine in a non-migratory schedule.
+Suppose we committed to complete a job with processing time 1 and have only a slack of
+O(ε) left before the deadline of this job. Suppose that c substantially smaller jobs of size 1c
+arrive where c is the competitive ratio we aim for. On the one hand, if we do not accept
+any of them, we cannot hope to achieve c-competitiveness. On the other hand, accepting too
+many of them fills up the slack and, thus, leaves no room for even smaller jobs. The idea is
+to keep the flexibility for future small jobs by only accepting an ε-fraction of jobs of similar
+size (within a factor two).
+We distinguish two time periods that guide the acceptance decisions. During the scheduling interval of a job j, we have a more restrictive acceptance scheme that ensures the completion of j whereas in the blocking period we guarantee the completion of previously accepted
+jobs. We call our algorithm blocking algorithm. This acceptance scheme is much more refined
+than the one of the known region algorithm in [10] that uses one long region with a uniform
+acceptance threshold and is then too conservative in accepting jobs.
+Given that we consider the non-migratory version of the problem, a generalization from a
+single to multiple machines seems natural. It is interesting, however, that such a generalization
+works, essentially on a per-machine basis, even for unrelated machines and comes at no loss
+in the competitive ratio.
+Clearly, scheduling with commitment
+is more restrictive than without commitment.
+
+1
+Therefore, our algorithm is also O ε -competitive for maximizing the throughput on unrelated machines without any commitment requirements. Again, this is optimal (up to constant factors) as it matches the lower bound on the competitive ratio for deterministic online
+algorithms on a single machine [10].
+
+6
+
+
+Corollary 2. There is a Θ 1ε -competitive algorithm for online throughput maximization on
+unrelated machines without commitment requirements and without migration.
+However, for scheduling without commitment, we are able to generalize the simpler region algorithm presented for the single-machine problem in [10] to scheduling on unrelated
+machines.
+
+Theorem 2. A generalization of the region algorithm is Θ 1ε -competitive for online throughput maximization on unrelated machines without commitment requirements and without migration.
+Besides presenting a simpler algorithm for throughput maximization without commitment,
+we show this result to present an additional application of our technical findings for the
+analysis of the blocking algorithm. We give details later. On a high level, we show a key
+lemma on the size of non-admitted jobs for a big class of online algorithms which results in
+an upper bound on the throughput of an optimal (offline) non-migratory algorithm. This
+key lemma can be used in the analysis of both algorithms, blocking and region. In fact, also
+the analysis of the original region algorithm for a single machine [10] becomes substantially
+easier.
+In case of identical machines, again, we can apply the result by Kalyanasundaram and
+Pruhs [24] that states that the throughput of an optimal migratory schedule is larger by at
+most a constant factor than the throughput of an optimal non-migratory schedule. Thus, the
+result in Theorem 2 holds also in a migratory setting when scheduling on identical machines.
+
+Corollary 3. A generalization of the region algorithm is Θ 1ε -competitive for online throughput maximization on multiple identical machines without commitment requirements, with and
+without migration.
+
+Outline of the paper
+In Section 2, we describe and outline the analysis of our new non-migratory algorithm. It
+consists of two parts, which are detailed in Sections 3 and 4: firstly, we argue that all jobs
+admitted by our algorithm can complete by their deadline and, secondly, we prove that we
+admit “sufficiently many” jobs. In Section 5, we generalize the known region algorithm,
+developed for a single machine in our prior work [10], to a non-migratory algorithm without
+commitment on unrelated machines. We show how to apply a new key technique developed
+for the analysis in Section 4 to analyze it and prove the same competitive ratio (up to constant
+factors) as for a single machine.
+
+2
+
+The blocking algorithm
+
+In this section, we describe the blocking algorithm for scheduling with commitment. We
+assume that the slackness constant ε > 0 and, in the δ-commitment model, δ ∈ (0, ε) are
+given. If δ is not part of the input or if δ ≤ 2ε , then we set δ = 2ε .
+The algorithm never migrates jobs between machines, i.e., a job is only processed by the
+machine that initially started to process it. In this case, we say the job has been admitted to
+this machine. Moreover, our algorithm commits to completing a job upon admission (even
+in the δ-commitment model). Hence, its remaining slack has to be spent very carefully on
+7
+
+admitting other jobs to still be competitive. As our algorithm does not migrate jobs, it
+transfers the admission decision to the shortest admitted and not yet completed job on each
+machine. A job only admits significantly shorter jobs and prevents the admission of too many
+jobs of similar size. To this end, the algorithm maintains two types of intervals for each
+admitted job, a scheduling interval and a blocking period. A job can only be processed in
+its scheduling interval. Thus, it has to complete in this interval while admitting other jobs.
+δ
+Job j only admits jobs that are smaller by a factor of at least γ = 16
+< 1. For an admitted
+job k, job j creates a blocking period of length at most βpik , where β = 16
+δ , which blocks
+the admission of similar-length jobs (cf. Figure 1). The scheduling intervals and blocking
+periods of jobs admitted by j will always be pairwise disjoint and completely contained in
+the scheduling interval of j.
+scheduling interval
+
+blocking period
+
+Figure 1: Scheduling interval, blocking period, and processing intervals
+
+τ
+
+Scheduling jobs. Independent of the admission scheme, the blocking algorithm follows
+the Shortest Processing Time (SPT) order for the set of uncompleted jobs assigned to a
+machine. SPT ensures that a job j has highest priority in the blocking periods of any job k
+admitted by j.
+Admitting jobs. The algorithm keeps track of available jobs at any time point τ . A job j
+with rj ≤ τ is called available for machine i if it has not yet been admitted to a machine by
+the algorithm and its deadline is not too close, i.e., dj − τ ≥ (1 + δ)pij .
+Whenever a job j is available for machine i at a time τ such that time τ is not contained in
+the scheduling interval of any other job admitted to i, the shortest such job j is immediately
+admitted to machine i at time aj := τ , creating the scheduling interval S(j) = [aj , ej ),
+where ej = aj + (1 + δ)pij and an empty blocking period B(j) = ∅. In general, however, the
+blocking period of a job j is a finite union of time intervals associated with j, and its size is
+the sum of lengths of the intervals, denoted by |B(j)|. Both, blocking period and scheduling
+interval, depend on machine i but we omit i from the notation as it is clear from the context;
+both periods are created after job j has been assigned to machine i.
+Four types of events trigger a decision of the algorithm at time τ : the release of a job, the
+end of a blocking period, the end of a scheduling interval, and the admission of a job. In any
+of these four cases, the algorithm calls the admission routine. This subroutine iterates over
+all machines i and checks if j, the shortest job on i whose scheduling interval contains τ , can
+admit the currently shortest job j ⋆ available for machine i.
+To this end, any admitted job j checks whether pij ⋆ < γpij . Only such jobs qualify for
+admission by j. Upon admission by j, job j ⋆ obtains two disjoint consecutive intervals, the
+scheduling interval S(j ⋆ ) = [aj ⋆ , ej ⋆ ) and the blocking period B(j ⋆ ) of size at most βpij ⋆ . At
+the admission of job j ⋆ , the blocking period B(j ⋆ ) is planned to start at ej ⋆ , the end of j ⋆ ’s
+scheduling interval. During B(j ⋆ ), job j only admits jobs k with pik < 21 pij ⋆ .
+8
+
+Hence, when job j decides if it admits the currently shortest available job j ⋆ at time τ , it
+makes sure that j ⋆ is sufficiently small and that no job k of similar (or even smaller) processing
+time is blocking τ , i.e., it verifies that τ ∈
+/ B(k) for all jobs k with pik ≤ 2pij ⋆ admitted to
+the same machine. In this case, we say that j ⋆ is a child of j and that j is the parent of j ⋆ ,
+denoted by π(j ⋆ ) = j. If job j ⋆ is admitted at time τ by job j, the algorithm sets aj ⋆ = τ
+and ej ⋆ = aj ⋆ + (1 + δ)pij ⋆ and assigns the scheduling interval S(j ⋆ ) = [aj ⋆ , ej ⋆ ) to j ⋆ .
+If ej ⋆ ≤ ej , the routine sets fj ⋆ = min{ej , ej ⋆ + βpij ⋆ } which determines B(j ⋆ ) = [ej ⋆ , fj ⋆ ).
+As the scheduling and blocking periods of children k of j are supposed to be disjoint, we
+have to update the blocking periods. First consider the job k with pik > 2pij ⋆ admitted to the
+same machine whose blocking period contains τ (if it exists), and let [e′k , fk′ ) be the maximal
+interval of B(k) containing τ . We set fk′′ = min{ej , fk′ + (1 + δ + β)pij ⋆ } and replace the
+interval [e′k , fk′ ) by [e′k , τ ) ∪ [τ + (1 + δ + β)pij ⋆ , fk′′ ). For all other jobs k with B(k) ∩ [τ, ∞) 6= ∅
+admitted to the same machine, we replace the remaining part of their blocking period [e′k , fk′ )
+by [e′k + (1 + δ + β)pij ⋆ , fk′′ ) where fk′′ := min{ej , fk′ + (1 + δ + β)pij ⋆ }. In this update, we
+follow the convention that [e, f ) = ∅ if f ≤ e. Observe that the length of the blocking period
+might decrease due to such updates.
+Note that ej ⋆ > ej is also possible as j does not take the end of its own scheduling interval ej into account when admitting jobs. Thus, the scheduling interval of j ⋆ would end outside
+the scheduling interval of j and inside the blocking period of j. During B(j), the parent π(j)
+of j, did not allocate the interval [ej , ej ⋆ ) for completing jobs admitted by j but for ensuring
+its own completion. Hence, the completion of both j ⋆ and π(j) is not necessarily guaranteed anymore. To prevent this, we modify all scheduling intervals S(k) (including S(j)) that
+contain time τ of jobs admitted to the same machine as j ⋆ and their blocking periods B(k).
+For each job k admitted to the same machine with τ ∈ S(k) (including j) and ej ⋆ > ek , we
+set ek = ej ⋆ . We also update their blocking periods (in fact, single intervals) to reflect their
+new starting points. If the parent π(k) of k does not exist, B(k) remains empty; otherwise
+we set B(k) := [ek , fk ) where fk = min{eπ(k) , ek + βpik }. Note that, after this update, the
+blocking periods of any but the largest such job will be empty. Moreover, the just admitted
+job j ⋆ does not get a blocking period in this special case.
+During the analysis of the algorithm, we show that any admitted job j still completes
+before aj + (1 + δ)pij and that ej ≤ aj + (1 + 2δ)pij holds in retrospect for all admitted jobs j.
+Thus, any job j that admits another job j ⋆ tentatively assigns this job a scheduling interval
+of length (1 + δ)pij ⋆ but, for ensuring its own completion, it is prepared to lose (1 + 2δ)pij ⋆
+time units of its scheduling interval S(j). We summarize the blocking algorithm in Figure 2.
+
+Roadmap for the analysis
+During the analysis, it is sufficient to concentrate on instances with small slack, as also
+noted in [10]. For ε > 1 we run the blocking algorithm with ε = 1, which only tightens
+the commitment requirement, and obtain constant competitive ratios. Thus, we assume
+0 < ε ≤ 1. For 0 < δ < ε, in the δ-commitment model an online scheduler needs to commit to
+the completion of a job j no later than dj − (1 + δ)pij . Hence, committing to the completion
+of a job j at an earlier point in time clearly satisfies committing at a remaining slack of δpij .
+Therefore, we may assume δ ∈ [ 2ε , ε).
+The blocking algorithm does not migrate any job. In the analysis, we compare the throughput of our algorithm to the solution of an optimal non-migratory schedule. To do so, we rely
+on a key design principle of the blocking algorithm, which is that, whenever the job set ad9
+
+Figure 2: Blocking algorithm
+
+Scheduling Routine: At all times τ and on all machines i, run the job with shortest
+processing time that has been admitted to i and has not yet completed.
+Event: Release of a new job at time τ
+Call Admission Routine.
+Event: End of a blocking period or scheduling interval at time τ
+Call Admission Routine.
+Admission Routine:
+i←1
+j ⋆ ← a shortest job available at τ for machine i, i.e., j ⋆ ∈ arg min{pij | j ∈ J , rj ≤
+τ and dj − τ ≥ (1 + δ)pij }
+while i ≤ m do
+K ← the set of jobs on machine i whose scheduling intervals contain τ
+if K = ∅ then
+admit job j ⋆ to machine i, aj ⋆ ← τ , and ej ⋆ ← aj ⋆ + (1 + δ)pij ⋆
+S(j ⋆ ) ← [aj ⋆ , ej ⋆ ) and B(j ⋆ ) ← ∅
+call Admission Routine
+else
+j ← arg min{pik | k ∈ K}
+if j ⋆ < γpij and τ ∈
+/ B(j ′ ) for all j ′ admitted to i with pij ′ ≤ 2pij ⋆ then
+admit job j ⋆ to machine i, aj ⋆ ← τ , and ej ⋆ ← aj ⋆ + (1 + δ)pij ⋆
+if ej ⋆ ≤ ej then
+fj ⋆ ← min{ej , ej ⋆ + βpij ⋆ }
+S(j ⋆ ) ← [aj ⋆ , ej ⋆ ) and B(j ⋆ ) ← [ej ⋆ , fj ⋆ )
+else
+S(j ⋆ ) ← [aj ⋆ , ej ⋆ ) and B(j ⋆ ) ← ∅
+modify S(k) and B(k) for k ∈ K
+update B(j ′ ) for j ′ admitted to machine i with B(j ′ ) ∩ [τ, ∞) 6= ∅
+call Admission Routine
+end if
+else
+i←i+1
+j ⋆ ← a shortest job available at τ for machine i, i.e., j ⋆ ∈ arg min{pij | j ∈ J , rj ≤
+τ and dj − τ ≥ (1 + δ)pij }
+end if
+end if
+end while
+
+10
+
+mitted to a machine is fixed, the scheduling of the jobs follows the simple SPT order. This
+enables us to split the analysis into two parts.
+In the first part, we argue that the scheduling routine can handle the admitted jobs
+sufficiently well. That is, every admitted jobs is completed on time; see Section 3. Here, we
+use that the blocking algorithm is non-migratory and consider each machine individually.
+For the second part, we observe that the potential admission of a new job j ⋆ to machine i
+is solely based on its availability and on its size relative to ji , the job currently processed
+by machine i. More precisely, given the availability of j ⋆ , if pij ⋆ < γpiji , the time does not
+belong to the blocking period of a job ki admitted to machine i with pij ⋆ ≥ 12 piki and i is
+the first machine (according to machine
+indices) with this property, then j ⋆ is admitted to
+
+machine i. This implies that min γpiji , 21 piki acts as a threshold, and only available jobs
+with processing time less than this threshold qualify for admission by the blocking algorithm
+on machine i. Hence, any available job that the blocking algorithm does not admit has to
+exceed the threshold.
+Based on this observation, we develop a general charging scheme for any non-migratory
+online algorithm satisfying the property that, at any time τ , the algorithm maintains a timedependent threshold and the shortest available job smaller than this threshold is admitted
+by the algorithm. We formalize this description and analyze the competitive ratio of such
+algorithms in Section 4 before applying this general result to our particular algorithm.
+
+3
+
+Completing all admitted jobs on time
+
+We show that the blocking algorithm finishes every admitted job on time in Theorem 3.
+Theorem 3. Let 0 < δ < ε be fixed. If 0 < γ < 1 and β ≥ 1 satisfy
+
+β/2
+1 + δ − 2(1 + 2δ)γ ≥ 1,
+β/2 + (1 + 2δ)
+
+(1)
+
+then the blocking algorithm completes any job j admitted at aj ≤ dj − (1 + δ)pij on time.
+δ
+and β = 16
+Recall that we chose γ = 16
+δ , which guarantees that Equation (1) is satisfied.
+As the blocking algorithm does not migrate jobs, it suffices to consider each machine
+individually in this section. The proof relies on the following observations: (i) The sizes of jobs
+admitted by job j that interrupt each others’ blocking periods are geometrically decreasing,
+(ii) the scheduling intervals of jobs are completely contained in the scheduling intervals of
+their parents, and (iii) scheduling in SPT order guarantees that job j has highest priority in
+the blocking periods of its children. We start by proving the following technical lemma about
+the length of the final scheduling interval of an admitted job j, denoted by |S(j)|. In the
+proof, we use that π(k) = j for two jobs j and k implies that pik < γpij .
+
+Lemma 1. Let 0 < δ < ε be fixed. If γ > 0 satisfies (1 + 2δ)γ ≤ δ, then |S(j)| ≤ (1 + 2δ)pij .
+Moreover, S(j) contains the scheduling intervals and blocking periods of all descendants of j.
+Proof. Consider a machine i and let j be a job admitted to machine i. By definition of
+the blocking algorithm, the end point ej of the scheduling interval of job j is only modified
+when j or one of j’s descendants admits another job. Let us consider such a case: If job j
+admits a job k whose scheduling interval does not fit into the scheduling interval of j, we
+set ej = ek = ak + (1 + δ)pik to accommodate the scheduling interval S(k) within S(j). The
+11
+
+same modification is applied to any ancestor j ′ of j with ej ′ < ek . This implies that, after
+such a modification of the scheduling interval, neither j nor any affected ancestor j ′ of j are
+the smallest jobs in their scheduling intervals anymore. In particular, no job whose scheduling
+interval was modified in such a case at time τ is able to admit jobs after τ . Hence, any job j
+can only admit other jobs within the interval [aj , aj + (1 + δ)pij ). That is, ak ≤ aj + (1 + δ)pij
+for every job k with π(k) = j.
+Thus, by induction, it is sufficient to show that ak + (1 + 2δ)pik ≤ aj + (1 + 2δ)pij for
+admitted jobs k and j with π(k) = j. Note that π(k) = j implies pik < γpij . Hence,
+ak + (1 + 2δ)pik ≤ (aj + (1 + δ)pij ) + (1 + 2δ)γpij ≤ aj + (1 + 2δ)pij ,
+where the last inequality follows from the assumption (1 + 2δ)γ ≤ δ. Due to the construction
+of B(k) upon admission of some job k by job j, we also have B(k) ⊆ S(j).
+Proof of Theorem 3. Let j be a job admitted by the blocking algorithm to machine i with
+aj ≤ dj − (1 + δ)pij . Showing that job j completes before time d′j := aj + (1 + δ)pij proves the
+theorem. Due to scheduling in SPT order, each job j has highest priority in its own scheduling
+interval if the time point does not belong to the scheduling interval of a descendant of j. Thus,
+it suffices to show that at most δpij units of time in [aj , d′j ) belong to scheduling intervals S(k)
+of descendants of j. By Lemma 1, the scheduling interval of any descendant k′ of a child k
+of j is contained in S(k). Hence, it is sufficient to only consider K, the set of children of j.
+In order to bound the contribution of each child k ∈ K, we impose a class structure on
+the jobs in K depending on their size relative to job j. More precisely, we define (Cc (j))c∈N0 ,
+γ
+pij ≤ pik < 2γc pij . As k ∈ K implies pik <
+where Cc (j) contains all jobs k ∈ K that satisfy 2c+1
+γpij , each child of j belongs to exactly one class and (Cc (j))c∈N0 in fact partitions K.
+Consider two jobs k, k′ ∈ K where, upon admission, k interrupts the blocking period of k′ .
+By definition, we have pik < 21 pik′ . Hence, the chosen class structure ensures that k belongs
+to a strictly higher class than k′ , i.e., there are c, c′ ∈ N with c > c′ such that k ∈ Cc (j)
+and k′ ∈ Cc′ (j). In particular, the admission of a job k ∈ Cc (j) implies either that k is the first
+job of class Cc (j) that j admits or that the blocking period of the previous job in class Cc (j)
+has completed. Based on this distinction, we are able to bound the loss of scheduling time
+for j in S(j) due to S(k) of a child k. Specifically, we partition K into two sets. The first
+set K1 contains all children of j that where admitted as the first jobs in their class Cc (j). The
+set K2 contains the remaining jobs.
+We start with K2 . Consider a job k ∈ Cc (j) admitted by j. By Lemma 1, we know
+that |S(k)| = (1 + µδ)pik , where 1 ≤ µ ≤ 2. Let k′ ∈ Cc (j) be the previous job admitted
+by j in class Cc (j). Then, B(k′ ) ⊆ [ek′ , ak ). Since scheduling and blocking periods of children
+of j are disjoint, j has highest scheduling priority in B(k′ ). Hence, during B(k′ ) ∪ S(k) job j
+is processed for at least |B(k′ )| units of time. In other words, j is processed for at least
+|B(k ′ )|
+′
+a |B(k
+′ )∪S(k)| -fraction of B(k ) ∪ S(k). We rewrite this ratio as
+
+p
+
+νβ
+βpik′
+|B(k′ )|
+=
+=
+,
+′
+|B(k ) ∪ S(k)|
+βpik′ + (1 + µδ)pik
+νβ + (1 + µδ)
+
+where ν := pikik′ ∈ ( 12 , 2]. By differentiating with respect to ν and µ, we observe that the last
+term is increasing in ν and decreasing in µ. Thus, we lower bound this expression by
+|B(k′ )|
+β/2
+≥
+.
+′
+|B(k ) ∪ S(k)|
+β/2 + (1 + 2δ)
+12
+
+S
+S
+β/2
+-fraction in k∈K B(k) ∪ k∈K2 S(k).
+Therefore, j is processed for at least a β/2+(1+2δ)
+We now
+the set K1 . The total processing volume of these jobs is bounded from
+Pconsider
+∞ γ
+p
+above by
+c=0 2c ij = 2γp
+S ij . By Lemma 1, |S(k)| ≤ (1 + 2δ)pik . Combining these two
+observations, we obtain
+k∈K1 S(k) ≤ 2(1 + 2δ)γpij . Combining the latter with the bound
+for K2 , we conclude that j is scheduled for at least
+[aj , d′j ) \
+
+[
+
+k∈K
+
+S(k) ≥
+
+
+β/2
+(1 + δ) − 2(1 + 2δ)γ pij ≥ pij
+β/2 + (1 + 2δ)
+
+units of time, where the last inequality follows from Equation (1). Therefore, j completes
+before d′j = aj + (1 + δ)pij ≤ dj , which concludes the proof.
+
+4
+
+Competitiveness: admitting sufficiently many jobs
+
+
+1
+This section shows that the blocking algorithm admits sufficiently many jobs to be O ε−δ
+competitive. As mentioned before, this proof is based on the observation that, at time τ ,
+the blocking algorithm admits any job available for machine i if its processing time is less
+than γpiji , where ji is the job processed by machine i at time τ , and this time point is not
+blocked by another job ki previously admitted by ji to machine i. We start by formalizing this
+observation for a class of non-migratory online algorithms before proving that this enables us
+to bound the number of jobs any feasible schedule successfully schedules during
+ a particular
+1
+period. Then, we use it to show that the blocking algorithm is indeed O ε−δ -competitive.
+
+4.1
+
+A class of online algorithms
+
+In this section, we investigate a class of non-migratory online algorithms. Recall that a job j
+is called available for machine i at time τ if it is released before or at time τ , dj −τ ≥ (1+δ)pij ,
+and is not yet admitted.
+We consider a non-migratory online algorithm A with the following properties.
+(P1) A only admits available jobs.
+(P2) Retrospectively, for each time τ and each machine i, there is a threshold uiτ ∈ [0, ∞]
+such that any job j that was available for machine i and not admitted to machine i by
+A at time τ satisfies pij ≥ uiτ . The function u(i) : R → [0, ∞], τ 7→ uiτ is piece-wise
+constant and right-continuous for every machine i ∈ {1, . . . , m}. Further, there are
+only countably many points of discontinuity. (This last property is used to simplify the
+exposition.)
+Key lemma on the size of non-admitted jobs
+For the proof of the main result in this section, we rely on the following strong, structural
+lemma about the volume processed by a feasible non-migratory schedule in some time interval
+and the size of jobs admitted by a non-migratory online algorithm satisfying (P1) and (P2)
+in the same time interval.
+Let σ be a feasible non-migratory schedule. Without loss of generality, we assume that σ
+completes all jobs that it started on time. Let X σ be the set of jobs completed by σ and not
+admitted by A. For 1 ≤ i ≤ m, let Xiσ be the set of jobs in X σ processed by machine i.
+Let Cx be the completion time of job x ∈ X σ in σ.
+13
+
+Lemma 2. Let 0 ≤ ϑ1 ≤ ϑ2 and fix x ∈ Xiσ as well as Y ⊂ Xiσ \ {x}. If
+(R) rx ≥ ϑ1 as well as ry ≥ ϑ1 for all y ∈ Y ,
+(C) Cx ≥ Cy for all y ∈ Y , and
+P
+ε
+(P)
+y∈Y piy ≥ ε−δ (ϑ2 − ϑ1 )
+
+hold, then pix ≥ uiϑ2 , where uiϑ2 is the threshold imposed by A at time ϑ2 . In particular,
+if ui,ϑ2 = ∞, then no such job x exists.
+Proof. We show the lemma by contradiction. More precisely, we show that, if pix < uiϑ2 , the
+schedule σ cannot complete x on time and, hence, is not feasible.
+Remember that x ∈ Xiσ implies that A did not admit job x at any point ϑ. At time ϑ2 ,
+there are two possible reasons why x was not admitted: pix ≥ uiϑ2 or dx − ϑ2 < (1 + δ)pix . In
+case of the former, the statement of the lemma holds. Toward a contradiction, suppose pix <
+uiϑ2 and, thus, dx − ϑ2 < (1 + δ)pix has to hold. As job x arrives with a slack of at least εpix
+at its release date rx and rx ≥ ϑ1 by assumption, we have
+ϑ2 − ϑ1 ≥ ϑ2 − dx + dx − rx > −(1 + δ)pix + (1 + ε)pix = (ε − δ)pix .
+
+(2)
+
+Since all jobs in Y complete earlier than x by Assumption (C) and are only released after ϑ1
+ε
+(ϑ2 − ϑ1 ) + pix
+by (R), the volume processed by σ in [ϑ1 , Cx ) on machine i is at least ε−δ
+by (P). Moreover, σ can process at most a volume of (ϑ2 − ϑ1 ) on machine i in [ϑ1 , ϑ2 ). These
+two bounds imply that σ has to process job parts with a processing volume of at least
+δ
+ε
+(ϑ2 − ϑ1 ) + pix − (ϑ2 − ϑ1 ) >
+(ε − δ)pix + pix = (1 + δ)pix
+ε−δ
+ε−δ
+in [ϑ2 , Cx ), where the inequality follows using Inequality (2). Thus, Cx ≥ ϑ2 + (1+ δ)pix > dx ,
+which contradicts the feasibility of σ.
+Observe that, by (P1) and (P2), the online algorithm A admits a job available for machine i
+if it satisfies pij < uiτ . In particular, if uiτ = ∞ for some time point τ , then A admits any
+job available for machine i. Hence, for 0 ≤ ϑ1 ≤ ϑ2 with uiϑ2 = ∞, there does not exist a
+job x ∈ Xiσ and a set Y ⊂ Xiσ \ {x} satisfying (R), (C), and (P) for machine i.
+Bounding the number of non-admitted jobs
+In this section, we use the Properties (P1) and (P2) to bound the throughput of a nonmigratory optimal (offline) algorithm. To this end, we fix an instance as well as an optimal schedule with job set Opt. Let A be a non-migratory online algorithm satisfying (P1)
+and (P2).
+Let X be the set of jobs in Opt that the algorithm A did not admit. We assume without
+loss of generality that all jobs in Opt complete on time. Since Opt as well as A are nonmigratory, we compare the throughput machine-wise. To this end, we fix one machine i.
+Let Xi ⊂ X be the set of jobs scheduled on machine i by Opt.
+Assumption (P2) guarantees that the threshold ui,τ is piece-wise constant and rightcontinuous, i.e., u(i) is constant on intervals of the form [τt , τt+1 ). Let I represent the set of
+maximal intervals It = [τt , τt+1 ) where u(i) is constant. That is, ui,τ = ut holds for all τ ∈ It
+and ui,τt+1 6= ut , where ut := ui,τt , The main result of this section is the following theorem.
+14
+
+Theorem 4. Let Xi be the set of jobs that are scheduled on machine i in the optimal schedule.
+Let I = {I1 , . . . , IT } be the set of maximal intervals on machine i of A such that the machinedependent threshold is constant for each interval and has the value ut in interval It = [τt , τt+1 ).
+Then,
+T
+X
+ε τt+1 − τt
++ T,
+|Xi | ≤
+ε
+−
+δ
+u
+t
+t=1
+where we set τt+1ut−τt = 0 if ut = ∞ and τt+1ut−τt = ∞ if {τt , τt+1 } ∩ {−∞, ∞} =
+6 ∅ and ut < ∞.
+We observe that T = ∞ trivially proves the statement as Xi contains at most finitely
+many jobs. The same is true if τt+1ut−τt = ∞ for some t ∈ [T ]. Hence, for the remainder of
+this section we assume without loss of generality that I only contains finitely many intervals
+and that τt+1ut−τt < ∞ holds for every t ∈ [T ].
+To prove this theorem, we develop a charging scheme that assigns jobs x ∈ Xi to intervals
+in I. The idea behind our charging scheme is that Opt does not contain arbitrarily many jobs
+that are available in It since ut provides a natural lower bound on their processing times. In
+particular, the processing time of any job that is released during interval It and not admitted
+by the algorithm exceeds the lower bound ut . Thus, the charging scheme relies on the release
+date rx and the size pix of a job x ∈ Xi as well as on the precise structure of the intervals
+created by A.
+The charging scheme we develop is based on a careful modification of the following partition (Ft )Tt=1 of the set Xi . Fix an interval It ∈ I and define the set Ft ⊆ Xi as the set
+that contains all jobs x ∈ Xi released during It , i.e., Ft = {x ∈ Xi : rx ∈ It }. Since, upon
+release, each job x ∈ Xi is available and not admitted by A, the next fact directly follows
+from Properties (P1) and (P2).
+Fact 1. For all jobs x ∈ Ft it holds pix ≥ ut . In particular, if ut = ∞, then Ft = ∅.
+In fact, the charging scheme maintains this property and only assigns jobs in Xi to intervals It if pix ≥ ut . In particular, no job will be assigned to an interval with ut = ∞.
+We now formalize how many jobs in Xi are assigned to a specific interval It . Let
+k
+j ε τ
+t+1 − τt
++1
+ϕt :=
+ε−δ
+ut
+if ut < ∞, and ϕt = 0 if ut = ∞. We refer to ϕt as the target number of It . As discussed
+before, we assume τt+1ut−τt < ∞, and, thus, the target number is well-defined. If each of the
+sets Ft satisfies |Ft | ≤ ϕt , then theorem 4 immediately follows. In general, |Ft | ≤ ϕt does not
+have to be true since jobs in Opt may be preempted and processed during several intervals It .
+Therefore, for proving theorem 4, we show that there always exists another partition (Gt )Tt=1
+of Xi such that |Gt | ≤ ϕt holds.
+The high-level idea of this proof is the following: Consider an interval It = [τt , τt+1 ). If Ft
+does not contain too many jobs, i.e., |Ft | ≤ ϕt , we would like to set Gt = Ft . Otherwise, we
+find a later interval It′ with |Ft′ | < ϕt′ such that we can assign the excess jobs in Ft to It′ .
+Proof of theorem 4. As observed before, it suffices to show the existence of a partition G =
+(Gt )Tt=1 of Xi such that |Gt | ≤ ϕt in order to prove the theorem.
+In order to repeatedly apply lemma 2, we only assign excess jobs x ∈ Ft to Gt′ for t < t′ if
+their processing time is at least the threshold of It′ , i.e., pix ≥ ut′ . By our choice of parameters,
+15
+
+a set Gt′ with ϕt′ many jobs of size at least ut′ “covers” the interval It′ = [τt′ , τt′ +1 ) as often
+as required by (P) in lemma 2, i.e.,
+
+
+
+X
+ε τt′ +1 − τt′
+ε
+′
+′
+(3)
+(τt′ +1 − τt′ ).
+pix ≥ ϕt · ut =
++ 1 · ut′ ≥
+ε−δ
+ut′
+ε−δ
+x∈Gt′
+
+The proof consists of two parts: the first one is to inductively (on t) construct the partition G = (Gt )Tt=1 of Xi , where |Gt | ≤ ϕt holds for t ∈ [T − 1]. The second one is the proof
+that a job x ∈ Gt satisfies pix ≥ ut which will imply |GT | ≤ ϕT . During the construction of G
+we define temporary sets At ⊂ Xi for intervals It . The set Gt is chosen as a subset of Ft ∪ At
+of appropriate size. In order to apply lemma 2 to each job in At individually, alongside At ,
+we construct a set Yx,t and a time τx,t ≤ rx for each job x ∈ Xi that is added to At . Let Cy∗
+be the completion time of some job y ∈ Xi in the optimal schedule Opt. The second part of
+the proof is to show that x, τx,t , and Yx,t satisfy
+(R) ry ≥ τx,t for all y ∈ Yx,t ,
+(C) Cx∗ ≥ Cy∗ for all y ∈ Yx,t , and
+P
+ε
+(P)
+y∈Yx,t piy ≥ ε−δ (τt − τx,t ).
+
+This implies that x, Y = Yx,t, ϑ1 = τx,t, and ϑ2 = τt satisfy the conditions of Lemma 2,
+and thus the processing time of x is at least the threshold at time τt , i.e., pix ≥ uiτt = ut .
+Constructing G = (Gt )Tt=1 . We inductively construct the sets Gt in the order of their
+indices. We start by setting At = ∅ for all intervals It with t ∈ T . We define Yx,t = ∅ for each
+job x ∈ Xi and each interval It . The preliminary value of the time τx,t is the minimum of the
+starting point τt of the interval It and the release date rx of x, i.e., τx,t := min{τt , rx }. We
+refer to the step in the construction where Gt was defined by step t.
+Starting with t = 1, let It be the next interval to consider during the construction with t <
+T . Depending on the cardinality of Ft ∪ At , we distinguish two cases. If |Ft ∪ At | ≤ ϕt , then
+we set Gt = Ft ∪ At .
+If |Ft ∪ At | > ϕt , then we order the jobs in Ft ∪ At in increasing order of completion times
+in the optimal schedule. The first ϕt jobs are assigned to Gt while the remaining |Ft ∪ At | − ϕt
+jobs are added to At+1 . In this case, we might have to redefine the times τx,t+1 and the
+sets Yx,t+1 for the jobs x that were newly added to At+1 . Fix such a job x. If there is no
+job z in the just defined set Gt that has a smaller release date than τx,t , we set τx,t+1 = τx,t
+and Yx,t+1 = Yx,t ∪ Gt . Otherwise let z ∈ Gt be a job with rz < τx,t that has the smallest
+time τz,t . We set τx,t+1 = τz,t and Yx,t+1 = Yz,t ∪ Gt .
+Finally, we set GT = FT ∪ AT . We observe that uT < ∞ implies ϕT = ∞ because τT +1 =
+∞. Since this contradicts the assumption ϕt < ∞ for all t ∈ [T ], this implies uT = ∞. We
+will show that px ≥ uT for all x ∈ GT . Hence, GT = ∅. Therefore |GT | = ϕT = 0.
+Bounding the size of jobs in Gt . We consider the intervals again in increasing order of
+their indices and show by induction that any job x in Gt satisfies pix ≥ ut which implies Gt = ∅
+if ut = ∞. Clearly, if x ∈ Ft ∩ Gt , fact 1 guarantees pix ≥ ut . Hence, in order to show the
+lower bound on the processing time of x ∈ Gt , it is sufficient to consider jobs in Gt \ Ft ⊂ At .
+16
+
+To this end, we show that for such jobs (R), (C), and (P) are satisfied. Thus, lemma 2
+guarantees that pix ≥ uiτt = ut by definition. Hence, At = ∅ if ut = ∞ by lemma 2.
+By construction, A1 = ∅. Hence, (R), (C), and (P) are satisfied for each job x ∈ A1 .
+Suppose that the Conditions (R), (C), and (P) are satisfied for all x ∈ As for all 1 ≤ s < t.
+Hence, for s < t, the set Gs only contains jobs x with pix ≥ us . Fix x ∈ At . We want to show
+that pix ≥ ut . By the induction hypothesis and by fact 1, piy ≥ ut−1 holds for all y ∈ Gt−1 .
+Since x did not fit in Gt−1 anymore, |Gt−1 | = ϕt−1 .
+We distinguish two cases based on Gt−1 . If there is no job z ∈ Gt−1 with rz < τx,t−1 ,
+then τx,t = τx,t−1 , and (R) and (C) are satisfied by construction and by the induction hypothesis. For (P), consider
+X
+X
+X
+piy
+piy +
+piy =
+y∈Yx,t
+
+y∈Yx,t−1
+
+y∈Gt−1
+
+ε
+(τt−1 − τx,t−1 ) + ut−1 · ϕt−1
+≥
+ε−δ
+ε
+ε
+≥
+(τt−1 − τx,t−1 ) +
+(τt − τt−1 )
+ε−δ
+ε−δ
+ε
+(τt − τx,t ) ,
+=
+ε−δ
+where the first inequality holds due to the induction hypothesis. By lemma 2, pix ≥ uτt = ut .
+If there is a job z ∈ Gt−1 with rz < τx,t−1 ≤ τt−1 , then z ∈ At−1 . In step t − 1, we chose z
+with minimal τz,t−1 . Thus, ry ≥ τy,t−1 ≥ τz,t−1 for all y ∈ Gt−1 and rx ≥ τx,t−1 > rz ≥ τz,t−1
+which is Condition (R) for the jobs in Gt−1 . Moreover, by the induction hypothesis, ry ≥ τz,t−1
+holds for all y ∈ Yz,t−1 . Thus, τx,t and Yx,t satisfy (R). For (C), consider that Cx∗ ≥ Cy∗ for
+all y ∈ Gt−1 by construction and, thus, Cx∗ ≥ Cz∗ ≥ Cy∗ also holds for all y ∈ Yz,t−1 due to
+the induction hypothesis. For (P), observe that
+X
+X
+X
+piy
+piy +
+piy =
+y∈Yx,t
+
+y∈Yz,t−1
+
+y∈Gt−1
+
+ε
+(τt−1 − τz,t−1 ) + ut−1 · ϕt−1
+≥
+ε−δ
+ε
+ε
+(τt−1 − τz,t−1 ) +
+(τt − τt−1 )
+≥
+ε−δ
+ε−δ
+ε
+(τt − τx,t).
+≥
+ε−δ
+Here, the first inequality follows from the induction hypothesis and the second from the
+definition of ut−1 and ϕt−1 . Hence, lemma 2 implies pix ≥ uτt = ut .
+We note that pix ≥ ut for all x ∈ Gt and for all t ∈ [T ].
+S
+Bounding |Xi |. By construction, we know that Tt=1 Gt = Xi . We start with considering
+intervals It with ut = ∞. Then, It has an unbounded threshold, i.e., uiτ = ∞ for all τ ∈ It ,
+and Ft = ∅ by fact 1. In the previous part we have seen that the conditionsfor lemma 2 are
+ε τt+1 −τt
++ 1.
+satisfied. Hence, Gt = ∅ if ut = ∞. For t with ut < ∞, we have |Gt | ≤ ϕt = ε−δ
+ut
+As explained before, this bounds the number of jobs in Xi .
+
+4.2
+
+The blocking algorithm admits sufficiently many jobs
+
+Having the powerful tool that we developed in the previous section at hand, it remains to
+show that the blocking algorithm admits sufficiently many jobs to achieve the competitive
+17
+
+
+
+1
+ratio of O ε−δ
+where δ′ = 2ε for commitment upon admission and δ′ = max 2ε , δ for δ′
+commitment. To this end, we show that the blocking algorithm belongs to the class of online
+algorithms considered in Section 4.1. Then, theorem 4 provides a bound on the throughput
+of an optimal non-migratory schedule.
+We begin by showing that the blocking algorithm satisfies Properties (P1) to (P2). The
+first property is clearly satisfied by the definition of the blocking algorithm. For the second
+and the third property, we observe that a new job j ⋆ is only admitted to a machine i during
+the scheduling interval of another job j admitted to the same machine if pij ⋆ < γpij . Further,
+the time point of admission must not be blocked by a similar- or smaller-size job k previously
+admitted during the scheduling interval of j. This leads to the bound pij ⋆ < 12 pik for any
+job k whose blocking period contains the current time point. Combining these observations
+leads to a machine-dependent threshold ui,τ ∈ [0, ∞] satisfying (P2).
+More precisely, fix a machine i and a time point τ . Using j → i to denote that j was
+admitted to machine i, we define ui,τ := minj: j→i,τ ∈S(j) γpij if there is no job k admitted
+to machine i with τ ∈ B(k), with min ∅ = ∞. Otherwise, we set ui,τ := 12 pik . We note
+that the function u(i) is piece-wise constant and right-continuous due to our choice of rightopen intervals for defining scheduling intervals and blocking periods. Moreover, the points
+of discontinuity of u(i) correspond to the admission of a new job, the end of a scheduling
+interval, and the start as well as the end of a blocking period of jobs admitted to machine i.
+Since we only consider instances with a finite number of jobs, there are at most finitely many
+points of discontinuity of u(i) . Hence, we can indeed apply theorem 4.
+Then, the following theorem is the main result of this section.
+Theorem 5. An optimal non-migratory (offline) algorithm can complete at most a factor
+
+ε
+2β + 1+2δ
+.
+α + 5 more jobs on time than admitted by the blocking algorithm, where α := ε−δ
+γ
+
+Proof. We fix an instance and an optimal solution Opt. We use X to denote the set of
+jobs in Opt that the blocking algorithm did not admit. Without loss of generality, we can
+assume that all jobs in Opt complete on time. If J is the set of jobs admitted by the blocking
+algorithm, then X ∪ J is a superset of the jobs successfully finished in the optimal solution.
+Hence, showing |X| ≤ (α + 4)|J| suffices to prove theorem 5.
+For each machine i, we compare the throughput of the optimal solution to the throughput
+on machine i of the blocking algorithm. More precisely, let Xi ⊆ X be the jobs in Opt
+scheduled on machine i and let Ji ⊆ J be the jobs scheduled by the blocking algorithm on
+machine i. With theorem 4, we show |Xi | ≤ (α + 4)|Ji | to bound the cardinality of X in
+terms of |J|.
+To this end, we retrospectively consider the interval structure created by the algorithm
+on machine i. Let I be the set of maximal intervals It = [τt , τt+1 ) such that ui,τ = ui,τt for
+all τ ∈ It . We define ut = ui,τt for each interval It . As discussed above, the time points τt
+for t ∈ [T ] correspond to the admission, the end of a scheduling interval, and the start as well
+as the end of a blocking period of jobs admitted to machine 1. As the admission of a job adds
+at most three time points, we have that |I| ≤ 3|Ji | + 1.
+As the blocking algorithm satisfies Properties (P1) to (P2), we can apply theorem 4 to
+obtain
+T
+T
+X
+X
+ε τt+1 − τt
+ε τt+1 − τt
++ |I| ≤
++ (3|Ji | + 1).
+|Xi | ≤
+ε−δ
+ut
+ε−δ
+ut
+t=1
+t=1
+
+18
+
+It remains to bound the first part in terms of |Ji |. If ut < ∞, let jt ∈ Ji be the smallest job j
+ε τt+1 −τt
+(potentially fractional) jobs will be charged
+with τt ∈ S(j) ∪ B(j). Then, at most ε−δ
+ut
+to job jt because of interval It . By definition of ut , we have ut = γpijt if It ⊆ S(jt ), and
+if It ⊆ B(jt ), we have ut = 21 pijt . The total length of intervals It for which j = jt holds sums
+up to at most (1 + 2δ)pij for It ⊆ S(j) and to at most 2βpij for It ⊆ B(j). Hence, in total,
+ε
+(2β + 1+2δ
+the charging scheme assigns at most ε−δ
+γ ) = α jobs in Xi to job j ∈ Ji . Therefore,
+
+|Xi | ≤ α + 3 |Ji | + 1.
+
+If Ji = ∅, the blocking algorithm admittedall jobs scheduled on machine i by Opt, and |Xi | =
+0 = |Ji | follows. Otherwise, |Xi | ≤ α + 4 |Ji |, and we obtain
+|Opt| ≤ |X ∪ J| =
+
+m
+X
+i=1
+
+|Xi | + |J| ≤
+
+m
+X
+(α + 4)|Ji | + |J| ≤ (α + 5)|J|,
+i=1
+
+which concludes the proof.
+
+4.3
+
+Finalizing the proof of Theorem 1
+
+Proof of theorem 1. In Theorem 3 we show that the blocking algorithm completes all admitted
+jobs J on time. This implies that the blocking algorithm is feasible for the model commitment
+upon admission. As no job j ∈ J is admitted later than dj − (1 + δ)pij , the blocking algorithm
+also solves scheduling with δ-commitment. In Theorem 5, we bound the throughput |Opt|
+of an optimal non-migratory solution by α + 5 times |J|, the throughput of the blocking
+ǫ
+16
+δ
+algorithm, where α = ε−δ
+(2β + 1+2δ
+γ ). Our choice of parameters β = δ and γ = 16 implies
+ε
+that the blocking algorithm achieves a competitive ratio of c ∈ O (ε−δ)δ
+. For commitment
+ε
+upon arrival or for δ-commitment
+in the case where δ ≤ 2 , we run the algorithm with δ′ = 2ε .
+
+1
+1
+Hence, c ∈ O ε−δ′ = O ε . If δ > 2ε , then we set δ′ = δ in our algorithm. Thus, δε′ ∈ O(1)
+
+1
+and, again, c ∈ O ε−δ
+′ .
+
+5
+
+Scheduling without commitment
+
+This section considers online throughput maximization without commitment requirements.
+We show how to exploit also in this setting our key lemma on the size of non-admitted jobs
+for a big class of online algorithms and the resulting upper bound on the throughput of an
+optimal (offline) non-migratory algorithm from Section 4.1.
+We consider the region algorithm that was designed by [10] for scheduling on a single
+machine and we generalize
+it to parallel identical machines. We prove that it has a compet
+1
+itive ratio of O ε , which is best possible on a single machine and improves substantially
+upon the best previously known
+parallel-machine algorithm (for weighted throughput) with
+
+1
+a competitive ratio of O ε2 by Lucier et al. [30]. For a single machine, this matches the
+guarantee proven in [10]. However, our new analysis is much more direct.
+
+5.1
+
+The region algorithm
+
+Originally, the region algorithm was designed for online scheduling with and without commitment on a single machine. We extend it to unrelated machines by never migrating jobs
+19
+
+between machines and per machine using the same design principles that guide the admission
+decisions of the region algorithm, as developed in [10]. Since we do not consider commitment in this section, we can significantly simplify the exposition of the region algorithm when
+compared to [10].
+As in the previous section, a job is only processed by the machine it initially was started
+on. We say the job has been admitted to this machine. Moreover, a running job can only
+be preempted by significantly smaller-size jobs, i.e., smaller by a factor of at least 4ε with
+respect to the processing time, and a job j cannot start for the first time on machine i when
+its remaining slack is too small, i.e., less than 2ε pij .
+Formally, at any time τ , the region algorithm maintains two sets of jobs: admitted jobs,
+which have been started before or at time τ , and available jobs. A job j is available for
+machine i if it is released before or at time τ , is not yet admitted, and τ is not too close to
+its deadline, i.e., rj ≤ τ and dj − τ ≥ 1 + 2ε pij . The intelligence of the region algorithm
+lies in how it admits jobs. The actual scheduling decision then is simple and independent
+of the admission of jobs: at any point in time and on each machine, schedule the shortest
+job that has been admitted to this machine and has not completed its processing time. In
+other words, we schedule admitted jobs on each machine in Shortest Processing Time
+(SPT) order. The region algorithm never explicitly considers deadlines except when deciding
+whether to admit jobs. In particular, jobs can even be processed after their deadline.
+At any time τ , when there is a job j available for an idle machine i, i.e., i is not processing
+any previously admitted job j ′ , the shortest available job j ⋆ is immediately admitted to
+machine i at time a⋆j := τ . There are two events that trigger a decision of the region algorithm:
+the release of a job and the completion of a job. If one of these events occurs at time τ , the
+region algorithm invokes the preemption subroutine. This routine iterates over all machines
+and compares the processing time of the smallest job j ⋆ available for machine i with the
+processing time of job ji that is currently scheduled on machine i. If pij ⋆ < 4ε piji , job j ⋆ is
+admitted to machine i at time a⋆j := τ and, by the above scheduling routine, immediately
+starts processing. We summarize the region algorithm in Figure 3.
+The proof of the analysis splits again naturally into two parts: The first part is to show
+that the region algorithm completes at least half of all admitted jobs, and the second is to
+use theorem 5 to compare the number of admitted jobs to the throughput of an optimal
+non-migratory algorithm.
+
+5.2
+
+Completing sufficiently many admitted jobs
+
+The main result of this section is the following theorem.
+Theorem 6. Let 0 < ε ≤ 1. Then the region algorithm completes at least half of all admitted
+jobs before their deadline.
+The proof of theorem 6 relies on two technical results that enable us to restrict to instances
+with one machine and further only consider jobs that are admitted by the region algorithm
+in this instance. Then, we can use the analysis of the region algorithm in [10] to complete
+the proof.
+We start with the following observation. Let I be an instance of online throughput
+maximization with the job set J and let J ⊆ J be the set of jobs admitted by the region
+algorithm at some point. It is easy to see that a job j ∈
+/ J does not influence the scheduling
+20
+
+Figure 3: Region algorithm
+
+Scheduling Routine: At any time τ and on any machine i, run the job with shortest
+processing time that has been admitted to i and has not yet completed.
+Event: Release of a new job at time τ
+Call Threshold Preemption Routine.
+Event: Completion of a job at time τ
+Call threshold preemption routine.
+Threshold Preemption Routine:
+i←1
+j ⋆ ← a shortest job available for machine i at τ , i.e., j ⋆ ∈ arg min{pij | j ∈ J , rj ≤
+τ and dj − τ ≥ (1 + 2ε )pij }
+while i ≤ m do
+j ← job processed on machine i at time τ
+if j = ∅ then
+admit job j ⋆ to machine i
+call Threshold Preemption Routine
+else if pij ⋆ < 4ε pij then
+admit job j ⋆ to machine i
+call Threshold Preemption Routine
+else
+i←i+1
+j ⋆ ← a shortest job available for machine i at τ , i.e., j ⋆ ∈ arg min{pij | j ∈ J , rj ≤
+τ and dj − τ ≥ (1 + 2ε )pij }
+end if
+end while
+
+21
+
+or admission decisions of the region algorithm. The next lemma formalizes this statement
+and follows immediately from the just made observations.
+Lemma 3. For any instance I for which the region algorithm admits the job set J ⊆ J , the
+reduced instance I ′ containing only the jobs J forces the region algorithm with consistent tie
+breaking to admit all jobs in J and to create the same schedule as produced for the instance I.
+The proof of the main result compares the number of jobs finished on time, F ⊆ J, to the
+number of jobs unfinished by their respective deadlines, U = J \ F . To further simplify the
+instance, we use that the region algorithm is non-migratory and restrict to single-machine
+instances. To this end, let F (i) and U (i) denote the finished and unfinished, respectively, jobs
+on machine i.
+Lemma 4. Let i ∈ {1, . . . , m}. There is an instance I ′ on one machine with job set J ′ =
+F (i) ∪ U (i) . Moreover, the schedule of the region algorithm for instance I ′ with consistent tie
+breaking is identical to the schedule of the jobs J ′ on machine i. In particular, F ′ = F (i)
+and U ′ = U (i) .
+Proof. By Lemma 3, we can restrict to the jobs admitted by the region algorithm. Hence, let I
+be such an instance with F (i) ∪ U (i) being admitted to machine i. As the region algorithm
+is non-migratory, the sets of jobs scheduled on two different machines are disjoint. Let I ′
+consist of the jobs in J ′ := F (i) ∪ U (i) and one machine. We set p′j = pij for j ∈ J ′ . The
+region algorithm on instance I admits all jobs in J . In particular, it admits all jobs in J ′ to
+machine i.
+We inductively show that the schedule for the instance I ′ is identical to the schedule on
+machine i in instance I. To this end, we index the jobs in J ′ in increasing admission time
+points in instance I.
+It is obvious that job 1 ∈ J ′ is admitted to the single machine at its release date r1
+as happens in instance I since the region algorithm uses consistent tie breaking. Suppose
+that the schedule is identical until the admission of job j ⋆ at time a⋆j = τ . If j ⋆ does not
+interrupt the processing of another job, then j ⋆ will be admitted at time τ in I ′ as well.
+Otherwise, let j ∈ J ′ be the job that the region algorithm planned to process at time τ
+before the admission of job j ⋆ . Since j ⋆ is admitted at time τ in I, j ⋆ is available at time τ ,
+satisfies p′j ⋆ = pij ⋆ < 4ε pij = 4ε p′j , and did not satisfy both conditions at some earlier time τ ′
+with some earlier admitted job j ′ . Since the job set in I ′ is a subset of the jobs in I and we use
+consistent tie breaking, no other job j ∗ ∈ J ′ that satisfies both conditions is favored by the
+region algorithm over j ⋆ . Therefore, job j ⋆ is also admitted at time τ by the region algorithm
+in instance I ′ . Thus, the schedule created by the region algorithm for J ′ is identical to the
+schedule of J on machine i in the original instance.
+For proving theorem 6, we consider a worst-case instance for the region algorithm where
+“worst” is with respect to the ratio between admitted and successfully completed jobs. Since
+the region algorithm is non-migratory, there exists at least one machine in such a worst-case
+instance that “achieves” the same ratio as the whole instance. By the just proven lemma, we
+can find a worst-case instance on a single machine. However, on a single machine, the region
+algorithm algorithm in this paper is identical to the algorithm designed in [10]. Therefore,
+we simply follow the line of proof developed in [10] to show theorem 6.
+More precisely, in [10] we show that the existence of a late job j implies that the the set
+of jobs admitted by j or by one of its children contains more finished than unfinished jobs.
+22
+
+Let Fj denote the set of jobs admitted by j or by one of its children that finish on time.
+Similarly, we denote the set of such jobs that complete after their deadlines, i.e., that are
+unfinished at their deadline, by Uj . We restate the following lemma, which was originally
+shown in a single-machine environment but clearly also holds for unrelated machines.
+Lemma 5 (Lemma 3 in [10]). Consider some job j admitted to some machine i ∈ {1, . . . , m}.
+If Cj − aj ≥ (ℓ + 1)pij for ℓ > 0, then |Fj | − |Uj | ≥ ⌊ 4ℓ
+ε ⌋.
+
+Proof of theorem 6. Let U be the set of jobs that are unfinished by their deadline but whose
+ancestors have all completed on time. Every job j ∈ U was admitted by the algorithm at some
+
+time aj with dj −aj ≥ 1+ 2ε pij . Since j is unfinished, we have Cj −aj > dj −aj ≥ 1+ 2ε pij .
+
+
+= 2. Thus,
+By Lemma 5, |Fj | − |Uj | ≥ 4·ε/2
+ε
+|Fj | + |Uj | ≤ 2|Fj | − 2 < 2|Fj |.
+
+Since every ancestor of such a job j finishes on time, this completes the proof.
+
+5.3
+
+The region algorithm admits sufficiently many jobs
+
+In this section, we show the following theorem and give the proof of theorem 2.
+Theorem 7. An optimal non-migratory (offline) algorithm completes at most a factor
+more jobs on time than admitted by the region algorithm.
+
+8
+ε +4
+
+
+
+Proof. As in the previous section, fix an instance and an optimal solution Opt. Let X be
+the set of jobs in Opt that the region algorithm did not admit. We assume without loss
+of generality that all jobs in Opt finish on time. Further, let J denote the set of jobs that
+the region
+algorithm admitted. Then, X ∪ J is a superset of the jobs in Opt. Thus, |X| ≤
+
+8
++
+3
+|J|
+implies
+Theorem 7.
+ε
+Consider an arbitrary but fixed machine i. We compare again the throughput of the
+optimal schedule on machine i to the throughput of the region algorithm on machine i.
+Let Xi ⊆ X denote the jobs in Opt scheduled on machine i and let Ji denote
+the jobs
+
+scheduled by the region algorithm on machine i. Then, showing |Xi | ≤ 8ε + 3 |Ji | suffices to
+prove the main result of this section. Given that the region algorithm satisfies Properties (P1)
+and (P2), theorem 4 already provides a bound on the cardinality of Xi in terms of the
+intervals corresponding to the schedule on amchine i. Thus, it remains to show that the region
+algorithm indeed qualifies for applying theorem 4 and that the bound developed therein can
+be translated to a bound in terms of |Ji |.
+We start by showing that the region algorithm satisfies the assumptions necessary for
+applying
+ theorem 4. Clearly, as the region algorithm only admits a job j at time τ if dj − τ ≥
+1 + 2ε pij , setting δ = 2ε proves that the region algorithm satisfies (P1). For (P2), we
+retrospectively analyze the schedule generated by the region algorithm. For a time τ , let ji
+denote the job scheduled on machine i. Then, setting ui,τ := 4ε piji or ui,τ = ∞ if no such
+job ji exists, indeed provides us with the machine-dependent threshold necessary for (P2).
+This discussion also implies that u(i) has only countably many points of discontinuity as there
+are only finitely many jobs in the instance, and that u(i) is right-continuous.
+Hence, let I denote the set of maximal intervals It = [τt , τt+1 ) for t ∈ [T ] of constant
+threshold uiτ . Thus, by theorem 4,
+|Xi | ≤
+
+T
+X
+t=1
+
+ε τt+1 − τt
++ T.
+ε−δ
+ut
+23
+
+(4)
+
+As the threshold ui,τ is proportional to the processing time of the job currently scheduled
+on machine i, the interval It either represents an idle interval of machine i (with uiτ = ∞) or
+corresponds to the uninterrupted processing of some job j on machine i. We denote this job
+by jt if it exists. We consider now the set Ij ⊆ I of intervals with jt = j for some particular
+job j ∈ Ji . As observed, these intervals correspond to job j being processed which happens
+for a total of pij units of time. Combining with ut = 4ε pij for It ∈ Ij , we get
+X τt+1 − τt
+pij
+4
+= ε
+= .
+ut
+ε
+4 pij
+
+t:It ∈Ij
+
+ε
+As δ = 2ε , we additionally have that ε−δ
+= 2. Hence, we rewrite Equation (4) by
+
+|Xi | ≤
+
+8
+|Ji | + T.
+ε
+
+It remains to bound T in terms of |Ji | to conclude the proof. To this end, we recall that the
+admission of a job j to a machine interrupts the processing of at most one previously admitted
+job. Hence, the admission of |Ji | jobs to machine 1 creates at most 2|Ji | + 1 intervals.
+If the region algorithm does not admit any job to machine i, i.e., |Ji | = 0, then uiτ = ∞ for
+each time point τ . Hence, there exists no job scheduled on machine i by Opt that the region
+algorithm did not admit. In other words, Xi = ∅ and |Xi | = 0 = |Ji |. Otherwise, 2|Ji | + 1 ≤
+3|Ji |. Therefore,
+
+
+8
++ 3 |Ji |.
+|Xi | ≤
+ε
+Combining with the observation about Xi and Ji previously discussed, we obtain
+
+X
+
+
+m
+m
+X
+8
+8
+|Ji | + |J| =
++3
++ 4 |J|,
+|Xi | + |J| ≤
+|Opt| ≤ |X ∪ J| =
+ε
+ε
+i=1
+
+i=1
+
+which concludes the proof.
+
+5.4
+
+Finalizing the proof of Theorem 2
+
+Proof of Theorem 2. In Theorem 6 we show that the region algorithm completes at least
+half of all admitted jobs J on time. In Theorem
+4, we bound the throughput |Opt| of an
+
+8
+theorems shows that the
+optimal non-migratory solution by ε + 4 |J|. Combining these
+
+region algorithm achieves a competitive ratio of c = 2 · 8ε + 4 = 16
+ε + 8.
+
+6
+
+Conclusion
+
+In this paper, we close the problem of online single-machine throughput maximization with
+and without commitment requirements. For both commitment settings, we give an optimal
+online algorithm. Further, our algorithms run in a multiple-machine environment, even on
+heterogenous machines. Our algorithms compute
+non-migratory schedules on unrelated ma
+chines with the same competitive ratio O 1ε as for a single machine and improve substantially
+upon the state of the art.
+It remains open whether the problem with a large number of machines admits an online
+algorithm with a better competitive ratio. Indeed, very recently, Moseley et al. [31] present
+24
+
+an O(1)-competitive algorithm for m ≥ 2 parallel identical machines without commitment.
+It remains, however, unclear if this result can be lifted to other machine environments or any
+of the commitment models.
+There are other examples in the literature in which the worst-case ratio for a scheduling
+problem improves with an increasing number of machines. Consider, e.g., the non-preemptive
+offline variant of our throughput maximization problem on identical machines. There is an
+algorithm with approximation ratio of 1.55 for any m which is improving with increasing
+number of machines, converging to 1 as m tends to infinity [19]. The second part of the result
+also holds for the weighted problem.
+Another interesting question asks whether randomization allows for improved results.
+Recall that there is an O(1)-competitive randomized algorithm for scheduling on a single
+machine without commitment and without slack assumption [25]. Therefore is seems plausible
+that randomization also helps designing algorithms with improved competitive ratios for the
+different commitment models, for which only weak lower bounds are known [10].
+Further, we leave migratory scheduling on unrelated machines as an open problem. Allowing migration in this setting means that, on each machine i, a certain fraction of the
+processing time pij is executed, and these fractions must sum to one. Generalizing the result
+we leverage for identical machines [24], it is conceivable that any migratory schedule can be
+turned into a valid non-migratory schedule of the same jobs by adding a constant number
+of machines of each type. Such a result would immediately allow to transfer our competitive
+ratios to the migratory setting (up to constant factors). Devanur and Kulkarni [13] show a
+weaker result that utilizes speed rather than additional machines. Note that the strong impossibility result of Im and Moseley [21] does not rule out the desired strengthening because
+we make the ε-slack assumption for every job and machine eligible for it. Further, we – as
+well as Devanur and Kulkarni [13] – assume that the processing time of each job j satisfies
+pij ≤ dj − rj on any eligible machine i, whereas the lower bound in [21] requires jobs that
+violate this reasonable assumption.
+Further research directions include generalizations such as weighted throughput maximization. While strong lower bounds exist for handling weighted throughput with commit-
+ment [10], there remains a gap for the problem without. The known lower bound of Ω 1ε
+already holds for unit weights [10]. A natural extension of the region algorithm bases its
+admission decisions on the density, i.e., the ratio of the weight of a job to its processing time.
+The result is an algorithm similar to the O ε12 -competitive algorithm by Lucier et al. [30].
+Both algorithms only admit available jobs and interrupt currently running jobs if the new
+job is denser by a certain factor. However, we can show that there is a lower bound of Ω ε12
+on the competitive ratio of such algorithms. Hence, in order to improve the upper bound for
+online weighted throughput maximization, one needs to develop a new type of algorithm.
+
+25
+
+References
+[1] K. Agrawal, J. Li, K. Lu, and B. Moseley. Scheduling parallelizable jobs online to
+maximize throughput. In LATIN, volume 10807, pages 755–776. Springer, 2018.
+[2] Y. Azar, I. Kalp-Shaltiel, B. Lucier, I. Menache, J. Naor, and J. Yaniv. Truthful online
+scheduling with commitments. In EC, pages 715–732. ACM, 2015.
+[3] N. Bansal, H. Chan, and K. Pruhs. Competitive algorithms for due date scheduling.
+Algorithmica, 59(4):569–582, 2011.
+[4] A. Bar-Noy, S. Guha, J. Naor, and B. Schieber. Approximating the throughput of
+multiple machines in real-time scheduling. SIAM J. Comput., 31(2):331–352, 2001.
+[5] S. K. Baruah and J. R. Haritsa. Scheduling for overload in real-time systems. IEEE
+Trans. Computers, 46(9):1034–1039, 1997.
+[6] S. K. Baruah, J. R. Haritsa, and N. Sharma. On-line scheduling to maximize task
+completions. In RTSS, pages 228–236. IEEE Computer Society, 1994.
+[7] S. K. Baruah, G. Koren, D. Mao, B. Mishra, A. Raghunathan, L. E. Rosier, D. E. Shasha,
+and F. Wang. On the competitiveness of on-line real-time task scheduling. Real-Time
+Systems, 4(2):125–144, 1992.
+[8] S. K. Baruah, G. Koren, B. Mishra, A. Raghunathan, L. E. Rosier, and D. E. Shasha.
+On-line scheduling in the presence of overload. In FOCS, pages 100–110. IEEE Computer
+Society, 1991.
+[9] P. Berman and B. DasGupta. Improvements in throughout maximization for real-time
+scheduling. In STOC, pages 680–687. ACM, 2000.
+[10] L. Chen, F. Eberle, N. Megow, K. Schewior, and C. Stein. A general framework for
+handling commitment in online throughput maximization. Math. Prog., 183:215–247,
+2020.
+[11] B. DasGupta and M. A. Palis. Online real-time preemptive scheduling of jobs with
+deadlines. In APPROX, volume 1913 of Lecture Notes in Computer Science, pages 96–
+107. Springer, 2000.
+[12] M. L. Dertouzos and A. K. Mok. Multiprocessor on-line scheduling of hard-real-time
+tasks. IEEE Trans. Software Eng., 15(12):1497–1506, 1989.
+[13] N. R. Devanur and J. Kulkarni. A unified rounding algorithm for unrelated machines
+scheduling problems. In C. Scheideler and J. T. Fineman, editors, SPAA, pages 283–290.
+ACM, 2018.
+[14] J. Du and J. Y. Leung. Minimizing the number of late jobs on unrelated machines. Oper.
+Res. Lett., 10(3):153–158, 1991.
+[15] A. D. Ferguson, P. Bodı́k, S. Kandula, E. Boutin, and R. Fonseca. Jockey: Guaranteed
+job latency in data parallel clusters. In EuroSys, pages 99–112. ACM, 2012.
+
+26
+
+[16] J. A. Garay, J. Naor, B. Yener, and P. Zhao. On-line admission control and packet
+scheduling with interleaving. In INFOCOM, pages 94–103. IEEE Computer Society,
+2002.
+[17] M. H. Goldwasser. Patience is a virtue: The effect of slack on competitiveness for
+admission control. J. Sched., 6(2):183–211, 2003.
+[18] M. H. Goldwasser and B. Kerbikov. Admission control with immediate notification. J.
+Sched., 6(3):269–285, 2003.
+[19] S. Im, S. Li, and B. Moseley. Breaking 1 - 1/e barrier for non-preemptive throughput
+maximization. In F. Eisenbrand and J. Könemann, editors, IPCO, volume 10328 of
+Lecture Notes in Computer Science, pages 292–304. Springer, 2017.
+[20] S. Im, S. Li, and B. Moseley. Breaking 1 - 1/e barrier for nonpreemptive throughput
+maximization. SIAM J. Discret. Math., 34(3):1649–1669, 2020.
+[21] S. Im and B. Moseley. General profit scheduling and the power of migration on heterogeneous machines. In SPAA, volume 10807 of Lecture Notes in Computer Science, pages
+755–776. Springer, 2018.
+[22] S. Jamalabadi, C. Schwiegelshohn, and U. Schwiegelshohn. Commitment and slack for
+online load maximization. In SPAA, pages 339–348. ACM, 2020.
+[23] B. Kalyanasundaram and K. Pruhs. Speed is as powerful as clairvoyance. J. ACM,
+47(4):617–643, 2000.
+[24] B. Kalyanasundaram and K. Pruhs. Eliminating migration in multi-processor scheduling.
+J. Algorithms, 38(1):2–24, 2001.
+[25] B. Kalyanasundaram and K. Pruhs. Maximizing job completions online. J. Algorithms,
+49(1):63–85, 2003.
+[26] G. Koren and D. E. Shasha. MOCA: A multiprocessor on-line competitive algorithm for
+real-time system scheduling. Theor. Comput. Sci., 128(1&2):75–97, 1994.
+[27] G. Koren and D. E. Shasha. Dover : An optimal on-line scheduling algorithm for overloaded uniprocessor real-time systems. SIAM J. Comput., 24(2):318–339, 1995.
+[28] E. Lawler. A dynamic programming algorithm for preemptive scheduling of a single
+machine to minimize the number of late jobs. Ann. Oper. Res., 26(1-4):125–133, 1990.
+[29] E. L. Lawler. Recent results in the theory of machine scheduling. In A. Bachem, B. Korte,
+and M. Grötschel, editors, Mathematical Programming The State of the Art, pages 202–
+234. Springer, 1982.
+[30] B. Lucier, I. Menache, J. Naor, and J. Yaniv. Efficient online scheduling for deadlinesensitive jobs: Extended abstract. In SPAA, pages 305–314. ACM, 2013.
+[31] B. Moseley, K. Pruhs, C. Stein, and R. Zhou. A competitive algorithm for throughout
+maximization on identical machines. CoRR, abs/2111.06564, 2021.
+
+27
+
+[32] K. Pruhs and C. Stein. How to schedule when you have to buy your energy. In APPROX,
+volume 6302 of Lecture Notes in Computer Science, pages 352–365. Springer, 2010.
+[33] K. Pruhs and G. J. Woeginger. Approximation schemes for a class of subset selection
+problems. Theor. Comput. Sci., 382(2):151–156, 2007.
+[34] C. Schwiegelshohn and U. Schwiegelshohn. The power of migration for online slack
+scheduling. In ESA, volume 57 of LIPIcs, pages 75:1–75:17. Schloss Dagstuhl - LeibnizZentrum für Informatik, 2016.
+[35] R. Sitters. Complexity of preemptive minsum scheduling on unrelated parallel machines.
+Journal of Algorithms, 57(1):37–48, 2005.
+
+28
+
+

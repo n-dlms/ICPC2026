@@ -1,0 +1,1305 @@
+Single Machine Batch Scheduling to
+Minimize the Weighted Number of Tardy Jobs
+Danny Hermelin∗
+
+Matthias Mnich†
+
+Simon Omlor‡
+
+Abstract
+
+arXiv:1911.12350v1 [cs.DS] 27 Nov 2019
+
+ř
+
+The 1|B, rj | wj Uj scheduling problem takes as input a batch setup time ∆ and a set
+of n jobs, each having a processing time, a release date, a weight, and a due date; the
+task is to find a sequence of batches that minimizes the weighted number of tardy jobs.
+This problem was introduced by Hochbaum and Landy in 1994; as a wide generalization of
+Knapsack, it is NP-hard.
+ř
+In this work we provide a multivariate complexity analysis of the 1|B, rj | wj Uj problem with respect to several natural parameters. That is, we establish a thorough classification into fixed-parameter tractable and Wr1s-hard problems, for parameter combinations of
+(i) #p = distinct number of processing times, (ii) #w = number of distinct weights, (iii)
+#d = number of distinct due dates, (iv) #r = number of distinct release dates, and (v)
+b = batch sizes. Thereby, we significantly extend the work of Hermelin et al. (2018) who
+analyzed the parameterized complexity of the non-batch variant of this problem without
+release dates.
+ř
+As one of our key results, we prove that 1|B, rj | wj Uj is Wr1s-hard parameterized
+by the number of distinct processing times and distinct due dates. To the best of our
+knowledge, these are the first parameterized intractability results
+řfor scheduling problems
+with few distinct processing times. Further, we show that 1|B, rj | wj Uj is fixed-parameter
+tractable with respect to parameter #p ` #d ` #r and with respect to parameter #w ` #d
+if there is just a single release date. Both results hold even if the number of jobs per batch
+is limited by some integer b.
+Keywords. Scheduling, single machine scheduling, batch scheduling, weighted number of
+tardy jobs, fixed-parameter tractability, W[1]-hardness.
+
+1
+
+Introduction
+
+This paper is concerned with the problem of minimizing the total weight of tardy (late) jobs in
+a single machine batch scheduling environment. Before describing our results,
+we first briefly
+ř
+overview the classical non-batch variant of this problem, denoted as 1|| wj Ujřin Graham’s
+classical three-field notation [6]. Following this, we describe the extension of 1|| wj Uj to the
+batch scheduling environment, and discuss how our results fit into the known state of the art.
+
+1.1
+
+Total weight of tardy jobs on a single machine
+
+One of the most fundamental and prominent scheduling criteria on a single machine is that of
+minimizing the total weight of tardy jobs in a schedule. Let J be a set of jobs, where each job
+j P J has a processing time pj P N, a weight wj P N, and a due date dj P N. We are given a
+∗
+
+Ben-Gurion University of the Negev, Beer-Sheva, Israel. hermelin@bgu.ac.il
+TU Hamburg, Institute for Algorithms and Complexity, Hamburg, Germany. matthias.mnich@tuhh.de
+‡
+TU Hamburg, Institute for Algorithms and Complexity, Hamburg, Germany. simon.omlor@tuhh.de
+
+†
+
+1
+
+single machine on which to process all the jobs in J. A schedule for this machine corresponds
+to assigning a starting time Sj to each job j P J, so that Si R rSj , Sj ` pj q for any job i ‰ j.
+The term Sj ` pj , also denoted Cj , is called the completion time of job j. A job j P J is tardy
+if its completion time exceeds its deadline, i.e., if Cj ą dj ; otherwise, it is
+ř early. The goal is
+to find a schedule which minimizes the total weight of all tardy jobs; or jPJ wj Uj where Uj
+is a binary indicator
+ř variable which takes value 1 if and only if job j is tardy. This problem is
+denoted as the 1|| wj Uj problem.
+Karp [9] proved that thisřproblem is (weakly) NP-hard even when all jobs have a common
+due date (i.e., the 1|dj “ d| wj Uj problem), and in fact this variant is equivalent to the 0/1
+Knapsack problem. The variant where in addition ř
+to a single due date, the weight of each job
+is equal to its processing time (the 1|dj “ d, pj “ wj | wj Uj problem) is known to be equivalent
+to the Partition problem.
+ř
+Lawler and Moore [10] provided a pseudo-polynomial time algorithm for 1|| wj Uj , whereas
+Sahni [15] showed that the problem admits an FPTAS.
+The variant where all jobs have unit
+ř
+weight (and a single release date), known as the 1|| Uj problem, is solvable in Opn log nq time
+due to an algorithm by Moore [13]. There is also a classical variant where each job j P J also
+has a release time rj P N, and Sj ě rj is required of any schedule. This variant is known to be
+NP-hard even if jobs have unit weight and there are only two distinct due dates and only two
+distinct release times.
+ř
+Most relevant to this paper is a recent result by Hermelin et al. [7] who studied the 1|| wj Uj
+problem from the perspective of parameterized complexity [4]. There, the following three parameters are considered for the problem:
+• #d: number of distinct due dates,
+• #p: number of distinct processing times,
+• #w: number of distinct weights.
+Their main results are given in the theorem below:
+ř
+Proposition 1 ([7]). Problem 1|| wj Uj can be solved in
+• time f p#d ` #pq ¨ nOp1q , time f p#d ` #wq ¨ nOp1q , and in time f p#p ` #wq ¨ nOp1q .
+• time nOp#pq , and in time nOp#wq .
+A special case of this result was already obtained by Etscheid
+et al. [5] who presented an
+ř
+Op1q
+f p#pq ¨ n
+-time algorithm for the single due date 1|dj “ d| wj Uj problem.
+
+1.2
+
+Batch scheduling
+
+Batch scheduling has recently received a considerable amount of attention in the scheduling
+community. The motivation for this line of research stems from the fact that in manufacturing
+systems items flow between facilities in boxes, pallets, or carts. A set of items assigned to the
+same container is considered as a batch. It is often the case that items in the same batch leave
+the facility together, and thus have equal completion time. We refer to Potts and Kovalyov [14]
+and Webster and Baker [16] for further reading on the topic.
+ř
+Hochbaum and Landy [8] studied theřgeneralization of the 1|| wj Uj problem to the batch
+setting. In this problem, denoted 1|B| wj Uj , a schedule consists of a partition of the job
+set J intoř batches, and a starting time SB for each batch B such that SB 1 R rSB , CB “
+SB ` ∆ ` jPB pj q for any batch B 1 ‰ B, where ∆ is a given setup time associated with starting
+2
+
+any batch. The completion time of any job j P B is Cj “ CB , meaning that all the jobs together
+in a batch are
+ř completed at the same time. The goal is again to minimize the total weight of
+tardy jobs wj Uj . Note that the order of the jobs
+ř within each batch is irrelevant, and that
+when ∆ “ 0 this problem becomes the classical 1|| wj Uj problem.
+Hochbaum
+ř and Landy observed that this problem is weakly NP-hard (being a direct generalization of 1|| wj Uj ), and provided pseudopolynomial-time algorithms for the problem that are
+linear in the total sum of job processing-times (plus n ¨ ∆) or the maximum due-date. Brucker
+and Kovalyov provided an analogous algorithm which is linear the total sum of job weights [2].
+Nevertheless, in this paper we are interested in the case where job weights, processing times, or
+due dates can be arbitrarily large, but the number of different values of each of these parameters
+(namely, #w, #p, or #d) is relatively small. In this context, the following result of Hochbaum
+and Landy is very relevant.
+ř
+ř
+Proposition 2 ([8]). Problems 1|B, pj “ p| wj Uj and 1|B| Uj are polynomial-time solvable.
+One can also consider restrictions on batches that are relevant
+in practice. For instance,
+ř
+one can require a bound on the size |B| or volume ||B|| “ jPB pj of any batch B. Cheng
+and Kovalyov [3] argued about the importance of the batch-size
+ř |B| ď b bound in real-life
+applications. Note that for b “ n we have the unbounded
+1|B|
+wj Uj problem, whereas for
+ř
+b “ 1 one obtains the classical non-batch model 1|| wj Uř
+.
+The
+following
+is a very relevant
+j
+result of Cheng and Kovalyov who showed that 1||B| ď b| Uj is in XP when parameterized
+by either #p or #d:
+ř
+Proposition 3 ([3]). Problem 1||B| ď b| Uj can be solved in time nOp#pq , and in time nOp#dq .
+
+1.3
+
+Our contributions
+
+ř
+We provide a thorough
+multivariate
+complexity
+analysis
+of
+1|B|
+wj Uj and related
+variants:
+ř
+ř
+Problem 1|B, rj | wj Uj where jobs also have release dates, ř
+problem 1| |B| ď b| wj Uj where
+there is a bound on the batch size, and problem 1| ||B|| ď b| wj Uj where there is a bound on
+the batch volume.
+ř
+The standard batch model: In the first part of the paper we study the 1|B| wj Uj problem
+without release dates
+ř or batch restrictions. We show that almost all results of Proposition 1
+regarding the 1|| wj Uj problem extend to the batch setting.
+ř
+Theorem 4. Problem 1|B| wj Uj can be solved in
+• time nOp#pq , and in time nOp#wq .
+• time f p#d ` #pq ¨ nOp1q , and in time f p#d ` #wq ¨ nOp1q .
+The second part of this theorem is proved by an elegant reduction to the non-batch case,
+while the first part is based on dynamic programming. Note that the second item of the theorem
+is a generalization of the result by Hochbaum and Landy stated in Proposition 2.
+Release dates: Next, we showř
+that adding release dates makes the problem much harder. Specifically, we prove that 1|B, rj | wj Uj is highly unlikely to be fixed-parameter tractable for parameter #d ` #p or #p ` #r.
+ř
+Theorem 5. Problem 1|B, rj | wj Uj is Wr1s-hard when parameterized by #d ` #p, and is
+Wr1s-hard when parameterized by #p ` #r. Furthermore, the problem is solvable in time
+nf p#p`#r,`#wq , and in time nf p#p`#d`#wq .
+
+3
+
+To the best of our knowledge, this is the first Wr1s-hardness result for any scheduling problem
+parameterized by the number of distinct processing times #p. In particular, whether or not
+P ||Cmax (makespan minimization on an unbounded number of parallel machines) is Wr1s-hard
+forřthis parameter is a famous open problem (see [12]), and this question is also open for
+1|| wj Uj [7].
+Batch restrictions: In the final part of the paper we show that the f p#d ` #wq ¨ nOp1q algorithm
+in the second part of Theorem 4 can be generalized to the setting where each batch contains at
+most b jobs; this setting was proposed by Cheng and Kovalyov [3]. Further, the algorithm with
+run time f p#d ` #pq ¨ nOp1q can be generalized to the setting where the batch size is limited
+and the jobs may have different release dates.
+Theorem 6. The following problems are fixed-parameter tractable:
+ř
+• 1||B| ď b| wj Uj for parameter #d ` #w.
+ř
+• 1||B| ď b, rj | wj Uj for parameter #d ` #p ` #r.
+In particular, this improves the result of Cheng and Kovalyov stated in Proposition
+3, as
+ř
+our algorithm runs in time f p#dq ¨ nOp1q for the unweighted version 1||B|
+ď
+b|
+U
+.
+j
+ř
+Finally, let us make a few remarks on the problem 1|||B|| ď V | wj Uj , where the batch
+volume is bounded. First, for this problem we show NP-hardness even for the case of unit
+weights and a single due date; this rules out the existence of XP-algorithms parameterized by
+#p ` #w. Second, we show that for parameter #p, this problem is at least as hard as P ||Cmax
+parameterized by #p. Recall that the fixed-parameter tractability of P ||Cmax parameterized
+by #p is a long-standing open problem.
+A summary of our results is given in Table 1.
+Problem variant
+ř
+1|B| wj Uj
+
+Parameters
+
+Result
+
+Reference
+
+#d
+#p
+#w
+#d ` #p
+#d ` #w
+#p ` #w
+
+para-NP-hard
+XP
+XP
+FPT
+FPT
+?
+
+Karp [9]
+Theorem 4
+Theorem 4
+Theorem 4
+Theorem 4
+
+ř
+1|B, |B| ď b| wj Uj
+ř
+1|B, rj | wj Uj
+
+#d ` #w
+
+FPT
+
+Theorem 6
+
+#p ` #r
+#d ` #p
+#p ` #w
+#d ` #r ` #w
+#d ` #p ` #w
+#p ` #r ` #w
+
+Wr1s-hard
+Wr1s-hard
+?
+para-NP-hard
+XP
+XP
+
+Theorem 5
+Theorem 5
+Karp [9]
+Theorem 5
+Theorem 5
+
+#d ` #p ` #r
+
+FPT
+
+Theorem 6
+
+1|B, |B| ď b, rj |
+
+ř
+
+Uj
+
+Table 1: Summary of results.
+
+4
+
+2
+
+The standard batch model
+
+ř
+In this section we present algorithms for the basic 1|B| wj Uj problem, providing a complete
+proof for Theorem 4. The proof is split into two parts, which are proven in three separate
+lemmas below. Note that in the setting where all jobs are released at the same time and the
+batch sizes are not restricted we can schedule the early jobs in order of the due dates. This is a
+very helpful observation by Hochbaum and Landy [8], which will be used multiple times in this
+section. We illustrate it by an example in Fig. 1.
+
+Solution 1: ∆
+
+2
+
+d1 d2
+
+C1, C2, C3
+
+1
+
+3
+
+∆
+
+d3
+4
+
+5
+C4, C5
+
+Solution 2: ∆
+
+2
+
+3 ∆
+
+4
+
+C20 , C30
+
+5
+
+∆
+C40 , C50
+
+1
+C10
+
+Figure 1: An example for batch scheduling with 5 jobs. In the first solution job 1 and 5 are
+tardy. In the second solution only job 1 is tardy. Tardy jobs can be moved to the end of the
+schedule without increasing the weight of the tardy jobs.
+ř
+Lemma 7 ([8]). Any instance of 1|B| wj Uj admits an optimal solution in which all early
+jobs are in earliest due date (EDD) order. That is, for any two jobs i and j scheduled in two
+different batches i P B1 and j P B2 with SB1 ă SB2 , we have di ă dj .
+We use following notation to order the due dates: dp1q ă dp2q ¨ ¨ ¨ ă dp#dq . Further, we set dp0q
+to be the smallest release date.
+
+2.1
+
+Fixed-Parameter Algorithms
+
+ř
+We begin by presenting fixed-parameter algorithms for 1|B| wj Uj for parameter #d ` #p,
+and for #d ` #w.
+ř
+Lemma 8. Problem 1|B| wj Uj is solvable in time f p#d`#pq¨nOp1q , and in time f p#d`#wq¨
+nOp1q .
+ř
+Proof. Let J denote the job set of our 1|B| wj Uj instance. We first observe that there is an
+optimal schedule in which at most one batch completes within each interval pdpi´1q , dpiq s, for
+each i P t1, . . . , #du; if there are two or more batches ending in pdpi´1q , dpiq s, then these batches
+can be combined into a single batch without creating new tardy jobs. The second observation is
+that if there is no batch ending in pdpi´1q , dpiq s then all jobs with due date dpiq that are completed
+early must
+dpi´1q or earlier. We next use these ř
+observations to reduce
+ř be in batches ending atOp#dq
+our 1|B| wj Uj instance J into 2
+instances of the non-batch 1|| wj Uj problem, each
+with the same number of processing
+ř times, weights, and due dates as in J. Combined with the
+fixed-parameter algorithms for 1|| wj Uj given by Hermelin et al. [7], this will provide a proof
+for the theorem.
+For each i P t1, . . . , #du, we guess whether there is a batch ending in pdpi´1q , dpiq s in an
+optimal solution. Let I Ď t1, . . . , #du be the set of indexes i such that there is a batch ending
+in pdpi´1q , dpiq s with respect to our guess. For an index ` P t1, . . . , #du, let Iď` “ ti P I | i ď `u
+5
+
+denote the set of indices in I smaller or equally to ` and let ip`q “ maxti P I | i ďř `u be
+the largest index in I that is less or equal than `. We construct an instance JI of 1|| wj Uj
+corresponding to I by replacing the due date dj “ dp`q of each job j P J with an alternative due
+date d1j “ dpip`qq ´ |Iď` | ¨ ∆; all other job parameters remain the same in JI .
+ř
+Consider some set of indices I Ď t1, . . . , #du, and let JI be the corresponding 1|| wj Uj
+instance. We can convert a schedule of JI as follows: We note that
+ÿ
+pj ď d
+j is early and d1j ď d
+
+for all due dates d. We construct |I| ` 1 batches. The first |I| batches are denoted by Bi for
+i P I and are processed in increasing order, i.e. if i ă i1 then Bi is processed before Bi1 . Let j
+be an early job (i.e. j 1 is early) with dj “ dp`q for some `. Then we assign j to batch Bip`q . We
+conclude that j will be early as the completion time of Bip`q is equal to
+ÿ
+CBip`q “ |Iď` |∆ `
+pj 1 ď |Iď` |∆ ` d1j “ dip`q ď dj .
+j 1 is early and dj 1 ď dj
+
+Conversely, consider any schedule for J that schedules at most one batch ending in each interval
+of consecutive due dates, and let I Ď t1, . . . , #du be the corresponding set of indices. Then any
+early job j P J with dj “ dplq has Cj ď dip`q , and so its completion time in the non-batch setting
+under the same ordering of early jobs is at most Cj ´ |Ipď ř
+`q|∆ ď dip`q ´ |Ipď `q|∆ “ d1j .
+It follows that an optimal schedule for our original 1|B| wj Uj instance corresponds to the
+schedule with the minimum weight of tardy jobs among all optimal schedules for instances JI ,
+I Ď t1, . . . , #du. The lemma then follows since there are 2#d instances JI , and each instance
+can be solved in f p#d ` #pq ¨ nOp1q or f p#d ` #wq ¨ nOp1q time using the algorithm by Hermelin
+et al. [7].
+
+2.2
+
+XP algorithms
+
+Assume that our input job set t1, . . . , nu is ordered such that d1 ď ¨ ¨ ¨ ď dn (i.e. ordered
+according to EDD). Due to Lemma 7, there is an optimal schedule where any job j P J is either
+late, or it is scheduled after the early jobs in t1, . . . , j ´ 1u. Thus, an optimal schedule for jobs
+t1, . . . , ju can be found by appending j to some schedule of jobs t1, . . . , j ´ 1u. As observed
+by Hochbaum and Landy [8, add cite], when appending j to such a schedule, there are three
+possibilities:
+a. Job j is included in the last batch of early jobs.
+b. Job j is included a new batch by itself, scheduled right after the previous last batch.
+c. Job j is tardy.
+Below we devise two dynamic programming algorithms that utilize this fact.
+ř
+Lemma 9. Problem 1|B| wj Uj is solvable in time nOp#pq .
+Proof. Let J “ t1, . . . , nu denote our job set ordered according to EDD, and let pp1q ă ¨ ¨ ¨ ă
+pp#pq denote the different processing times of all jobs in J. For increasing values of j P t1, . . . , nu,
+we compute a table Wj which has nOp#pq entries and corresponds to jobs in t1, . . . , ju.
+The table Wj will be indexed by a #p-dimensional vector I P t1, . . . , nu#p , and integer
+b P t1, . . . , nu, and a due date d P t0, d1 , . . . , dn u. The invariant that our algorithm will maintain
+is that Wj rI, b, ds will equal the minimum total weight of tardy jobs in a schedule for jobs
+t1, . . . , ju with the following properties:
+6
+
+1. The early jobs are scheduled in EDD fashion as in Lemma 7.
+2. There are exactly b batches containing exactly Iris early jobs, i P t1, . . . , #pu, with processing time ppiq , scheduled consecutively starting from time 0.
+3. The earliest due date among all jobs in the last batch is at least d.
+Note that there exists vector I and integers b and d such that the optimal schedule for J
+satisfies all properties of required from a schedule corresponding to entry Wn rI, b, ds and all jobs
+in the first b batches are early.
+ř
+In the beginning, we set Wj rI, b, ds “ ji“1 wi if I “ H, and Wj rI, b, ds “ 8 otherwise. Fix
+j P t1, . . . , nu, and consider an entry Wj rI, b, ds of Wj . Let pp`q “ pj be the processing time of j
+for ` P t1, . . . , #pu. Let I` be the vector which coincides with I on every coordinate, except for
+the `th coordinate for which it is equal to Ir`s ´ 1. If the `th coordinate of I is 0, then we set
+Wj rI, b, ds “ Wj´1 rI, b, ds ` wj .
+ř
+ř#p
+piq ` b∆. If
+piq ` b∆ ą d, then job j
+Now we consider the expression #p
+i“1 Iris ¨ p
+i“1 Iris ¨ p
+will be late if it is among the jobs scheduled in the first b batches. Since all of the first j jobs
+with processing time pj have a due date less or equal to dj , there cannot be a schedule that
+schedules exactly Iris early jobs with processing time ppiq if we consider only the first j jobs.
+Thus, we set Wj rI, b, ds “ 8.
+ř
+piq ` b∆ ď d, we can schedule job j early. There are two possibilities to
+Else, if #p
+i“1 Iris ¨ p
+do so.
+The first possibility is to schedule job j in an already existing batch. Then the total weight
+of tardy jobs is Wj´1 rI` , b, ds.
+The second possibility is to open a new batch for job j. Then we look at the entries
+Wj´1 rI` , b ´ 1, d1 s for d1 ď d.
+There is also the possibility to schedule j tardy. In this case, the weight is given by
+Wj´1 rI, b, ds ` wj . Then the recursion for Wj rI, b, ds is given by
+"
+*
+1
+Wj rI, b, ds “ min Wj´1 rI` , b, ds, min
+tWj´1 rI` , b ´ 1, d su, Wj´1 rI, b, ds ` wj .
+1
+d ďd
+
+Correctness of our dynamic programming algorithm is immediate following the discussion above. The optimal schedule corresponds to the minimum entry Wn rI, b, ds over all
+I P t1, . . . , nu#p , b P t1, . . . , nu, and d P t0, d1 , . . . , dn u. Note that since table Wj has nOp#pq
+entries, and each entry requires Op1q time, computing the entire table can be done in nOp#pq .
+Thus, the algorithm for computing all tables Wj has the same running time, and the lemma
+follows.
+ř
+Lemma 10. Problem 1|B| wj Uj is solvable in time nOp#wq .
+Proof. Let J “ t1, . . . , nu denote our job set ordered according to EDD, and let wp1q ă ¨ ¨ ¨ ă
+wp#wq denote the different weights of all jobs in J. The algorithm is very similar to the algorithm in the proof of Lemma 9, except here we compute tables Pj that store minimum total
+processing time of early jobs, as opposed to minimum total weight of tardy jobs. Namely, for
+I P t1, . . . , nu#p , b P t1, . . . , nu, and d P t0, d1 , . . . , dn u, entry Pj rI, b, ds will equal the minimum
+total processing time of the early jobs in a schedule for jobs t1, . . . , ju that satisfies the all
+properties required in the proof of Lemma 9, except that the second condition is rephrased to
+require exactly Iris early jobs, i P t1, . . . , #wu, with weight wpiq .
+Fix j P t1, . . . , nu, and let ` P t1, . . . , nu denote the index such that wj “ wp`q . The base
+cases for computing Pj rI, b, ds are very similar to those described in the proof of Lemma 9:
+7
+
+If Pj´1 rI` , b, ds ` pj ą d and mind1 ďd tPj´1 rI` , b ´ 1, d1 s ` pj ` ∆u ą d or if d ą dj then we
+cannot schedule exactly Iris jobs with weight wpiq early including job j if we consider only the
+first j jobs. Thus, we set Pj rI, b, ds “ Pj´1 rI, b, ds.
+Otherwise, the main recursive formula is given by
+"
+*
+1
+Pj rI, b, ds “ min Pj´1 rI` , b, ds ` pj , min
+tPj´1 rI` , b ´ 1, d s ` pj ` ∆u, Pj´1 rI, b, ds .
+1
+d ďd
+
+3
+
+Release dates
+
+In this section we show that the problem of minimizing the weighted number of tardy jobs on a
+single batch machine when release dates are present is Wr1s-hard for parameters #p ` ř
+#r and
+#p ` #d. That is, we prove Theorem 5. Thereafter, we give XP-algorithms for 1|B, rj | wj Uj
+parameterized by #p ` #w ` #r, and parameterized by #p ` #w ` #d.
+We begin with parameter #p ` #r; the hardness
+for parameter #p ` #d will follow almost
+ř
+immediately afterwards. To prove that 1|B, rj | wj Uj is Wr1s-hard with respect to #p ` #r,
+we present a reduction from the k-Sum problem. In this problem, we are given a set tx1 , . . . , xn u
+of n positive integers, and a target integer t. The task is to decide if there exist k (not necessarily distinct) integers xπp1q , . . . , xπpkq P tx1 , . . . , xn u that sum up to t. Abboud, Lewi, and
+Williams [1] showed that k-Sum is Wr1s-hard parameterized by k, even if all integers are in the
+range t1, 2, . . . , nck u for some constant c.
+
+3.1
+
+The construction
+
+Let px1 , . . . , xn ; tq be an instance of k-Sum, with xi P t1, 2, . . . , nck u for each i. ř
+Observe that
+j
+due to their small range, each input integer xi can be written in the form xi “ ck
+j“0 αi,j ¨ n
+for integers αi,0 , . . . , αc,k P t0, . . . , n ´ 1u, i.e., the base n representation of xi . We will heavily
+exploit this property
+ř in our construction.
+Write X “ i xi . Furthermore, we will assume throughout that k ´ 1 times the largest
+integer in tx1 , . . . , xn u is less than t. If this is not the case, one can slightly modify the input
+by adding ř
+knck to each integer, and setting the target to t ` k 2 nck . We construct an instance
+of 1|B, rj | wj Uj with Opkq
+ř distinct processing times and release times, such that there exists
+a feasible schedule with j wj Uj ď kX ´ t ` pn ´ 1qk to if and only if there exist k integers
+xπp1q , . . . , xπpkq P tx1 , . . . , xn u that sum up to t:
+• We create pk ´ 1qt identical jobs, referred to as leftover jobs, each with the following
+parameters:
+– Processing time 1 and weight kpX ` nq.
+– Release time 0 and due date 3kt.
+ř
+j
+• For each ` P t1, . . . , ku, and each input integer xi “ ck
+j“0 αi,j ¨ n , we create a set Ji,` of
+normal jobs that corresponds to xi . This set consists of αi,j jobs, for each j P t0, . . . , cku,
+with the following parameters:
+– Processing time nj and weight nj ` nj {xi .
+– Release time r` “ p` ´ 1q3t and due date p` ´ 1q3t ` t ` xi .
+• The batch setup time is set to ∆ “ t.
+• The bound on the total weight of tardy jobs is set to kX ´ t ` pn ´ 1qk.
+8
+
+Observe that the total processing time of all jobs in the set Ji,` is precisely xi , and their
+total weight is xi ` 1. This will be crucial later on. Also note that
+ś whereas the weights above
+are fractional, one can make them integral by multiplying with
+xi .
+
+3.2
+
+Correctness
+
+Lemma 11. Suppose thereřexist xπp1q , . . . , xπpkq P tx1 , . . . , xn u such that
+there exists a schedule with j wj Uj ď kX ´ t ` pn ´ 1qk.
+
+ř
+
+i xπpiq “ t.
+
+Then
+
+Proof. We create a schedule with 2k ` 1 batches B1 , . . . , B2k`1 . For ` P t1, . . . , ku, we schedule
+p`q
+all jobs in the set Jπp`q in batch B2`´1 , and t ´ xπp`q leftover jobs in batch B2` . We schedule the
+starting time of batch B2`´1 at time 3tp` ´ 1q, and batch B2` at time 3tp` ´ 1q ` t ` xπp`q . The
+remaining jobs are all scheduled in batch B2k`1 which starts at time 3kt. Note that in this way
+all jobs are scheduled after their release times, and only jobs in the last batch B2k`1 are tardy.
+An easy calculation shows that the total weight of jobs in this last batch is
+ÿ
+
+wj “ kX ` kn ´
+
+k
+ÿ
+
+pxπpiq ` 1q “ kX ´ K ` pn ´ 1qk .
+
+i“1
+
+jPB2k`1
+
+We illustrate Lemma 11 by an example in Fig. 2.
+
+xπ(i+1)
+∆
+
+...
+leftover jobs
+of gadget i − 1
+
+∆
+
+xπ(i)
+
+∆
+
+...
+
+batch with normal
+jobs of gadget i + 1
+
+gadget i
+
+xπ(i) = n2 + 2n + 3
+pj = 1
+
+pj = n
+
+pj = n2
+
+Figure 2: An illustration of what the schedule given in Lemma 11 looks like.
+The converse of Lemma 11 requires more technical detail. We therefore introduce some
+further notation that will beřused throughout the remainder of the section. Assume our constructed instance of 1|B, rj | wj Uj admits a solution schedule, i.e., a schedule where the total
+weight of tardy jobs is at most kX `pn´1qk ´t. Let B1 , . . . , Bb , Bb`1 denote the batches of this
+schedule, with respective starting times S1 ă ¨ ¨ ¨ ă Sb`1 and completion times C1 ă ¨ ¨ ¨ ă Cb`1 .
+Below we modify this schedule, without increasing the total weight of tardy jobs, in order to
+make our arguments easier.
+ř
+Lemma 12. Suppose that the constructed instance of 1|B, rj | wj Uj has a solution schedule.
+Then it has a solution schedule with batches B1 , . . . , Bb , Bb`1 , scheduled in that order, where:
+• All tardy jobs are in Bb`1 , and include no leftover jobs.
+• All early jobs are in B1 , . . . , Bb , and include normal jobs with total weight at least t ` k.
+9
+
+Proof. Consider any solution schedule with batches B1 , . . . , Bb , scheduled in that order, that
+has at most kX ´ t ` pn ´ 1qk total weight of tardy jobs. We first observe that no leftover job
+is tardy, as a single leftover job has weight kpX ` nq ą kX ´ t ` pn ´ 1qk. Moreover, as the
+total weight of all normal jobs of the instance is kpX ` nq, the total weight of the early normal
+jobs must be at least t ` k. Finally, we can move all tardy jobs to a new batch Bb`1 that starts
+right after Bb completes, deleting all empty batches resulting from this, without increasing the
+total weight of tardy jobs.
+Due to Lemma 12, some normal jobs must be Ť
+early. For ` P t1, . . . , ku, we use E` denote
+the early jobs of type ` in the schedule. Then ` E` ‰ H. We use ppE` q and wpE
+ř ` q to
+respectively denote
+the
+total
+processing
+time
+and
+weight
+of
+jobs
+in
+E
+,
+i.e.,
+ppE
+q
+“
+`
+`
+jPE` pj
+ř
+and wpE` q “ jPE` wj .
+Lemma 13. For each ` P t1, . . . , ku with E` ‰ H, there is a unique batch Bp`q P tB1 , . . . , Bb u
+with E` Ď B.
+Proof. Choose some non-empty E` . Then each job j P E` is released at time r` and has a due
+date of r` ` t ` x ă r` ` 2t for some x P tx1 , . . . , xn u (the inequality follows as all xi are smaller
+than t). As batch setup requires t time, and all jobs in E` are early, there must be some batch
+that contains all jobs of E` . Furthermore, this batch cannot contain jobs of some E`1 , `1 ‰ `,
+since those jobs either have deadlines prior to ri (in case `1 ă `), or release times that are later
+than the due dates of jobs in E` (in case `1 ą `).
+Lemma 13 implies that we can assume there is a specific batch associated with each nonempty E` . Let d` be the earliest deadline in E` . Then d` “ p` ´ 1q3t ` t ` xπp`q for some integer
+xπp`q P tx1 , . . . , xn u. Thus, there is also a specific due date and input integer associated with E` .
+Lemma 14. For each ` P t1, . . . , ku with E` ‰ H we have:
+• ppE` q ď xπp`q .
+• wpE` q ď ppE` q ` 1, and this holds with equality if and only if E` “ Jπp`q,` .
+Proof. According to Lemma 13, there is a unique batch Bp`q which includes all jobs of E` . As
+the release time of all jobs in E` is r` “ p` ´ 1q ¨ 3t, and the setup time of Bp`q is t, it must be
+that ppE` q ď ||Bp`q|| ď xπp`q ; otherwise, jobs in E` with due date d` would be late. Now, for
+each job j P E` , let xpjq P tx1 , . . . , xn u denote the integer for which j is associated with (i.e.,
+j P J`,xpjq ). Then xpjq ě xπp`q by definition of xπp`q . Since ppE` q ď xπp`q , we have
+wpE` q “
+
+ÿ
+
+pj ` pj {xpjq ď
+
+jPE`
+
+ÿ
+
+pj ` pj {xπp`q “ ppE` q ` ppE` q{xπp`q ď ppE` q ` 1 .
+
+jPE`
+
+Note that the first inequality is strict if and only if there is a job j P E` zJπp`q,` as xpjq ě xπp`q
+and the second inequality is strict if and only if ppE` q ă xπp`q . Hence equality holds if and only
+if E` “ Jπp`q,` . The statement of the lemma thus follows.
+Lemma 15. E` ‰ H for each ` P t1, . . . , ku.
+ř
+Proof. By Lemma 12, we have t ` k ď ` wpE` q. By Lemma 13, we have ppE` q ď xπp`q and
+wpE` q ď ppE` q ` 1. Thus,
+tď
+
+k
+ÿ
+`“1
+
+wpE` q ´ k ď
+
+k
+ÿ
+`“1
+
+10
+
+ppE` q ď
+
+k
+ÿ
+`“1
+
+xπp`q ,
+
+where xπp`q “ 0 if E` “ H in the summation above. Since any k ´ 1 integers in tx1 , . . . , xn u
+sum up to a number which is smaller than t, it must be that xπp`q ą 0 for all ` P t1, . . . , ku, and
+the statement of the lemma follows.
+Lemma 16. If there is a solution schedule, then there is one with batches B1 , . . . , B2k`1 scheduled in that order, where for each ` P t1, . . . , ku:
+• B2`´1 is scheduled at time 3tp` ´ 1q, and B2` is scheduled immediately after the completion
+of B2`´1 .
+• B2`´1 contains only normal jobs of type of `, and B2`´1 contains only leftover jobs.
+• All tardy jobs are in B2k`1 , and are normal.
+Proof. Let B1 , . . . , Bb`1 be the batches of our schedule as in Lemma 12. We modify the batches
+of this schedule so as to fit the requirements of the lemma without increasing the total weight
+of tardy jobs in the schedule.
+We first note that for each ` batch Bp`q is completely processed in the interval r3tp` ´ 1q,
+3tp` ´ 1q ` 2ts. Thus, if there is no batch between Bp`q and Bp` ` 1q, we might as well add one
+as the time between the completion time of Bp`q and the starting time of Bp` ` 1q is at least t.
+(We set Bpk ` 1q “ Bb`1 .) Since there is a batch Bp`q for each ` ď k ` 1, by Lemma 15, there
+are 2k batches consisting only of early jobs.
+Suppose that the completion time of a batch Bi is in the interval p3tp` ´ 1q, 3tp` ´ 1q ` ts
+for some `. Then Bi cannot contain type ` jobs, as it started before 3tp` ´ 1q. Hence, Bi
+only contains leftover jobs. We can move some leftover jobs from Bi to Bi`1 “ Bp`q and
+simultaneously reduce the starting time of Bp`q by the number of moved jobs, until the starting
+time of Bi equals 3tp` ´ 1q.
+If no batch is completed in p3tp` ´ 1q, 3tp` ´ 1q ` ts, then we can start Bp`q at time 3tp` ´ 1q.
+This can only decrease the completion times of the jobs. If there are leftover jobs in batch
+Bp`q “ B2`´1 , then we can move them to batch B2` . They will not be late as the completion
+time of B2` is at most 3kt.
+ř
+Lemma 17. Suppose that the constructed instance of 1|B, rj | wj Uj admits a schedule
+with
+ř
+ř
+x
+w
+U
+ď
+kX
+´t`pn´1qk.
+Then
+there
+exist
+x
+,
+.
+.
+.
+,
+x
+P
+tx
+,
+.
+.
+.
+,
+x
+u
+so
+that
+j
+j
+1
+n
+πp1q
+πpkq
+i πpiq “ t.
+j
+Proof. Let
+ř B1 , . . . , B2k`1 be the
+ř batches of a schedule as promised by Lemma 16 for our
+1|B, rj | wj Uj instance with j wj Uj ď kX ´ t ` pn ´ 1qk. Then batch B2k completes at
+time C2k ď 3kt, since 3kt is the latest due date of the input jobs. Since there
+are 2k batches
+ř2k
+with early jobs, and the setup time for each of these batches is t, we have `“1 ||B` || ď kt.
+Thus, as the total processing times of all leftover jobs is pk ´ 1qt, we have
+k
+ÿ
+`“1
+
+ppE` q “
+
+k
+ÿ
+
+k
+ÿ
+
+||B2`´1 || ´
+`“1
+
+2k
+ÿ
+
+||B2` || “
+`“1
+
+||B` || ´ pk ´ 1qt ď t .
+
+`“1
+
+Recall that, by Lemma 12 and Lemma 13, we also have
+tď
+
+k
+ÿ
+
+wpE` q ´ k ď
+
+`“1
+
+k
+ÿ
+
+ppE` q .
+
+`“1
+
+ř
+ř
+ř
+It follows that ppE` q “ t, and wpE` q “ ppE` q ` k. The latter equality can only happen if
+wpE` q “ ppE` q ` 1 for each ` Př
+t1, . . . , ku, which in turn implies by Lemma 15 that ppE` q “ xπp`q
+for each ` P t1, . . . , ku. Thus, xπp`q “ t, and the statement of the lemma follows.
+11
+
+3.3
+
+Parameter #p ` #d
+
+Lemma 11 and Lemma 17 combined prove that our construction indeed shows Wr1s-hardness
+for parameter #p ` #r. We next show that this construction can be transformed to show
+hardness for parameter #p ` #d.
+ř
+Lemma 18. For non-negative integers k, k 1 , any instance of 1|B, rj | wj Uj with k ř
+distinct
+release dates and k 1 distinct due dates can be transformed into an instance of 1|B, rj | wj Uj
+with k 1 distinct release dates and k distinct due dates, which has the same objective value.
+ř
+Proof. Let J be a set of n jobs forming an instance of 1|B, rj | wj Uj . We create a set J 1 of n
+jobs, as follows. For each job j P J we create one job j 1 P J 1 with pj 1 “ pj , wj 1 “ wj , rj 1 “ ´dj
+and dj 1 “ ´rj . Observe that the problem of finding a maximum-weight set of early jobs is the
+same for both J and J 1 :
+Let σ be a schedule for J, and let Je pσq be the set of jobs in J that are early in σ. For
+j P Je pσq let Sj denote its starting time of j and Cj its completion time. Then we obtain
+a schedule σ 1 for J 1 by setting the start time of j 1 to be Sj 1 “ ´Cj for all jobs j P Je pσq
+and scheduling the remaining jobs late. No two jobs will be processed at the same time, as
+the intervals pSj , Cj q, pSj 1 , Cj 1 q are pairwise disjoint for all j, j 1 P Je pσq. Thus the intervals
+p´Cj , Sj q, p´Cj 1 , Sj 1 q are also pairwise disjoint for all j, j 1 P Je1 pσ 1 q. Further, for each j P Je pσq
+we have Sj ě rj and dj ě Cj and thus also rj 1 “ ´dj ď ´Cj “ Sj 1 and dj 1 “ ´rj ě ´Sj “ Cj 1 .
+Similarly, given the set Je1 pσ 1 q of early jobs for a schedule σ 1 for J 1 we obtain a schedule for J
+such that all jobs j for which j 1 P Je1 pσ 1 q areřscheduled early, by setting Sj “ ´Cj 1 .
+Thisřshows that the problem 1|B, rj | wj Uj with parameter #d ` #p is as hard as
+1|B, rj | wj Uj with parameter #r ` #p.
+ř
+Corollary 19. Problem 1|B, rj | wj Uj is Wr1s-hard for parameter #d ` #p.
+
+3.4
+
+XP algorithms
+
+ř
+Last in this section we give an XP-algorithm for the problem 1|B, rj | wj Uj parameterized by
+#p ` #r ` #w. We use the following notation: Similarly to the due dates, we order the release
+dates as follows: rp1q ă rp2q ¨ ¨ ¨ ă rp#dq .
+ř
+Lemma 20. Problem 1|B, rj | wj Uj is solvable in time nf p#p,#r,#wq .
+Proof. Let I be the set of job types with respect to processing
+ř time, weight and release date.
+Let U “ tv P t1, . . . , nuI u and V “ tv “ pv1 , . . . , v#r q P U #r | #r
+`“1 pv` qi ď ni u denote the space
+of possible solution vectors. For each element v P V we decide whether it is possible to get a
+schedule that starts pv` qi early jobs of type i P I in the interval rrp`q , rp``1q q.
+First, notice that if such a schedule exists then we might
+ř#r assume that the jobs of types i are
+scheduled in order of their due date and that only the `“1 pv` qi jobs of type i with the latest
+due dates are scheduled early. Thus we know which jobs are started in each interval rrp`q , rp``1q q.
+Second, notice that if we schedule the jobs that are started in rrp`q , rp``1q q in (EDD)-order
+starting new batches only if it is necessary then we also get a schedule for these jobs that ends
+as early as possible. Thus all we need to do in order to decide whether such a schedule exists
+is to the following: First schedule all jobs that start in rrp1q , rp2q q in (EDD). Then let t1 be the
+date where the last of these jobs is finished. Then we schedule all jobs that start in rrp2q , rp3q q
+in (EDD) but the starting time of the first batch is mintr2 , t1 u. Then let t2 be the date where
+the last of these jobs is finished. We then continue in the obvious way. If all jobs scheduled are
+early and no job is started before its release time then there is such a schedule; otherwise,
+no
+ř
+such schedule exists. From all schedules we obtain, we take the one that maximizes `,i pv` qi wi .
+2
+
+The total run time is nOp#r #p#wq .
+12
+
+Using Lemma 18 we also get the following result:
+ř
+Corollary 21. Problem 1|B, rj | wj Uj is solvable in nf p#p,#d,#wq time.
+
+4
+
+Batch restrictions
+
+ř
+In this section we consider the variants of 1|B| wj Uj where the batches are either restricted
+in terms of their size (|B| ď bq or their volume (||B|| ď b).
+In this section we will use the notion of job types: Each job j P J has a type, which is
+given by the vector τ pjq “ ppj , wj , dj , rj q. In some settings parts of the tuple can be omitted,
+which allows us to shortcut the job type. For example, a job of type ppj , wj , dj , rj q is also of
+type ppj , dj , rj q. We denote the set of all job types by T . For each type τ P T let dτ , pτ , rτ
+and wτ denote the due date, processing time, release date and weight of jobs with type τ .
+Note that if all jobs are released at time zero, then a schedule can be given by a function
+σ : t1, . . . #du Ñ NT ; let σp`qτ indicate the number of jobs of type τ that are completed in the
+time interval pdp`´1q , dp`q s.
+
+4.1
+
+Bounded batch sizes
+
+ř
+First, we show that 1||B| ď b| wj Uj is fixed-parameter tractable for parameter #d ` #w,
+proving the first part of Theorem6.
+ř
+Lemma 22. Problem 1||B| ď b| wj Uj can be solved in time f p#d ` #wq ¨ nOp1q .
+ř
+Proof. Given an instance I of 1|B, |B| ď b| wj Uj , we set up the following mixed-integer linear
+program (MILP) to find an optimal schedule. The variables of the MILP are defined as follows.
+Let I “ tpw, dq | pw, p, dq P T for some du be the set of job types with respect to weight and due
+date. For each type i P I and each ` P t1, . . . , #du we have one integer variable xi,` , indicating
+the number of jobs of type i finishing job in the time interval pdp`´1q , dp`q s. (Note that this
+means that their batches finish in the interval.) For each job type τ “ pdτ , pτ , wτ q P T , we have
+one fractional variable ypτ,`q P r0, nτ s to indicate the number jobs of type τ which are processed
+in time before their due date dp`q . (Recall that nτ is the number of jobs of type τ .) For each
+index ` P t1, . . . , #du we have one integer variable z` to indicate the number of batches that are
+completed before or at time dp`q . Finally, we set z0 “ 0.
+The MILP is given by
+ÿ
+min
+(1)
+pnτ ´ ypτ,#dq qwτ
+τ PT
+
+(2)
+
+z` ě z`´1 `
+
+(3)
+
+ÿ
+
+xi,`0 “
+
+`0 ď`
+
+(4)
+
+z` ∆ `
+
+1ÿ
+xi,` ,
+b iPI
+ÿ
+
+` “ 1, . . . , #d,
+ypτ,`q ,
+
+i P I, ` “ 1, . . . , #d,
+
+τ PT ,pτ “pi ^dτ “di
+
+ÿ
+
+pτ ypτ,`q ď dp`q
+
+` “ 1, . . . , #d .
+
+τ PT
+
+The MILP has #dp|I|`1q “ Op#d2 ¨#wq integer variables and |T |#d “ Op|T |2 q fractional variables. It can be solved by Lenstra’s algorithm [11] for integer programming in fixed dimension
+in time f p#d, #wq ¨ nOp|T |q .
+It remains to show that optimal solutions of value W to the MILP correspond to optimal
+schedules with weighted number of tardy jobs equal to W . A crucial observation is that, given
+13
+
+an optimal solution to the MILP, we can assume that all variables ypτ,`q take integer values.
+This is due to the fact that, given a job type τ P T and an index ` P t1, . . . , #du, we can assume
+that if yτ ` ă nj then yτ 1 ` “ 0 for all τ 1 with pτ 1 ą pτ , wτ 1 “ wτ and dτ 1 “ dτ . For if that was
+not the case, then we can increase yτ ` and decrease yτ 1 ` by the same amount, without changing
+the objective value or violating constraint (3) or constraint (4). The intuition here is that we
+can process the jobs of type i P I in increasing
+order of their processing time.
+1ř
+Note that (2) assures that we use r b iPI xi` s batches ending in pdp`´1q , dp`q s which is the
+minimum number of batches needed to complete all the jobs ending in that interval. Constraint (3) is for determining the exact types of the jobs that are processed rather than just the
+type with respect to weight and due date. As mentioned we can assume that the y-variables are
+integral in an optimum solution. Constraint (4) makes sure that all the early jobs are indeed
+completed before their due date.
+To obtain a schedule from a solution to the MILP, we first process xi,1 jobs of type i for
+each i in order of their processing times with ties broken arbitrarily, and always starting a new
+batch when necessary and closing the last batch at the end. Then we can continue with xi,2 jobs
+of type i for each i the same way, and so on. Conversely, a schedule translates into a solution
+(also fulfilling (2)) using the interpretations for the variables.
+If #p`#d (rather than #w`#d) is bounded by our parameter then we get an even stronger
+result. More precisely we can solve instances where jobs additionally can have different release
+dates as long as the number of different release dates is also bound by our parameter.
+ř
+Theorem 23. Problem 1|B, |B| ď b, rj | wj Uj is fixed-parameter tractable for parameter
+#d ` #p ` #r.
+Proof. We set T “ trj | j P Ju Y tdj | j P Ju to be the set of critical time points. Further we
+order T “ tt1 , . . . , tk u in increasing order, i.e., t1 ă t2 ă ¨ ¨ ¨ ă tk . We again design a MILP,
+but this time with slightly more variables. Instead of variables z` , this time we will use integral
+variables z`,`1 for any ` ă `1 to indicate the number of batches that start at or after t` but
+before t``1 and finish before or at t`1 but after t`1 ´1 . Now we set I “ tpp, r, dq | pp, w, r, dq P
+T for some du be the set of job types with respect to weight and due date. Instead of xi,` ,
+we have integral variables xi,`,`1 to indicate the number of early jobs of a given type that are
+processed in batches starting at or after t` but before t``1 and completed before or at t`1 but
+after t`1 ´1 . We note that we remove variables xi,`,`1 if di ă t`1 or ri ą t` . We use variables yτ to
+indicate the number of early jobs of type τ P T .
+The MILP has the following constraints:
+ÿ
+min
+pnτ ´ yτ qwτ
+τ PT
+
+ÿ
+
+for any 1 ď ` ă `1 ď k
+
+xi,r,d ď bz`,`1
+
+iPI
+
+ÿ
+
+ÿ
+
+xi,`,`1 “
+
+`,`1
+
+yτ
+
+˜
+t`
+
+for each i P I
+
+τ PT ,wτ “wi ^ri “rτ ^dτ “di
+
+ÿ
+tďt` ăt`1 ďt1
+
+¸
+z`,`1 ∆ `
+
+ÿ
+
+pi xi,`,`1
+
+ď t1
+
+for each t, t1 P T with t ă t1
+
+iPI
+
+for each τ P T
+
+yτ ď nτ
+
+We further need two more kinds of constraints to guarantee that if there is a long batch, i.e., a
+batch that starts before t` and ends at or before t`1 but after t`1 ´1 ě t` , then there cannot be any
+14
+
+other batch starting and ending in rtj , tj 1 s for any pair pj, j 1 q P t`, . . . , `1 u2 ztpt` , t``1 q, pt`1 ´1 , t`1 qu.
+(5)
+(6)
+
+z`1 ,`2 ` z`3 ,`4 ď 1
+z`,``1
+` z`1 ,`2 ď 1
+n
+
+if `1 ď `3 ă `3 ` 2 ď `4 ď `2
+if `1 ă ` and `2 ą ` ` 1 .
+
+Using the interpretations of the variables given a schedule, one can easily construct a feasible
+solution of the MILP with same value.
+We claim that in any optimal solution of the MILP, all variables of the form yτ are integral,
+and yτ ď nτ implies yτ 1 “ 0 for all other types τ 1 with the same processing time, release date
+and due date but higher weight. For proof, suppose, for
+ř sake of contradiction, that there
+ř is some
+non-integral yτ . Let τ be of (sub)type i P I. Since τ PT ,wτ “wi ^ri “rτ ^dτ “di yτ “ `,`1 xi,`,`1 is
+integral there must be another non integral variable yτ 1 such that τ 1 is also of type i. Assume,
+without loss of generality, that wτ ą wτ 1 . Now since nτ is integral, we have yτ ă nτ . Thus
+we can increase yτ and decrease yτ 1 by the same amount until either yτ “ nτ or yτ 1 “ 0. The
+solution we get is still feasible, but its value is smaller, contradicting the optimality of the initial
+solution. The same argumentation can be used to show that yτ ď nτ implies yτ 1 “ 0 for all
+other types τ 1 with the same processing time, release date and due date but higher weight. This
+proves the claim.
+Now to create a schedule we create z`,`1 batches B`,`1 for each variable z`,`1 and fill them with
+appropriate jobs, i.e., such that there xi,`,`1 jobs of type i assigned to them. We schedule the
+batches in the following way: If batch B is in B`,`1 and batch B 1 is in B`1 ,`2 then we schedule B
+before B 1 if ` ă `1 , or ` “ `1 and `1 ă `2 , breaking ties arbitrarily. Given this ordering, we
+schedule batch B P B`,`1 at the completion time of the previous batch if it finishes later than t` ,
+or at time t` otherwise.
+ř
+We need to show that indeed all `,`1 xi,`,`1 jobs of type i scheduled in these kind of batches
+are early for each type i. Suppose, for sake of contradiction, that there is late job j in batch
+B P B`,`1 for some ` and `1 . Let t`0 be the latest time point less or equal to t` such that there is
+idle time before t`0 , or—if no such time exists—we set t`0 to be the smallest release time.
+We claim that
+˜
+¸
+ÿ
+ÿ
+t`0 `
+z`1 ,`2 ∆ ` pi xi,`1 ,`2 ą t`1 .
+`0 ď`1 ,`2 ď`1
+
+iPI
+
+To see that notice, that only jobs in batches in B`1 ,`2 with `1 ě `0 and `2 ď `1 are scheduled
+before the completion time of j. This holds true as any batch B 1 P B`1 ,`2 with `1 ă `0 is
+completed before t`0 by definition of `0 , and any batch B 1 P B`1 ,`2 with `1 ě ` and `2 ą `1 is
+scheduled later than j. Further, we have z`1 ,`2 “ 0 if `1 ă ` and `2 ą `1 by constraint (5) and
+(6) using that z`,`1 ě 1. However, our claim contradicts the feasibility of our solution thus j
+cannot be late.
+
+4.2
+
+Bounded batch volume
+
+ř
+In the last part of this section we show why the problem 1|B| Uj becomes hard when we add
+a bound to the maximum batch volume. First, we consider parameter #d ` #w, and afterwards
+parameter #p.
+ř
+In Partition we are given a set T “ tx1 , . . . xn u of natural
+numbers
+such
+that
+xPT x “ 2K;
+ř
+ř
+the task is to decide if there exists a set T 1 Ď T such that xPT 1 x “ xPT zT 1 x “ K.
+We now devise a reduction from Partition to show hardness of batch scheduling even in
+the unweighted case and a single due date.
+
+15
+
+Theorem 24. Problem 1|B, ||B|| ď V |
+
+ř
+
+Uj is NP-hard for #d “ 1.
+
+Proof. Let pT ř
+“ tx1 , . . . xn u; Kq be an instance of Partition; we construct an instance of
+1|B, ||B|| ď V | Uj as follows:
+• We set ∆ “ 1 and V “ K ` 1.
+• For each number xi there is one job ji with pji “ xi and dji “ 2K ` 2.
+1
+Observe that
+ř there isřa schedule with zero tardy jobs if and only if there is a subset T Ď T
+such that xPT x “ xPT 1 zT x “ K. This is due to the fact that the only way to get such a
+schedule is to use exactly two batches of volume V and a batch can only be of volume V if the
+processing times of the jobs assigned to it add up to K.
+
+For parameter #p we prove the following result:
+Theorem 25. Any instance I ofř
+P ||Cmax with #p different processing times can be transformed
+to an instance of 1|B, ||B|| ď V | Uj with #p different processing times and a single due date,
+such that all jobs of I complete by time T if and only if all jobs of I 1 are early.
+Proof. Consider an instance I of P ||Cmax with job set J, number
+m of machines, and target
+ř
+makespan T . We create an instance I 1 of 1|B, ||B|| ď V | Uj consisting of a batch setup
+time ∆, a batch volume V , and a job set J 1 . We set ∆ “ T m and V “ T . The set J 1 contains
+one job j 1 for each job j P J, where the processing time of j 1 is the same as the processing time
+of j and the due date of j 1 is equal to dj “ mV .
+In the forward direction, any schedule for I with makespan at most T can be translated to a
+feasible schedule for I 1 that schedules all jobs early by creating one batch B for each machine i.
+All jobs scheduled on i will be assigned to B. Then the batch volume of each batch is at most T ,
+and all m batches are completed early.
+In the backward direction, any schedule for I 1 has at most m batches with early jobs, as
+pm ` 1q∆ “ pm ` 1qT m ą mpT m ` T q “ mp∆ ` T q “ mV “ dj .
+Thus, for each batch B with early jobs we can schedule all jobs assigned to B on one machine,
+whose completion time is at most T . In summary, for m batches with early jobs, we obtain a
+schedule for I with makespan at most T .
+
+5
+
+Discussion and Open Problems
+
+We provided an extensive multivariate analysis of the single-machine batch scheduling problem
+to minimize the weighted number of tardy jobs. In particular, we significantly refined and
+extended the work of Hochbaum and Landy [8], as well as Hermelin et al [7].
+Several open questions remain, even for the setting without batches. It appears especially
+challenging to resolve the question of whether 1||wj Uj is fixed-parameter tractable for #p,
+or #w, or turns out to be Wr1s-hard for either of those parameterizations. This question was
+already stated by Hermelin et al. [7], and is not resolved
+here. Naturally, we do not know the
+ř
+answer to this question for the more general 1|B| Uř
+j wj problem; however, we also do not
+know the status of parameter #p ` #w for which 1|| wj Uj řis known to be fixed-parameter
+tractable [7]. Another interesting question is to see if 1||B| ď b| Uj is fixed-parameter tractable
+for parameter #p or b, or even solvable in polynomial time.
+
+16
+
+References
+[1] A. Abboud, K. Lewi, and R. Williams. Losing weight by gaining edges. In Proc. ESA 2014,
+pages 1–12, 2014.
+[2] P. Brucker and M. Y. Kovalyov. Single machine batch scheduling to minimize the weighted
+number of late jobs. Math. Meth. Oper. Res., 43(1):1–8, 1996.
+[3] T. Cheng and M. Kovalyov. Single machine batch scheduling with sequential job processing.
+IIE Trans., 33(5):413–420, 2001.
+[4] M. Cygan, F. V. Fomin, L. Kowalik, D. Lokshtanov, D. Marx, M. Pilipczuk, M. Pilipczuk,
+and S. Saurabh. Parameterized algorithms, volume 4. Springer, 2015.
+[5] M. Etscheid, S. Kratsch, M. Mnich, and H. Röglin. Polynomial kernels for weighted problems. J. Comput. Syst. Sci., 84:1–10, 2017.
+[6] R. Graham, E. Lawler, J. Lenstra, and A. Kan. Optimization and approximation in deterministic sequencing and scheduling: a survey. Ann. Discrete Math., 3:287–326, 1979.
+[7] D. Hermelin, S. Karhi, M. Pinedo, and D. Shabtay. New algorithms for minimizing the
+weighted number of tardy jobs on a single machine. Ann. Oper. Res., 2018.
+[8] D. S. Hochbaum and D. Landy. Scheduling with batching: minimizing the weighted number
+of tardy jobs. Oper. Res. Lett., 16(2):79–86, 1994.
+[9] R. M. Karp. Reducibility among Combinatorial Problems, pages 85–103. 1972.
+[10] E. Lawler and J. Moore. A functional equation and its application to resource allocation
+and sequencing problems. Mgmt. Sci., 16(1):77–84, 1969.
+[11] H. W. Lenstra. Integer programming with a fixed number of variables. Math. Oper. Res.,
+8(4):538–548, 1983.
+[12] M. Mnich and R. van Bevern. Parameterized complexity of machine scheduling: 15 open
+problems. Computers Oper. Res., 100:254 – 261, 2018.
+[13] J. M. Moore. An n job, one machine sequencing algorithm for minimizing the number of
+late jobs. Mgmt. Sci., 15(1):102–109, 1968.
+[14] C. N. Potts and M. Y. Kovalyov. Scheduling with batching: A review. European J. Oper.
+Res., 120(2):228–249, 2000.
+[15] S. Sahni. Algorithms for scheduling independent tasks. J. ACM, 23(1):116–127, 1976.
+[16] S. Webster and K. R. Baker. Scheduling groups of jobs on a single machine. Oper. Res.,
+43(4):692–703, 1995.
+
+17
+
+

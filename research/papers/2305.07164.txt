@@ -1,0 +1,827 @@
+Learning-Augmented Online Packet Scheduling with Deadlines
+Ya-Chun Liang∗1 , Clifford Stein†1 , and Hao-Ting Wei‡1
+
+arXiv:2305.07164v2 [cs.DS] 22 Feb 2024
+
+1
+
+Department of Industrial Engineering and Operations Research, Columbia University
+
+Abstract
+The modern network aims to prioritize critical traffic over non-critical traffic and effectively manage
+traffic flow. This necessitates proper buffer management to prevent the loss of crucial traffic while
+minimizing the impact on non-critical traffic. Therefore, the algorithm’s objective is to control which
+packets to transmit and which to discard at each step. In this study, we initiate the learning-augmented
+online packet scheduling with deadlines and provide a novel algorithmic framework to cope with the
+prediction. We show that when the prediction error is small, our algorithm improves the competitive
+ratio while still maintaining a bounded competitive ratio, regardless of the prediction error.
+
+1
+
+Introduction
+
+In today’s interconnected world, efficient and reliable data transmission is paramount. Businesses, governments,
+and individuals depend on seamless communication for various time-sensitive applications. Managing network
+traffic flow is critical to ensure that essential data takes precedence over non-critical information. One
+approach to achieving this is through the use of Quality of Service (QoS) switches [34, 38, 17].
+In the context of modern networks, the problem of Buffer Management in QoS switches arises as a significant
+challenge. The objective is to develop effective algorithms that prioritize critical traffic, safeguarding it
+from loss, while minimizing the impact on non-critical data. To emphasize the significance of this challenge,
+consider a data center [32, 8] that processes incoming requests from users. Each request corresponds to a
+packet, each with a specific deadline; a time limit within which it must be transmitted to ensure a responsive
+user experience. The challenge at hand involves making real-time decisions on which packets to transmit while
+adhering to their respective deadlines. For instance, a delay in transmitting a critical update to a cloud-based
+application can lead to service disruptions, affecting user satisfaction and business operations. Similarly,
+timely delivery of multimedia content is essential for seamless streaming and online gaming experiences. A
+delay in transmitting video or audio packets can result in buffering or lag, affecting user engagement.
+To achieve good performance, we design a scheduling algorithm, which decides which packet should be
+processed at each step. As a consequence, some packets will miss their deadlines and need to be discarded.
+To ensure that the most critical traffic is processed, our objective is to maximize the total weight of processed
+jobs. To evaluate the performance of such algorithms, we use competitive analysis, a standard metric in
+online algorithms. The competitive ratio is used as a measure, representing the ratio of the optimal offline
+cost to the cost achieved by online algorithms in worst-case scenarios.
+However, traditional competitive analysis can be overly pessimistic, as it considers only the worst-case
+scenario and overlooks the potential benefits of leveraging historical data to predict future inputs. To address
+this limitation, a new field of algorithms with predictions has emerged. These algorithms assume that the
+designer has access to predictions about the input, aiming to improve competitive ratios when predictions are
+accurate (consistency) while maintaining bounded competitive ratios even if the predictions are inaccurate
+(robustness).
+In this paper, we study the packet scheduling problem with deadlines that we augment with predictions.
+This problem has not been previously studied with predictions. Much of the previous work on packet
+∗ yl5608@columbia.edu.
+
+† cliff@ieor.columbia.edu.
+‡ hw2738@columbia.edu.
+
+1
+
+scheduling with deadlines has considered various special cases, which make assumptions about the input.
+These include agreeable deadlines, where job’s deadlines are (weakly) increasing in their arrival times; kuniform delay, where each job has the same k amount of time available for processing; and k-bounded delay,
+where each job has at most k units of time available for processing, where k is a positive integer. None of
+these cases have been studied with predictions.
+
+1.1
+
+Our results
+
+In an instance of the packet scheduling with deadlines problem, a collection J of n jobs with unit processing
+time is given. Each job (rj , dj , wj ) ∈ J consists of a release time rj , a nonnegative weight wj , and an integer
+deadline dj , indicating the time by which it must be processed. The goal is to find a schedule that maximizes
+the total weight of the processed jobs. In the learning-augmented packet scheduling with deadlines problem,
+the algorithm is provided with a collection Jˆ of n̂ predicted jobs (r̂j , dˆj , ŵj ) at time t = 0.
+Optimal consistency and bounded robustness. Our first goal is to design an algorithm that strikes a
+good balance between consistency (competitive ratio when the predictions are exactly correct) and robustness
+(competitive ratio when the predictions are arbitrarily wrong). Our first result shows that for the learningaugmented packet scheduling with deadlines problem, given an offline prediction and an online algorithm
+with a competitive ratio of γon , there exists a learning-augmented algorithm that achieves 1 consistency
+(Lemma 3.3) and γon + c robustness (Lemma 3.6), where c is a constant. We complement this result by
+showing that there is a necessary trade-off between consistency and robustness (Section 4).
+The competitive ratio as a function of the prediction error. The second main result is that our
+algorithm achieves a competitive ratio that smoothly interpolates from consistency to robustness as a function
+W (Opt(J
+
+)(≤t) )
+
+of the prediction error (Lemma 3.4). We define the prediction error η = maxt∈[T ] W (Ŝ(J ≤t
+, which
+)(≤t) )
+represents the maximum ratio between the total weight of the processed jobs in the optimal schedule for all
+released jobs until time t and the processed weights obtained by following the choices of the optimal schedule
+for the prediction until time t, considering all possible values of t. Here, J≤t and J (≤t) denote the set of
+jobs in J with release time at most t and the set of processed jobs in the interval [0, t], respectively. (See
+Section 2 for details of the discussion about the prediction error η).
+Experiments. In Section 5, we empirically assess the performance of our proposed algorithm by comparing
+it with different benchmark algorithms. We specifically investigate the impact of predictions of both weights
+and deadlines. Our results demonstrate that, when the prediction error is small, our algorithm outperforms
+the benchmark algorithms empirically on both real and synthetic datasets in the context of online packet
+scheduling with deadlines.
+
+1.2
+
+Technical overview
+
+This paper proposes a general algorithmic framework for learning-augmented online packet scheduling with
+deadlines. This framework relies on two critical components: an offline prediction and the online algorithm
+OnlineAlg without prediction given as input. For the offline setting of online packet scheduling with
+deadlines, one can solve a maximum weight bipartite matching problem to obtain the optimal solution [23].
+Various online algorithms are available for different variants of online packet scheduling with deadlines. See
+[18] for a survey.
+Initially, the algorithm computes an offline schedule Ŝ based on the prediction. While this schedule is
+optimal for perfect predictions, it may not be so in the presence of errors. To address this, the algorithm sets
+a threshold and conducts a local test to track the performance. At each time t, the algorithm first checks
+whether Ŝ(J )(t) ∈ P, where Ŝ(J )(t) is the processed job corresponding to Ŝ at time t, and P denotes the
+processed jobs of the algorithm until time t − 1. If Ŝ(J )(t) has not been processed, the algorithm calculates
+two quantities and derives the ratio between them. One is W (Opt(J≤t )(≤t) ), representing the total weight
+of the processed jobs in the optimal schedule for all released jobs until time t. The other is the total weight
+of the processed jobs of the algorithm until time t − 1, denoted by W (P), with the addition of W (Ŝ(J )(t) ).
+Either Ŝ(J )(t) ∈ P, or if the ratio exceeds the threshold, the algorithm immediately switches to
+OnlineAlg until Ŝ(J )(t) ∈
+/ P and the local test ratio becomes no greater than the threshold. After that, the
+algorithm resumes following the choice of the predicted schedule. This flexibility to seamlessly switch between
+offline and online decisions provides more opportunities to maintain superior performance when handling
+2
+
+longer input sequences, setting our algorithm apart from many existing learning-augmented algorithms that
+strictly adhere to the online decisions after a transition [27, 3].
+Our analysis first shows that with an appropriate benchmark for the local test, we can ensure that when
+the prediction is correct, the algorithm will always follow the choice of the predicted schedule; that is, the
+output schedule is optimal. Additionally, we show that our proposed algorithm achieves constant robustness.
+The analysis involves partitioning the entire time interval into two smaller intervals, namely [0, tλ − 1] and
+[tλ , T ], where tλ − 1 is the last time that the local test ratio is not greater than the threshold. The high-level
+idea behind the analysis is as follows: suppose a job in the optimal solution is processed in the interval
+[tλ , T ]. In this case, it is either processed by our proposed algorithm in the interval [0, tλ − 1] or feasible to
+be processed by our proposed algorithm. In either case, the algorithm does not incur significant losses even
+if a wrong decision is made in the interval [0, tλ − 1]. Next, consider the case where a job in the optimal
+solution is processed in the interval [0, tλ − 1]. If the deadline is no later than tλ , the competitive ratio can
+be safeguarded by the guarantees of the local test, which ensures the performance of our algorithm until time
+tλ − 1. Otherwise, if its deadline is later than tλ , it is feasible to schedule it with our algorithm, ensuring the
+algorithm’s performance.
+
+1.3
+
+Related works
+
+Online packet scheduling with deadlines. The problem of online packet scheduling with deadlines
+was initially introduced by Hajek [19] and Kesselman et al. [23]. There are many studies for deterministic
+algorithms, including both the general model and different special cases [21, 23, 15, 13]. Recently, Veselỳ
+et al. [36] introduced an optimal ϕ ≈ 1.618-competitive algorithm for the general model, which matches the
+lower bound for deterministic algorithms [1, 14, 23].
+For the randomized algorithm, different adversary models and results have been explored as presented
+in studies such as [15, 11, 20]. Additionally, other variants of the online packet scheduling with deadlines
+problem have been investigated [12, 13]. Notably, in [13], a lower bound of a 1.25-competitive ratio was
+proven for any constant lookahead, where the algorithm can access future input information for the next few
+steps. More information about online packet scheduling with deadlines and related problems can be referred
+to in survey papers [18, 35].
+Learning-augmented algorithms. In recent years, a significant body of research has emerged on algorithms
+with prediction models, which seeks to address the challenge of partial information often available to decisionmakers. This line of work utilizes machine-learned predictions about the inputs to design algorithms that
+achieve stronger bounds (consistency) when provided with accurate predictions. Furthermore, this research
+aims to maintain a worst-case guarantee (robustness) that holds even in the presence of inaccurate predictions.
+Optimization problems investigated under this framework include online paging [27, 31], routing [10],
+matching [2, 22], and graph problems [4, 37, 9] (see [29] for a survey of works in this area). Many different
+scheduling problems have been studied with predictions [3, 5, 6, 7, 24, 25, 28]. See the survey website [26] for
+more information.
+
+2
+
+Preliminaries
+
+We first describe the online packet scheduling with deadlines problem. An instance of online packet scheduling
+with deadlines is described by a collection J of n unit-length jobs. Each job, denoted as (rj , dj , wj ) ∈ J ,
+is defined by a release time rj , a deadline dj , and a weight wj , where rj and dj are integers, and wj is a
+non-negative real number. In addition, we assume distinct weights for all packets, as any instance can be
+adjusted to have unique weights through infinitesimal perturbation while maintaining the competitive ratio.
+Let T be a finite time horizon of the problem. At each time t ∈ [T ], only one job can be processed, and it
+must satisfy rj ≤ t and dj − 1 ≥ t; that is, a job can only be processed after its arrival and before its deadline.
+The objective is to process a set of jobs of maximum total weight. We also let J≤t be a set of jobs in J with
+release time at most t.
+We refer to a collection of processed jobs in the interval [0, T ] as a schedule. Additionally, we let
+S = (S1 , · · · , ST ) denote a set of choices for processing jobs. To determine Si at each time i ∈ [T ], we
+consider the information of all available jobs, including their arrival times, deadlines, and weights. For any
+realization J of the job instance, we define S(J ) as the corresponding jobs processed according to S (adding
+3
+
+zero-weight dummy jobs if there are no jobs
+P to be processed). Thus, S(J ) represents a schedule for the job
+instance J . Finally, we let W (S(J )) = j∈S(J ) wj be the total weight of the jobs in S(J ).
+Definition 2.1 (Dominance Relation [21]). For any two jobs j and j ′ which are released but not yet processed
+at a certain time, j is said to dominate j ′ if wj > wj ′ and dj ≤ dj ′ .
+According to [21], any schedule can be arranged in canonical order in the following way. Assign the
+earliest deadline feasible (i.e., a job that has been released but not yet processed and is not dominated by
+any other job) to each successive step. The resulting schedule is referred to as a canonical schedule. For any
+job instance J , let Opt(J ) be the optimal schedule for J and Opt(J≤t ) be the optimal schedule for J≤t ,
+respectively. In the following, we let an optimal schedule be a canonical schedule.
+We also let Opt(J )(t) and Opt(J )(≤t) be the job processed at time t and the set of jobs processed in the
+interval [0, t] of Opt(J ), respectively (add a dummy zero-weight job if there is no job processed). Likewise,
+for any schedule S(J ), we let S(J )(t) and S(J )(≤t) denote the job processed at time t and the set of jobs
+processed in the interval [0, t] of S(J ), respectively. Also, for any algorithm A and job instance J , we let
+A(J ) be the output schedule of running A on J . Finally, for any job instance J , we let D(t, J ) be the set
+of expired jobs at time t; that is, dj < t + 1 and which have not been processed.
+The learning-augmented online packet scheduling with deadlines problem. The first important
+modeling task in the learning-augmented framework is to choose the prediction. To answer this question, we
+augment the online packet scheduling with deadlines problem with predictions regarding future job arrivals,
+and we call this problem the learning-augmented online packet scheduling with deadlines problem. The
+algorithm is given a prediction Jˆ = {(rˆj , dˆj , ŵj )} regarding the jobs J = {(rj , dj , wj )} that arrive online
+(note that we do not necessarily have |J | = |Jˆ|). Here, one may consider a prediction scenario in which,
+at time t, the algorithm has access to extra information about arrivals in a few future steps, essentially
+representing a constant lookahead setting. However, according to [13], there exists a strong 1.25-competitive
+lower bound for any constant lookahead. Therefore, to achieve better consistency, we adopt a model in which
+the algorithm is given with predictions about the entire input sequence in the beginning.
+Another important modeling task in the learning-augmented framework is to design an appropriate
+measure for the prediction error. With the definition of schedule and a set of choices, we denote Ŝ as the
+optimal choices for the predicted set of jobs Jˆ, represented as Ŝ(Jˆ) = Opt(Jˆ). We will now define the
+prediction error,
+W (Opt(J≤t )(≤t) )
+η(J , Jˆ) := max
+,
+t∈[T ]
+W (Ŝ(J )(≤t) )
+as the maximum ratio between the total weight of the processed jobs in the interval [0, t] of the optimal
+schedule for all released jobs until time t and the processed weights obtained by following the choices of the
+optimal schedule for the prediction until time t, considering all possible values of t. In the following, we use η
+to denote the error when J and Jˆ are clear.
+Choice of the prediction error. We define the prediction error as the ℓ∞ norm of the ratio between the
+total weight of the processed jobs in the interval [0, t] of the optimal schedule for all released jobs until time
+t and the processed weights by following the choices of the optimal schedule for the prediction until time
+t, considering all possible t. Other types of prediction errors, such as the ℓ1 norm of the weight difference
+between the prediction and the realization, may also be considered, but there are tradeoffs between different
+errors. For instance, the ℓ1 norm does not distinguish between instances with one large prediction error and
+those with many small prediction errors. The ℓ∞ norm, on the other hand, does not distinguish between one
+large prediction error and many large prediction errors.
+The reason for choosing this error measurement is that the competitive ratio is highly sensitive to both
+the weight and deadline of jobs, making it crucial to capture their effects accurately. Therefore, we use the
+ℓ∞ norm of all time steps to measure the prediction error. We believe that our choice of error captures
+the essence of the problem. However, we also recognize that other error measurements could be explored
+as interesting directions for future research. For instance, our error measure is sensitive to small shifts in
+the job’s release time, such as when the realization occurs one time unit earlier than predicted. In this
+case, although the predictions capture the pattern of realization, it results in a large error based on the
+proposed error measure. It would be worthwhile to investigate an alternative error measure as in [7] that can
+accommodate small shifts in job release time.
+4
+
+Figure 1: Illustration of one iteration of the local test (Lines 4-7) of the LAP algorithm. The first two rows
+with a gray background represent the job following the predicted schedule Ŝ(Jˆ)(t) and the corresponding
+job in realization Ŝ(J )(t) at time t, while the last two rows indicate the processed jobs P (yellow) as well
+as two potential operations for LAP and the jobs in Opt(J≤t )(≤t) . For each local test at time t, LAP
+compares W (Opt(J≤t )(≤t) ) with W (P ∪ Ŝ(J )(t) ) to decide whether LAP processes either Ŝ(J )(t) (green)
+or OnlineAlg(J \ P)(t) (orange). In this example, we assume Ŝ(J )(t) ∈
+/ P and D(t, J ) = ∅.
+Performance metrics. The standard evaluation metrics for an online algorithm with predictions are its
+consistency, robustness, and competitive ratio as a function of the prediction error [27]. We let a function c
+of error η, where η ≥ 1 using a given predictor such that c(η) represents the worst-case competitive ratio
+given that the error is at most η. We say an algorithm A is α-consistent if c(1) ≤ α (competitive ratio when
+the prediction is exactly correct) and we say A is β-robust if for all η ≥ 1, c(η) ≤ β (competitive ratio when
+the error is arbitrarily large). We say that the competitive ratio of A is smooth if it smoothly degrades from
+α to β as the prediction error η grows.
+
+3
+
+Algorithms
+
+Warm up: A simple consistent, smooth, non-robust algorithm. We first show that an algorithm
+that blindly follows the predictions is η-competitive. Clearly, when J = Jˆ, since the algorithm follows
+the choices for the prediction, it returns an optimal schedule. However, this approach is not robust, as the
+competitive ratio can be arbitrarily large in case of incorrect predictions.
+Algorithm 1 A simple 1-consistent, smooth algorithm but not robust
+Input: A set of predicted jobs Jˆ.
+1: Compute a set of optimal choices Ŝ for the predicted jobs Jˆ, where Ŝ(Jˆ) = Opt(Jˆ)
+2: return Ŝ(J )
+Lemma 3.1. Algorithm 1 is η-competitive.
+Proof. Since Ŝ(J ) follows the same choices as Opt(Jˆ), we have
+W (Opt(J ))
+W (Ŝ(J ))
+
+≤ max
+
+W (Opt(J≤t )(≤t) )
+W (Ŝ(J )(≤t) )
+
+t∈[T ]
+
+=η ,
+
+where the last equality comes from the definition of η.
+The main problem with Algorithm 1 is its lack of robustness. Particularly, the competitive ratio can be
+unbounded if the prediction is completely wrong. Our next step is to robustify the algorithm to achieve a
+bounded competitive ratio and maintain its consistency at the same time.
+5
+
+Algorithm 2 Learning-Augmented Online Packet Scheduling with Deadlines (LAP)
+Input: A set of predicted jobs Jˆ, an online algorithm OnlineAlg, and a threshold ρ ≥ 1.
+1: Compute a set of optimal choices Ŝ for the predicted jobs Jˆ, where Ŝ(Jˆ) = Opt(Jˆ)
+2: P = ∅
+3: for t ≥ 0 do
+W (Opt(J≤t )(≤t) )
+≤ ρ then
+4:
+if Ŝ(J )(t) ∈
+/ P and W (P∪Ŝ(J
+)(t) )
+5:
+P = P ∪ Ŝ(J )(t)
+6:
+else
+7:
+P = P ∪ OnlineAlg(J \ (P ∪ D(t, J )))(t)
+8: return P
+
+3.1
+
+Description of the algorithm
+
+The proposed algorithm, known as LAP, is a general algorithm designed for the online packet scheduling
+problem with deadlines. The algorithm takes a set of predicted jobs Jˆ, a threshold ρ, and an online algorithm
+OnlineAlg that solves the online packet scheduling with deadlines problem without predictions as inputs.
+Initially, LAP computes a set of choices of the optimal schedule for the predicted jobs Jˆ, namely, Ŝ (Line 1).
+At each time t, LAP performs a local test to determine whether to follow Ŝ or switch to OnlineAlg (Lines
+4-7). The local test first checks whether Ŝ(J )(t) ∈ P. If not, LAP computes the ratio of the total weight of
+the processed jobs in the interval [0, t] for the optimal schedule of all the released jobs until time t and the
+current processed weights until time t − 1, with the addition of the weight of the processed job corresponding
+to the predicted choice at time t. See fig. 1 for an illustration of an iteration of the local test. Note that
+LAP could switch back and forth between following the prediction or OnlineAlg.
+The underlying principle of LAP is to switch to OnlineAlg when Ŝ(J )(t) ∈ P or the current ratio is
+larger than the threshold (> ρ) to prevent the competitive ratio from worsening. However, if Ŝ(J )(t) ∈
+/P
+and the current ratio is no greater than ρ, the algorithm will continue to trust the prediction and follow Ŝ
+until a significant deviation occurs. The formal description of LAP is provided in Algorithm 2.
+
+3.2
+
+Analysis of the algorithm
+
+The following paragraph analyzes the performance of LAP. Initially, we demonstrate that LAP is 1-consistent
+(Lemma 3.3). Subsequently, we establish that LAP is η-competitive under the condition that η ≤ ρ
+(Lemma 3.4). Finally, we investigate the scenario where η > ρ and demonstrate that LAP maintains a
+bounded competitive ratio of ρ + γon + 1 (Lemma 3.6).
+We begin with an important observation of the optimal solution.
+Lemma 3.2. For every t ∈ [T ], W (Opt(J )(≤t) ) ≥ W (Opt(J≤t )(≤t) ).
+Proof. The core concept of the proof is that the optimal schedule prioritizes processing jobs with later
+deadlines only if there are other jobs with significant weights arriving in the future with the same deadline.
+Assume that W (Opt(J )(≤t) ) < W (Opt(J≤t )(≤t) ). This implies the existence of a pair of distinct jobs j and
+j ′ , where wj > wj ′ , such that j ∈ Opt(J≤t )(≤t) and j ′ ∈ Opt(J )(≤t) .
+First, consider the case where j ∈
+/ Opt(J )(>t) . Replacing j ′ with j would increase W (Opt(J )(≤t) )
+(>t)
+without affecting W (Opt(J )
+), contradicting the optimality of Opt(J ).
+Next, consider the case where j ∈ Opt(J )(>t) . In this case, there must exist a job j ′′ ∈ Opt(J≤t )(>t)
+such that j ′′ ∈
+/ Opt(J )(>t) . Otherwise, scheduling j in Opt(J≤t )(>t) and scheduling j ′ in Opt(J≤t )(≤t)
+would increase W (Opt(J≤t )(≤t) ), contradicting the optimality of Opt(J≤t ).
+Consider the relationship between j ′ and j ′′ . According to our assumption, each job has a unique weight,
+where wj ′ ̸= wj ′′ . In this case, replacing j and j ′′ with j ′ and j (or vice versa) would increase the total weight
+of either Opt(J ) or Opt(J≤t ), contradicting the optimality of either Opt(J ) or Opt(J≤t ), and we thus
+complete the proof.
+Lemma 3.3. LAP is 1-consistent.
+6
+
+Proof. To prove 1-consistency, one needs to ensure that LAP satisfies the condition in Line 4 for all t ∈ [T ].
+To achieve this, we leverage the insights provided by lemma 3.2. When J = Jˆ, we have Ŝ(Jˆ) = Opt(J ),
+and the condition of Line 4 can be represented as:
+W (Opt(J≤t )(≤t) )
+≤ρ.
+W (Opt(J )(≤t) )
+Since ρ ≥ 1, we have
+W (Opt(J≤t )(≤t) )
+≤1≤ρ,
+W (Opt(J )(≤t) )
+which satisfies the condition of Line 4. Therefore, the algorithm will follow Ŝ from the beginning to the end,
+thus completing the proof.
+Lemma 3.4. LAP is η-competitive if η ≤ ρ.
+Proof. Initially, by applying the definition of η, we have
+W (Opt(J ))
+W (Ŝ(J ))
+
+≤ max
+
+W (Opt(J≤t )(≤t) )
+W (Ŝ(J )(≤t) )
+
+t∈[T ]
+
+=η .
+
+(1)
+
+Next, by our assumption η ≤ ρ, we are in the case where LAP follows Ŝ from the beginning to the end
+(Lines 1-5). Therefore, we have
+W (Opt(J ))
+W (Opt(J ))
+=
+≤η ,
+W (P)
+W (Ŝ(J ))
+where the second inequality comes from the result of (1).
+To prove the robustness of LAP, we partition the output schedule P into P (≤tλ −1) and P (≥tλ ) as processed
+W (Opt(J
+
+)(≤t) )
+
+≤t
+jobs of LAP within the intervals [0, tλ −1] and [tλ , T ], respectively, where tλ −1 = argmaxt:t∈[T ]
+≤
+W (P (≤t) )
+ρ is the last time that the local test ratio is not greater than the threshold ρ. In this case, LAP follows
+OnlineAlg from tλ to the end.
+
+Lemma 3.5. Opt(J )(≤tλ −1) ∩ Opt(J≤tλ −1 )(>tλ −1) ̸= ∅, if W (Opt(J )(≤tλ −1) ) > W (Opt(J≤tλ −1 )(≤tλ −1) ).
+Proof. We prove the lemma by contradiction. Assume Opt(J )(≤tλ −1) ∩ Opt(J≤tλ −1 )(>tλ −1) = ∅. By
+replacing Opt(J≤tλ −1 )(≤tλ −1) with Opt(J )(≤tλ −1) , we have
+W (Opt(J )(≤tλ −1) ) + W (Opt(J≤tλ −1 )(>tλ −1) )
+> W (Opt(J≤tλ −1 )(≤tλ −1) ) + W (Opt(J≤tλ −1 )(>tλ −1) )
+= W (Opt(J≤tλ −1 )) ,
+which contradicts the optimality of Opt(J≤tλ −1 ).
+Theorem 3.6. LAP is ρ + γon + 1-robust.
+Proof sketch; full proof in Appendix. We approach the proof by considering two different cases of the optimal
+solution, each addressing different scenarios of the relationship between the processed weights after time
+tλ − 1 and the processed weights on or before time tλ − 1, where c > 0 is a parameter that we choose later:
+Case 1: W (Opt(J )(>tλ −1) ) > cW (Opt(J )(≤tλ −1) )
+In this case, the processed weights after time tλ − 1 significantly exceed the processed weights on or before
+time tλ − 1. Since LAP follows OnlineAlg after time tλ , we can utilize the competitiveness of OnlineAlg
+to show that the competitive ratio of this case is c+1
+c γon .
+(>tλ −1)
+(≤tλ −1)
+Case 2: W (Opt(J )
+) ≤ cW (Opt(J )
+)
+We analyze this case by looking at the following two sub-cases:
+7
+
+(a) W (Opt(J )(≤tλ −1) ) = W (Opt(J≤tλ −1 )(≤tλ −1) ).
+For this case, since the processed weights of LAP in the interval of [0, tλ −1] is at least ρ1 W (Opt(J≤tλ −1 )(≤tλ −1) ),
+we can obtain the competitive ratio of this case as (c + 1)ρ.
+(b) W (Opt(J )(≤tλ −1) ) > W (Opt(J≤tλ −1 )(≤tλ −1) )
+In this sub-case, there is an overlapping scenario. By utilizing Lemma 3.5, we can handle the overlapping
+part. Finally, we can show that the competitive ratio is (c + 1)(ρ + 1).
+γon
+By optimizing c = ρ+1
+, we conclude that the overall competitive ratio is γon + ρ + 1.
+
+We are ready to state the main result of this section, which is our upper bound on the competitive ratio
+of LAP.
+Theorem 3.7. LAP with a γon -competitive algorithm OnlineAlg and an optimal solution for the prediction
+Jˆ achieves a competitive ratio of
+(
+η
+if η ≤ ρ
+ρ + γon + 1
+
+if η > ρ ,
+
+where ρ ≥ 1 is an error tolerance parameter chosen by LAP.
+
+4
+
+Lower bound
+
+This section shows some impossibility results about learning augmented algorithms in the context of Online
+Packet Scheduling with Deadlines. The proofs in this section can be found in appendix B.
+We first show that there exists an instance for which any 1-consistent algorithm cannot be 2-robust.
+Proposition 4.1. Assume a deterministic learning-augmented algorithm is 1-consistent; then, the competitive
+ratio cannot be better than 2.
+Subsequently, we show that there is a necessary trade-off between consistency and robustness for the
+deadline model by extending the previous instance.
+Theorem 4.2. Assume a deterministic learning-augmented algorithm is 1+α-consistent; then, the competitive
+2
+ratio cannot be better than 1+α
+.
+
+5
+
+Experiment results
+
+We empirically evaluate the performance of the proposed algorithm LAP on both synthetic and real datasets
+against benchmarks without using predictions. We specifically consider the agreeable deadline model, where
+jobs with later arrival times cannot have earlier deadlines. The choice is motivated by an experimental study
+in a related paper [33]. Additionally, the model provides the same theoretical guarantees as the general
+deadline model. Furthermore, the current best algorithm for the general setting is complex, making the
+agreeable deadline model a pragmatic and efficient alternative for our analysis.
+
+5.1
+
+Experiment settings
+
+Benchmarks. LAP is Algorithm 2 with the default setting ρ = 0.1. MG is the Modified Greedy Algorithm
+from [21], which achieves a tight 1.618-competitive ratio for the agreeable deadline setting. Greedy is the
+Greedy Algorithm from [23], which always processes a packet with the largest weight in the buffer in each
+step and has been proven to be 2-competitive. EDF is the heuristic earliest-deadline-first algorithm, where
+the algorithm processes the packet with the earliest deadline in the buffer of each step. Despite the absence
+of theoretical guarantees on this problem, it performs well in many scheduling scenarios. Finally, we consider
+EDFα from [15]. For each time step, the algorithm first identifies the maximum weight h of all packets in
+the buffer and processes a packet with a weight at least α · h and the earliest deadline. It has been proven
+that the competitive ratio is no better than 2 in the agreeable deadline setting [21].
+8
+
+Figure 2: The competitive ratio achieved by our algorithm, LAP, and the benchmark algorithms, as a function of the error
+parameter σ.
+
+Figure 3: The competitive ratio achieved by our algorithm, LAP, and the benchmark algorithms, as a function of deadline
+shift [−k, k].
+
+Data sets. We consider two synthetic datasets and two real datasets. For the synthetic data, we begin by
+generating a set of real jobs denoted as J . To create the predicted set of jobs Jˆ, we introduce some error
+err(j) for either weight or deadline, examining the effects on both weight and deadline. The predicted set of
+jobs is then defined as: (1) Jˆ = {(j, rj , dj , wj + err(j) : j ∈ Jˆ}, where err(j) is sampled i.i.d. from N (0, σ)
+and (2) Jˆ = {(j, rj , dj + err(j), wj : j ∈ Jˆ} where err(j) is uniformly random sampled i.i.d. from the range
+[−k, k], and k is an integer.
+For the first synthetic dataset, we generate predictions using a uniform distribution. Specifically, for each
+time t ∈ 1, . . . , T , where we set T = 75, the number of job arrivals at time t follows a uniform distribution with
+a range of [2,8]. For the second synthetic dataset, predictions are generated using a power-law distribution.
+More precisely, for each time t ∈ 1, . . . , T (with T = 75 fixed), the number of job arrivals at time t is
+determined by M (1 − p(a)), where p(a) is sampled from a power-law distribution with parameter a, and M
+is a scaling parameter. Throughout all experiments, we consistently use the values a = 150 and M = 500.
+We also evaluate all the benchmarks on the College Message dataset [30] and the Brightkite dataset [16]
+from the SNAP database. The college dataset spans 23 days, each with between 300 and 500 data points,
+while the Brightkite dataset covers 10 days within this range. We note that the first dataset was previously
+used in the context of learning augmented algorithms by [6] and the second one was used in the [27] and [7].
+We first fix the error parameter σ > 0, then, for each day, we define the true set J as the arrivals for this
+day, and we create the predictions Jˆ by adding some error err(i) to either weights or deadlines of each job i,
+where err(i) is sampled i.i.d. from N (0, σ).
+
+5.2
+
+Experiment results
+
+For each synthetic dataset, the competitive ratio achieved by the different algorithms is averaged over 10
+instances generated i.i.d. For the real datasets, the ratio is averaged over the arrivals for each of the 23 days
+and 10 days, respectively.
+Experiment set 1. We first evaluate the performance of the algorithms as a function of the error parameter
+σ on packet’s weight. In Figure 2, we observe that LAP outperforms all of the benchmarks when the
+error parameter is small. Also, the competitive ratio of LAP plateaus when the value of σ increases,
+which is consistent with our bounded robustness guarantee. As previously stated, EDF demonstrates
+effective performance across various scheduling scenarios. Consequently, we observe that it outperforms other
+benchmarks without any augmented predictions for synthetic datasets. Furthermore, when arrival times
+follow a power-law distribution, the performances of benchmarks become more comparable. This is due to
+one defining feature of the power-law distribution: its heavy tail, often expressed by the 80-20 rule. To be
+more specific, when the majority of jobs arrive infrequently, with occasional bursts, the differences in the
+
+9
+
+performance of algorithms become less noticeable, except for Greedy. However, EDF encounters challenges
+in real-world scenarios, as illustrated on the right-hand side of Figure 2. Given the impracticality of sending
+a very light earliest-deadline packet when heavy packets are prevalent, MG addresses this difficulty by
+intelligently identifying packets that merit transmission. It then selectively sends either the earliest-deadline
+or maximum-weight packet, depending on the ratio of their weights.
+Experiment set 2. In the second set of experiments, we examine the impact of the shift on the packet’s
+deadline. In Figure 3, we observe that LAP outperforms all of the benchmarks until a large deadline shift.
+We also observe that the competitive ratio of LAP deteriorates as a function of the deadline shift [−k, k],
+implying that there is a higher possibility of processing the wrong packet when enlarging the shift.
+Overall, we observe that LAP outperforms all the benchmarks when the error parameter is small, both
+on packet weight and deadline shift, while still maintaining the competitive ratio when the error is large.
+
+6
+
+Summary and open problems
+
+This paper explores learning-augmented online packet scheduling with deadlines, presenting a deterministic algorithm as its main contribution. The algorithm achieves optimality with accurate prediction and
+demonstrates improved competitive ratios with small errors, maintaining a constant competitive ratio even
+with large errors. Additionally, a novel method is introduced to analyze the algorithm by partitioning the
+time interval into two smaller intervals. A lower-bound tradeoff between consistency and robustness is also
+proposed.
+Lastly, we introduce some open problems. It would be worthwhile to design a new algorithm or error
+measure where the competitive ratio is entirely smooth in response to prediction errors. It would also be
+interesting to narrow the gap between robustness and the 2-competitive lower bound for any 1-consistent
+algorithm. Another direction is to explore the First-In-First-Out (FIFO) model with prediction. In the FIFO
+model, each packet has no deadline, but the buffer has limited capacity, and each packet must be transmitted
+in the order of its arrival.
+
+10
+
+References
+[1] Nir Andelman, Yishay Mansour, and An Zhu. Competitive queueing policies for qos switches. In SODA,
+volume 3, pages 761–770. Citeseer, 2003.
+[2] Antonios Antoniadis, Themis Gouleakis, Pieter Kleer, and Pavel Kolev. Secretary and online matching
+problems with machine learned advice. In H. Larochelle, M. Ranzato, R. Hadsell, M. F. Balcan, and
+H. Lin, editors, Advances in Neural Information Processing Systems, pages 7933–7944, 2020.
+[3] Antonios Antoniadis, Peyman Jabbarzade Ganje, and Golnoosh Shahkarami. A novel prediction setup
+for online speed-scaling. arXiv preprint arXiv:2112.03082, 2021.
+[4] Yossi Azar, Debmalya Panigrahi, and Noam Touitou. Online graph algorithms with predictions. In
+Proceedings of the 2022 Annual ACM-SIAM Symposium on Discrete Algorithms (SODA), pages 35–66.
+SIAM, 2022.
+[5] Eric Balkanski, Tingting Ou, Clifford Stein, and Hao-Ting Wei. Scheduling with speed predictions. arXiv
+preprint arXiv:2205.01247, 2022.
+[6] Eric Balkanski, Noemie Perivier, Clifford Stein, and Hao-Ting Wei. Energy-efficient scheduling with
+predictions. In Thirty-seventh Conference on Neural Information Processing Systems, 2023.
+[7] Étienne Bamas, Andreas Maggiori, Lars Rohwedder, and Ola Svensson. Learning augmented energy
+minimization via speed scaling. Advances in Neural Information Processing Systems, 33:15350–15359,
+2020.
+[8] Anton Beloglazov and Rajkumar Buyya. Managing overloaded hosts for dynamic consolidation of virtual
+machines in cloud data centers under quality of service constraints. IEEE transactions on parallel and
+distributed systems, 24(7):1366–1379, 2012.
+[9] Giulia Bernardini, Alexander Lindermayr, Alberto Marchetti-Spaccamela, Nicole Megow, Leen Stougie,
+and Michelle Sweering. A universal error measure for input predictions applied to online graph problems.
+Advances in Neural Information Processing Systems, 35:3178–3190, 2022.
+[10] Giulia Bernardini, Alexander Lindermayr, Alberto Marchetti-Spaccamela, Nicole Megow, Leen Stougie,
+and Michelle Sweering. A universal error measure for input predictions applied to online graph problems,
+2022. URL https://arxiv.org/abs/2205.12850.
+[11] Marcin Bienkowski, Marek Chrobak, and Lukasz Jeż. Randomized competitive algorithms for online
+buffer management in the adaptive adversary model. Theoretical Computer Science, 412(39):5121–5131,
+2011.
+[12] Marcin Bienkowski, Marek Chrobak, Christoph Dürr, Mathilde Hurand, Artur Jeż, Lukasz Jeż, and
+Grzegorz Stachowiak. Collecting weighted items from a dynamic queue. Algorithmica, 65(1):60–94, 2013.
+[13] Martin Böhm, Marek Chrobak, Lukasz Jeż, Fei Li, Jiřı́ Sgall, and Pavel Veselỳ. Online packet scheduling
+with bounded delay and lookahead. Theoretical Computer Science, 776:95–113, 2019.
+[14] Francis YL Chin and Stanley PY Fung. Online scheduling with partial job values: Does timesharing or
+randomization help? Algorithmica (New York), 2003.
+[15] Francis YL Chin, Marek Chrobak, Stanley PY Fung, Wojciech Jawor, Jiřı́ Sgall, and Tomáš Tichỳ.
+Online competitive algorithms for maximizing weighted throughput of unit jobs. Journal of Discrete
+Algorithms, 4(2):255–276, 2006.
+[16] Eunjoon Cho, Seth A Myers, and Jure Leskovec. Friendship and mobility: user movement in locationbased social networks. In Proceedings of the 17th ACM SIGKDD international conference on Knowledge
+discovery and data mining, pages 1082–1090, 2011.
+
+11
+
+[17] Minoru Etoh and Takeshi Yoshimura. Advances in wireless video delivery. Proceedings of the IEEE, 93
+(1):111–122, 2005.
+[18] Michael H Goldwasser. A survey of buffer management policies for packet switches. ACM SIGACT
+News, 41(1):100–128, 2010.
+[19] Bruce Hajek. On the competitiveness of on-line scheduling of unit-length packets with hard deadlines in
+slotted time. In Proceedings of the 2001 Conference on Information Sciences and Systems, 2001.
+[20] Lukasz Jeż. One to rule them all: A general randomized algorithm for buffer management with bounded
+delay. In ESA, pages 239–250. Springer, 2011.
+[21] Lukasz Jeż, Fei Li, Jay Sethuraman, and Clifford Stein. Online scheduling of packets with agreeable
+deadlines. ACM Transactions on Algorithms (TALG), 9(1):1–11, 2012.
+[22] Billy Jin and Will Ma. Online bipartite matching with advice: Tight robustness-consistency tradeoffs for
+the two-stage model, 2022. URL https://arxiv.org/abs/2206.11397.
+[23] Alexander Kesselman, Zvi Lotker, Yishay Mansour, Boaz Patt-Shamir, Baruch Schieber, and Maxim
+Sviridenko. Buffer overflow management in qos switches. SIAM Journal on Computing, 33(3):563–583,
+2004.
+[24] Silvio Lattanzi, Thomas Lavastida, Benjamin Moseley, and Sergei Vassilvitskii. Online scheduling via
+learned weights. In Proceedings of the 2020 ACM-SIAM Symposium on Discrete Algorithms (SODA),
+pages 1859–1877, 2020.
+[25] Alexander Lindermayr and Nicole Megow. Permutation predictions for non-clairvoyant scheduling. In
+Proceedings of the 34th ACM Symposium on Parallelism in Algorithms and Architectures, pages 357–368,
+2022.
+[26] Alexander Lindermayr and Nicole Megow.
+algorithms-with-predictions.github.io/, 2024.
+
+Algorithms
+
+with
+
+predictions.
+
+https://
+
+[27] Thodoris Lykouris and Sergei Vassilvitskii. Competitive caching with machine learned advice. J. ACM,
+68(4):24:1–24:25, 2021. doi: 10.1145/3447579. URL https://doi.org/10.1145/3447579.
+[28] Michael Mitzenmacher. Scheduling with Predictions and the Price of Misprediction. In 11th Innovations in
+Theoretical Computer Science Conference (ITCS 2020), volume 151 of Leibniz International Proceedings
+in Informatics (LIPIcs), pages 14:1–14:18, 2020. ISBN 978-3-95977-134-4.
+[29] Michael Mitzenmacher and Sergei Vassilvitskii. Algorithms with predictions. Commun. ACM, 65(7):
+33–35, 2022. doi: 10.1145/3528087. URL https://doi.org/10.1145/3528087.
+[30] Pietro Panzarasa, Tore Opsahl, and Kathleen M Carley. Patterns and dynamics of users’ behavior and
+interaction: Network analysis of an online community. Journal of the American Society for Information
+Science and Technology, 60(5):911–932, 2009.
+[31] Manish Purohit, Zoya Svitkina, and Ravi Kumar. Improving online algorithms via ml predictions. In
+S. Bengio, H. Wallach, H. Larochelle, K. Grauman, N. Cesa-Bianchi, and R. Garnett, editors, Advances
+in Neural Information Processing Systems. Curran Associates, Inc., 2018.
+[32] Supranamaya Ranjan, Jerome Rolia, Ho Fu, and Edward Knightly. Qos-driven server migration for
+internet data centers. In IEEE 2002 Tenth IEEE International Workshop on Quality of Service (Cat.
+No. 02EX564), pages 3–12. IEEE, 2002.
+[33] Nourhan Sakr and Cliff Stein. An empirical study of online packet scheduling algorithms. In Experimental Algorithms: 15th International Symposium, SEA 2016, St. Petersburg, Russia, June 5-8, 2016,
+Proceedings 15, pages 278–293, 2016.
+
+12
+
+[34] Jitae Shin, Jong Won Kim, and C-CJ Kuo. Quality-of-service mapping mechanism for packet video in
+differentiated services network. IEEE Transactions on Multimedia, 3(2):219–231, 2001.
+[35] Pavel Veselỳ. Packet scheduling: Plans, monotonicity, and the golden ratio. ACM SIGACT News, 52(2):
+72–84, 2021.
+[36] Pavel Veselỳ, Marek Chrobak, Lukasz Jeż, and Jiřı́ Sgall. A ϕ-competitive algorithm for scheduling
+packets with deadlines. SIAM Journal on Computing, 51(5):1626–1691, 2022.
+[37] Chenyang Xu and Benjamin Moseley. Learning-augmented algorithms for online steiner tree. In
+Proceedings of the AAAI Conference on Artificial Intelligence, volume 36, pages 8744–8752, 2022.
+[38] Qian Zhang, Wenwu Zhu, and Ya-Qin Zhang. End-to-end qos for video delivery over wireless internet.
+Proceedings of the IEEE, 93(1):123–134, 2004.
+
+13
+
+A
+
+Missing proofs in section 3
+
+Theorem 3.6. LAP is ρ + γon + 1-robust.
+Proof. For c > 0, a parameter that we choose later, we divide the proof into two distinct cases: (1)
+W (Opt(J )(>tλ −1) ) > cW (Opt(J )(≤tλ −1) ) and (2) W (Opt(J )(>tλ −1) ) ≤ cW (Opt(J )(≤tλ −1) ).
+1. W (Opt(J )(>tλ −1) ) > cW (Opt(J )(≤tλ −1) ).
+e = P (≤tλ −1) ∩ Opt(J )(>tλ −1) . In this case, we have Opt(J )(>tλ −1) \ P
+e is a feasible candidate
+Let P
+(>tλ −1)
+for P
+. Since OnlineAlg has a competitive ratio of γon , we have
+e .
+γon W (P (>tλ −1) ) ≥ W (Opt(J )(>tλ −1) ) − W (P)
+
+(2)
+
+By applying the condition W (Opt(J )(>tλ −1) ) > cW (Opt(J )(≤tλ −1) ), we can obtain
+c+1
+c+1
+γon W (P) =
+γon (W (P (≤tλ −1) ) + W (P (>tλ −1) ))
+c
+c
+c+1
+c+1
+e
+γon W (P (≤tλ −1) ) +
+(W (Opt(J )(>tλ −1) ) − W (P))
+≥
+c
+c
+c+1
+W (Opt(J )(>tλ −1) )
+≥
+c
+> W (Opt(J )(≤tλ −1) ) + W (Opt(J )(>tλ −1) )
+= W (Opt(J )) ,
+e ⊆ P (≤tλ −1) , and the last
+where the first inequality uses (2), the second inequality uses the fact that P
+(>tλ −1)
+inequality uses the assumption of this case, where W (Opt(J )
+) > cW (Opt(J )(≤tλ −1) ).
+2. W (Opt(J )(>tλ −1) ) ≤ cW (Opt(J )(≤tλ −1) ). For this case, we further consider the following two cases:
+• W (Opt(J )(≤tλ −1) ) = W (Opt(J≤tλ −1 )(≤tλ −1) ).
+In this case, since LAP switches to OnlineAlg at time tλ , it satisfies that ρW (P (≤tλ −1) ) ≥
+W (Opt(J≤tλ −1 )(≤tλ −1) ). Therefore, we can obtain the following result:
+(c + 1)ρW (P) ≥ (c + 1)W (Opt(J≤tλ −1 )(≤tλ −1) )
+= (c + 1)W (Opt(J )(≤tλ −1) )
+≥ W (Opt(J )(≤tλ −1) ) + W (Opt(J )(>tλ −1) )
+= W (Opt(J )) ,
+where the third inequality applies the condition W (Opt(J )(>tλ −1) ) ≤ cW (Opt(J )(≤tλ −1) ).
+• W (Opt(J )(≤tλ −1) ) > W (Opt(J≤tλ −1 )(≤tλ −1) ).
+In this case, by Lemma 3.5, we have Opt(J )(≤tλ −1) ∩ Opt(J≤tλ −1 )(>tλ −1) ̸= ∅. Let P̃ =
+Opt(J )(≤tλ −1) ∩ Opt(J≤tλ −1 )(>tλ −1) . We first claim the following property:
+Claim A.1. W (Opt(J≤tλ −1 )(≤tλ −1) ) ≥ W (Opt(J )(≤tλ −1) ) − W (P̃).
+Proof. Assume W (Opt(J≤tλ −1 )(≤tλ −1) ) < W (Opt(J )(≤tλ −1) )−W (P̃). By replacing Opt(J≤tλ −1 )(≤tλ −1)
+with Opt(J )(≤tλ −1) \ P̃, we have
+W (Opt(J )(≤tλ −1) ) − W (P̃) + W (Opt(J≤tλ −1 )(>tλ −1) )
+> W (Opt(J≤tλ −1 )(≤tλ −1) ) + W (Opt(J≤tλ −1 )(>tλ −1) )
+> W (Opt(J≤tλ −1 )) ,
+which contradicts the optimality of Opt(J≤tλ −1 ).
+14
+
+Also, since LAP switches to OnlineAlg at time tλ , we have (i) ρW (P (≤tλ −1) ) ≥ W (Opt(J≤tλ −1 )(≤tλ −1) ).
+Moreover, we have (ii) each job j ∈ P̃ is either in P (≤tλ −1) or feasible for P (>tλ −1) . Specifically, we
+let P̃1 = P̃ ∩ P (≤tλ −1) and P̃2 = P̃ \ P̃1 . With the above definition, we next decompose P (≤tλ −1)
+−
+into P (≤tλ −1) and P̃1 . By (i), we can obtain:
+−
+
+ρW (P (≤tλ −1) ) = ρ(W (P (≤tλ −1) ) + W (P̃1 ))
+≥ W (Opt(J≤tλ −1 )(≤tλ −1) )
+≥ W (Opt(J )(≤tλ −1) ) − W (P̃) ,
+where the first inequality follows from (i) and the second inequality follows from Claim A.1.
+Next, since OnlineAlg is γon -competitive, we have
+γon W (P (>tλ −1) ) ≥ W (P̃2 ) .
+
+(3)
+
+Finally, by combining the above two inequalities, and using the fact that ρ + 1 > γon , we can obtain
+(ρ + 1)W (P) = max{ρ + 1, γon }W (P)
+≥ (ρ + 1)W (P (≤tλ −1) ) + γon W (P (>tλ −1) )
+≥ W (Opt(J )(≤tλ −1) ) − W (P̃) + W (P̃1 ) + W (P̃2 )
+≥ W (Opt(J )(≤tλ −1) ) ,
+where the second inequality uses the result ρW (P (≤tλ −1) ) ≥ W (Opt(J )(≤tλ −1) ) − W (P̃) and (3),
+and the last inequality uses the fact that P̃ = P̃1 ∪ P̃2 .
+Finally, by using the assumption W (Opt(J )(>tλ −1) ) ≤ cW (Opt(J )(≤tλ −1) ), we have the competitive ratio of this case is (c + 1)(ρ + 1).
+By combining the above three cases, and we can derive the competitive ratio as
+max{
+
+γon (c + 1)
+, (c + 1)(ρ + 1)}.
+c
+
+γon
+To optimize the competitive ratio, we set c = ρ+1
+. Substituting this value into the equation yields a
+competitive ratio of γon + ρ + 1. This completes the proof.
+
+B
+
+Missing proofs in section 4
+
+Proposition 4.1. Assume a deterministic learning-augmented algorithm is 1-consistent; then, the competitive
+ratio cannot be better than 2.
+Proof. Consider the following two problem instances: J1 and J2 , where J1 = {(0, 1, ϵ), (0, 2, 1)} and
+J2 = {(0, 1, ϵ), (0, 2, 1), (1, 2, 1)}, respectively.
+Assume that, initially, a 1-consistent algorithm A is given J1 as the prediction. We first argue that, for
+any 1-consistent algorithm, it will process the job with weight ϵ at time t = 0; otherwise, if such an algorithm
+does not process it, the job will expire at time t = 1, leading to a contradiction.
+After observing the decision made by algorithm A, the adversary will choose the problem instance J2 .
+Therefore, at time t = 1, algorithm A realizes that there is another arrival with the same deadline at t = 2
+and weight 1, and the algorithm can only process one of the two.
+On the other hand, the optimal solution for J2 would first process the job with weight 1 at time t = 0,
+2
+resulting in a total processing weight of 2. Therefore, the competitive ratio would be 1+ϵ
+. By letting the
+value of ϵ be very small, the ratio becomes 2, and we conclude the proof.
+
+15
+
+Theorem 4.2. Assume a deterministic learning-augmented algorithm is 1+α-consistent; then, the competitive
+2
+ratio cannot be better than 1+α
+.
+Proof. Consider the following two problem instances: J1 and J2 , where J1 = {(0, 1, α + ϵ), (0, 2, 1)} and
+J2 = {(0, 1, α + ϵ), (0, 2, 1), (1, 2, 1)}, respectively.
+Assume that, initially, a 1 + α-consistent algorithm A is given J1 as the prediction. We first argue that, for
+any 1 + α-consistent, it will process the job with weight α + ϵ at time t = 0. Otherwise, if such an algorithm
+does not process this job, it will expire at time t = 1, resulting in a consistency value of 1+α+ϵ
+> 1 + α, which
+1
+leads to a contradiction.
+Upon observing the decision made by algorithm A regarding the job with weight α + ϵ, the adversary will
+select problem instance J2 . At time t = 1, the adversary releases another job, j = (1, 2, 1). Consequently, at
+time t = 1, algorithm A realizes that there is another arrival with the same deadline and weight, and the
+algorithm can only process one of the two.
+On the other hand, the optimal solution for J2 processes the job with weight 1 at time t = 0, resulting in
+2
+a total processing weight of 2. Therefore, the competitive ratio becomes 1+α
+by letting the value of ϵ be very
+small, concluding the proof.
+
+16
+
+

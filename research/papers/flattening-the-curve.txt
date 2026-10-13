@@ -1,0 +1,2083 @@
+Flattening the Curve: Insights From Queueing Theory
+
+arXiv:2004.09645v1 [cs.PF] 20 Apr 2020
+
+Sergio Palomo
+Systems Engineering
+Cornell University
+418 Upson Hall, Ithaca, NY 14853
+sdp85@cornell.edu
+Jamol Pender ∗
+School of Operations Research and Information Engineering
+Cornell University
+228 Rhodes Hall, Ithaca, NY 14853
+jjp274@cornell.edu
+William Massey
+Department of Operations Research and Financial Engineering
+Princeton University
+206 Sherrerd Hall, Princeton, NJ 08540
+wmassey@princeton.edu
+Robert C. Hampshire
+Gerald R. Ford School of Public Policy
+University of Michigan
+735 S. State Street, Ann Arbor, MI 48019
+hamp@umich.edu
+April 22, 2020
+
+Abstract
+The worldwide outbreak of the coronavirus was first identified in 2019 in Wuhan,
+China. Since then, the disease has spread worldwide. As it currently spreading in the
+United States, policy makers, public health officials and citizens are racing to understand the impact of this virus on the United States healthcare system. They fear that
+the rapid influx of patients will overwhelm the healthcare system leading to unnecessary
+fatalities. Most countries and states in America have introduced mitigation strategies,
+∗
+
+Corresponding Author
+
+1
+
+such as social distancing, to decrease the rate of newly infected people, i.e. flattening
+the curve.
+In this paper, we analyze the time evolution of the number of people hospitalized
+due to the coronavirus using the methods of queueing theory. Given that the rate of
+new infections varies over time as the pandemic evolves, we model the number of coronavirus patients as a dynamical system based on the theory of infinite server queues
+with non-stationary Poisson arrival rates. With this model we are able to quantify
+how flattening the curve affects the peak demand for hospital resources. This allows us
+to characterize how aggressively society must flatten the curve in order to avoid overwhelming the capacity of healthcare system. We also demonstrate how flattening the
+curve impacts the elapsed time between the peak rate of hospitalizations and the time
+of the peak demand for the hospital resources. Finally, we present empirical evidence
+from China, South Korea, Italy and the United States that supports the insights from
+the model.
+Keywords: epidemics, exponential growth, operations research, queueing theory,
+fluid limits, infinite server queues, lag effect, COVID-19
+
+1
+
+Introduction
+
+The coronavirus was first identified in Wuhan, a city of over 11 million people in China’s
+Hubei province, in December of 2019. COVID-19, the disease caused by the coronavirus,
+grew by several thousand per day in China between late January and the peak of their
+epidemic in early February. The number of infections appearing each day has decreased
+there significantly. This was mainly due to stringent containment efforts.
+However, the outbreak is now a global pandemic. Large outbreaks in South Korea, Iran,
+Italy, Spain, and the United States have all sparked interest in coronavirus research. As of
+April 19th 2020, there have been 2,432,092 cases and 166,794 deaths confirmed worldwide.
+Also, the World Health Organization has officially named COVID-19 a global pandemic.
+The spread of the virus has been rapid, with 208 countries now having reported cases.
+Lawmakers and public health experts such as National Institute of Allergy and Infectious
+Diseases director, Dr. Anthony Fauci, have been encouraging “social distancing” as a measure
+to flatten the curve. This implies that we want to push down the peak number of infected
+people and spread it out over time. Many people understand how flattening the curve
+impacts the healthcare system from an empirical or qualitative perspective, see Goebel [8].
+However, there is little quantitative research in this area and relatively little research on how
+much pushing is needed to flatten the curve.
+In this paper, we model the potential demand for hospital resources like beds, ventilators,
+medical staff as an infinite server queue with non-stationary arrival rates. We use as our
+simple examples of unimodal arrival rate functions, the scaled Gaussian distribution density
+and the scaled gamma density functions. We then derive explicit expressions for the peak
+mean number in the queueing system as well as the time of this peak.
+Our paper has two main goals. The first one is showing the global community how
+operations research, represented here by queueing theory, helps us understand the impact of
+2
+
+COVID-19 on the healthcare system. The other goal is showing that by leveraging insights
+from queues with time varying rates leads to simple descriptions of the hospital patient
+dynamics for the COVID-19 pandemic. More specifically, we show using a scaled Gaussian
+arrival rate and a scaled Gamma arrival rate, how to calculate the time of the peak infection
+rate, the peak mean number of infected people, and the time between the peak hospitalization
+rate and the time of the peak number of patients. We use an infinite server queueing model
+to demonstrate the impact of social distancing and flattening the curves of arrival rates and
+mean counts of on hospital capacity.
+Operationally, we can learn from the situations we have already observed in China,
+Europe, and New York City to avoid similar outcomes in other places? From the data, we
+see that "every hotspot has its own curve" see Hilk et al. [11]. One important advantage of
+our work is that it can be used to study each individual curve for individual regions around
+the world. The geographic and temporal clustering of outbreaks have the potential to create
+a health care system collapse. Many states in the United States have imposed "stay at home"
+orders to contain the spread of the disease. However, since many people are asymptomatic,
+we can show through the analysis of our queueing examples that containment measures
+implemented in recent days may take weeks to have an observable effect in the data.
+Although hospital bed capacity is an important concern for health care officials, it is not
+the most crucial bottleneck for providing critical care when patients need it. After observing
+many deaths in Italy, many experts and government officials are concerned about the number
+of available ventilators. Patients who become critically ill need individual ventilators but
+they have become a scarce resource. Equally important resources are medical specialists
+and staff members that can supervise the patients in their beds and operate the ventilators
+properly. Fundamentally, this paper strives to help healthcare managers understand what
+supply is needed for all these lifesaving resources at the peak of the ultimate curve for their
+aggregate demand.
+
+1.1
+
+Main Contributions of This Paper
+
+The contributions of this work can be summarized as follows:
+• Given a non-stationary arrival rate, we derive an expression for the mean number of
+infected individuals using an infinite server queue.
+• Using the infinite server queue model, we derive the exact time of the peak load and
+the value of the peak load.
+• Using our peak load calculations, we determine the value of "flattening" that needs to
+be done in order to make the peak load infection value below a pre-specified capacity
+level.
+• We study the impact of the duration of the virus on the peak load dynamics of hospital
+resources and how it affects our flattening policies.
+• We characterize the nonlinear relationship between flattening the curve and the time
+lag between the peak rate of newly admitted patients and the peak demand for hospital
+resources. We also show how the lag can be observed in real data.
+3
+
+2
+
+Demand for Hospital Resources: The Infinite Server
+Queue
+
+We model the number of patients as a Mt /G/∞ queueing model. There are two important
+reasons to begin with the Mt /G/∞ queueing model even though it has an infinite number of
+servers and this does not seem realistic from a practical perspective. The first reason is that
+the Mt /G/∞ queue is very tractable since the distribution is known in closed form for any
+non-stationary arrival rate. The second reason is that the Mt /G/∞ queue is the best type
+of queue one can hope for where everyone is immediately served and no one ever waits for
+service. From the perspective of the COVID-19 epidemic, this means that anyone who wants
+a bed gets a bed immediately or who ever needs a ventilator gets a ventilator immediately.
+In this regard, the Mt /G/∞ infinite server queue is an upper bound for queueing models
+with a finite number of servers and without abandonment since it represents the dynamics if
+the manager had access to an infinite amount of resources and is not resource constrained.
+Moreover, the infinite server queue has a history of being used to staff finite server systems,
+see for example Jennings et al. [12], Feldman et al. [7], Liu and Whitt [15], Massey and
+Pender [16]. Thus, the infinite server queue serves as the first step to understanding more
+complicated systems.
+
+2.1
+
+The Mt /G/∞ Queue
+
+In this section, we state the closed form formulas for the Mt /G/∞ queueing model, which
+exploits the results of Eick et al. [5, 6] for the time varying infinite server queue. In the paper
+of Eick et al. [5], they use the properties of the Poisson arrival process and use Poisson random
+measure arguments to show that the Mt /G/∞ queue Q∞ (t), has a Poisson distribution with
+time varying mean q ∞ (t). As observed in Eick et al. [5, 6], q ∞ (t) has the following integral
+representation
+q ∞ (t) = E[Q∞ (t)]
+Z t
+G(t − u)λ(u)du
+=
+−∞
+Z t
+
+λ(u)du
+= E
+
+(2.1)
+(2.2)
+(2.3)
+
+t−S
+
+= E[λ(t − Se )] · E[S]
+
+(2.4)
+
+where λ(u) is the time varying arrival rate and S represents a service time with distribution
+G, G = 1 − G(t) = P(S > t), and Se is a random variable with distribution that follows the
+stationary excess of residual-lifetime cdf Ge , defined by
+Z t
+Z t
+1
+1
+P(S > u)du, t ≥ 0.
+(2.5)
+Ge (t) ≡ P(Se < t) =
+G(u)du =
+E[S] 0
+E[S] 0
+Remark. As a point of emphasis, we would like to remind readers that the word curve in this
+paper maps to two different things: the arrival rate function and the mean offered load. The
+general public might call these the infection rate and the number of patients in the hospital.
+4
+
+Moreover, there is a causal relationship between the two curves, i.e. you need to flatten the
+first one in order to flatten the second one.
+
+2.2
+
+The Mt /G/∞ Queue with a Gaussian Arrival Rate
+
+In this section, we describe the dynamics of the Mt /G/∞ queue whose arrival rate is driven
+by a Gaussian distribution function. Thus, the arrival rate function λ(t) is given by the
+following expression
+
+
+λ
+t−τ
+λ(t) ≡ · ϕ
+,
+(2.6)
+σ
+σ
+where τ is mean of the Gaussian distribution, σ is the standard deviation of the Gaussian
+distribution, λ∗ is the number of total expected number of infected individuals over the lifetime of the epidemic, and ϕ (x) is the probability density function of the standard Gaussian
+distribution i.e.
+1
+2
+(2.7)
+ϕ (x) ≡ √ · e−x /2 .
+2π
+One of the important things to observe is that the standard Gaussian pdf is bounded from
+above i.e.
+1
+1
+2
+ϕ (x) ≡ √ · e−x /2 ≤ √ .
+(2.8)
+2π
+2π
+
+Figure 1: Plot of Gaussian arrival rate functions.
+Using the Gaussian pdf as our arrival rate gives us the following integral relationships.
+v
+u Z∞
+Z ∞
+Z∞
+u1
+1
+u
+∗
+λ(t)dt = λ ,
+tλ(t)dt = τ, t ∗
+(t − τ )2 · λ(t)dt = σ.
+(2.9)
+∗
+λ
+λ
+−∞
+−∞
+
+−∞
+
+5
+
+In Figure 1, we plot two Gaussian arrival rate functions. The blue curve is a Gaussian(τ =
+10, σ = 4) and the red curve (flattened curve) is a Gaussian(τ = 20, σ = 4). By increasing
+the standard deviation by a factor of 2, we have reduced the peak value of the arrival rate by
+a factor of two. This follows from the mode of Gaussian being inversely proportional to the
+standard deviation σ. Now that we have a full understanding of the Gaussian arrival rate
+function that we will use for patient arrivals, we can leverage insights from non-stationary
+queues to understand the dynamics of the total number infected and how long they stay
+infected.
+Theorem 2.1. The Mt /G/∞ queueing model with a Gaussian distribution arrival rate has
+a Poisson(qM/G/∞ (t)) distribution where the mean qM/G/∞ (t) is the solution to the following
+ordinary differential equation
+
+ 
+
+•
+t − τ − Se
+t − τ − Se
+λ∗
+q M/G/∞ (t) = − · E
+ϕ
+· E[S]
+(2.10)
+σ2
+σ
+σ
+and the solution is given by
+ 
+
+λ∗
+t − τ − Se
+qM/G/∞ (t) =
+·E ϕ
+· E[S].
+σ
+σ
+
+(2.11)
+
+Moreover, for any value of t, we have that
+qM/G/∞ (t) ≤
+
+λ∗ · E[S]
+√
+.
+σ 2π
+
+(2.12)
+
+Proof. We actually start with the solution of the queue length given in Equation 2.13. The
+solution is easily given by the formula from Eick et al. [5] since we have that
+qM/G/∞ (t) = E [λ(t − Se )] · E[S]
+ 
+
+t − τ − Se
+λ∗
+·E ϕ
+=
+· E[S].
+σ
+σ
+
+(2.13)
+(2.14)
+
+To find the differential equation, one simply takes the derivative of the solution with respect
+to the time parameter t. The reason that we get the final expression in Equation 2.13 is
+that the derivative of the Gaussian distribution yields the first Hermite polynomial times
+the Gaussian pdf. Finally, the bound on the standard Gaussian density function yields the
+bounds on the queue length. This completes the proof.
+
+6
+
+Figure 2: Gaussian arrival curves and their queue lengths (E[S] = 1, λ∗ = 100).
+
+Curve Type
+Arrival Curve
+Flattened Arrival Curve
+Queue Length
+Flattened Queue Length
+
+τ
+10
+20
+10
+20
+
+σ
+2
+4
+2
+4
+
+E[S]
+1
+1
+1
+1
+
+Peak Time
+10
+20
+10.86
+20.95
+
+Peak Value
+19.95
+9.97
+18.20
+9.70
+
+Table 1: Comparison between regular and flattened curves peak values and times (λ∗ = 100).
+
+In Figure 2, we plot the same two Gaussian arrival functions given in Figure 1. However, to the right of each arrival curve, we also plot the subsequent queue length when an
+exponential distribution is assumed for the service distribution. The parameters for each
+curve and the service distributions are given in Table 1. Table 1 and Figure 2 yield many
+observations.
+The first observation is that we see that both arrival rate curves intersect with the queue
+length at the peak queue length. This is a nice property and can be explained by first
+noticing that E[S] = 1/µ = 1 in our example. Thus, at the peak queue length, we know the
+time derivative of the queue length is equal to zero i.e.
+•
+
+q (t) = λ(t) − µq(t) = 0.
+
+(2.15)
+
+This implies that at the time of the peak queue length, t∗ we have
+λ(t∗ ) = µq(t∗ ).
+
+(2.16)
+
+A second observation is that for this value of the service distribution, E[S] = 1, the peak
+arrival rate is larger than the peak queue length. We find that for the flattened arrival curve,
+7
+
+the value of the peak queue length is closer to the value of the peak arrival rate than in the
+non-flattened case. This implies that even though one might flatten the curve and reduce the
+peak arrival rate by one half, it does not mean that the peak queue length are also reduced
+by one half. We observe that the queue peak queue length is 91% of the peak arrival rate in
+the non-flattened curve, while it is 97% of the flattened curve.
+In addition to finding the solution of the queue length, we can compute an expression for
+the time of the peak queue length. We know that the time of the peak arrival rate occurs
+at the mode τ and our goal is to understand the lag effect i.e. the length of time the peak
+queue length occurs after the peak arrival rate occurs. Theorem 2.2 suggests that the time
+of the peak queue length occurs after the peak arrival time τ . This is generally well known
+in the queueing literature. However, this is an important fact for the COVID-19 outbreak
+as it helps determine exactly from the peak number of infections, when the peak load will
+be seen in the healthcare system.
+Theorem 2.2. The time of the peak queue length is the solution to the following fixed point
+equation
+
+
+
+
+t∗ −τ −Se
+t∗ −τ −Se
+∗
+E
+S
+·
+ϕ
+λ
+·
+E[S]
+·
+E
+S
+·
+ϕ
+e
+e
+σ 
+σ
+
+.
+(2.17)
+=τ+
+t∗ = τ +
+∗
+σ · qM/G/∞ (t∗ )
+E ϕ t −τσ−Se
+Proof. The proof is found in the Appendix.
+
+Figure 3: Gaussian arrival curves and their queue lengths (E[S] = 2, λ∗ = 100).
+Unscaled arrival rate (Left). Scaled Arrival rate (Right).
+Curve Type
+Arrival Curve
+Flattened Arrival Curve
+Queue Length
+Flattened Queue Length
+
+τ
+10
+20
+10
+20
+
+σ
+2
+4
+2
+4
+
+E[S]
+2
+2
+2
+2
+
+Peak Time
+10
+20
+11.40
+21.71
+
+Peak Value
+19.95
+9.97
+31.29
+18.20
+
+Table 2: Comparison between regular and flattened curves peak values and times (λ∗ = 100).
+
+8
+
+Figure 4: λ∗ = 100, µ = .1, σ = 2, σ = 4, τ = 10, τ = 20.
+
+Curve Type
+Arrival Curve
+Flattened Arrival Curve
+Queue Length
+Flattened Queue Length
+
+τ
+10
+20
+10
+20
+
+σ
+2
+4
+2
+4
+
+E[S]
+10
+10
+10
+10
+
+Peak Time
+10
+20
+12.93
+24.51
+
+Peak Value
+19.95
+9.97
+68.28
+52.90
+
+Table 3: Comparison between regular and flattened curves peak values and times (λ∗ = 100).
+.
+
+In Figures 3 - 4, we plot our Gaussian arrival curves with their respective queue lengths.
+In Figure 3, we set the mean service time to be E[S] = 2 and in Figure 4, we set the mean
+service time to be E[S] = 10. On the left of the both Figures 3 - 4, we plot the actual arrival
+rate and the actual queue length; however ,on the right of Figures 3 - 4, we plot the actual
+queue length, but an arrival rate that is scaled by the mean service time E[S]. We observe
+that the in the unscaled plots on the left, the arrival rate does not intersect with the queue
+length at the peak. However, in the scaled plots on the right, we observe that the arrival
+rate intersects with the queue length curve at the queue length peak. This verifies Equation
+2.16 again. Finally, we observe in Table 1 that by reducing the arrival rate peak by one half
+reduces the queue length peak by one half when E[S] = 1. However, we observe in Tables 2
+- 3 that as we increase E[S], we see a smaller reduction in the peak queue length. Certainly
+we expect the infectious period to be longer than one day for COVID-19 so our theoretical
+results imply that we may need to do more flattening of the curve as patients spend more
+time infected.
+Theorem 2.3. The time of peak queue length is bounded by the following upper and lower
+bounds
+E[Se ]
+E[S 2 ]
+ t∗ −τ −Se  = τ + √
+
+ .
+τ ≤ t∗ ≤ τ + √
+∗
+2πσE ϕ
+8πσE[S]E ϕ t −τσ−Se
+σ
+9
+
+(2.18)
+
+Proof. First we observe that from Theorem 2.2 that t∗ solves the following fixed point equation
+
+
+t∗ −τ −Se
+E
+S
+·
+ϕ
+e
+σ 
+
+t∗ = τ +
+.
+(2.19)
+∗
+E ϕ t −τσ−Se
+Now to prove the upper bound on the peak time, one observes that the numerator is bounded
+by the standard Gaussian bound given
+in Equation
+lower
+ 2.39. For
+ the
+ bound, one just
+
+∗
+∗
+recognizes that both expectations E Se · ϕ t −τσ−Se and E ϕ t −τσ−Se are non-negative.
+To make an equivalence with the last equality, we use the equality between the expected
+stationary excess random variable and the second moment of the service distribution i.e.
+E[S 2 ]
+E[Se ] = 2E[S]
+. This completes the proof.
+Theorem 2.3 provides upper and lower bounds on the time of the peak queue length.
+Numerically, one can use a bisection algorithm in order to explicitly determine the time of
+peak infection. Once the time of the peak infection is known, then one can use Theorem
+2.1 to determine the queue length value at that peak time as well as the value of the peak
+infection. This provides estimates on the number of ventilators or beds needed at the peak
+time of infection.
+Theorem 2.4. Let qM/G/∞ (t) be a Mt /G/∞ queueing model with a Gaussian distribution
+arrival rate. If C is the maximum capacity queue length for all values of t, then the value of
+σ ∗ that flattens the peak queue length below C is given by
+λ∗ · E[S]
+√
+.
+σ =
+C 2π
+∗
+
+(2.20)
+
+Proof. We know the queue length is bounded by the constant
+qM/G/∞ (t) ≤
+
+λ∗ · E[S]
+√
+.
+σ 2π
+
+(2.21)
+
+Now we let the constant equal the capacity and solve for the standard deviation to get
+C
+
+2.2.1
+
+λ∗ · E[S]
+√
+σ 2π
+λ∗ · E[S]
+√
+⇒ σ∗ =
+.
+C 2π
+=
+
+(2.22)
+(2.23)
+
+Deterministic Service Distribution
+
+In this section, we specify the service distribution to be a constant. Although the constant
+assumption for the service time is quite unrealistic, this will simplify many of the complicated
+equations and yield simple insights. Our first result shows the queue length can be described
+by an ode and the solution is simply an integral of the arrival rate evaluated at the current
+time and the current time minus the constant service rate. Finally, we also show that the
+lag between the peak arrival rate and peak load is equal to half of the service time.
+10
+
+Corollary 2.5. The Mt /D/∞ queueing model with a Gaussian distribution arrival rate is
+the solution to the following ordinary differential equation
+•
+
+q (t) = λ(t) − λ(t − ∆)
+
+
+
+
+λ∗
+t−τ
+λ∗
+t−τ −∆
+=
+·ϕ
+−
+·ϕ
+σ
+σ
+σ
+σ
+
+(2.24)
+(2.25)
+
+and the solution is given by
+Z t
+
+
+
+λ∗
+s−τ
+·ϕ
+ds
+qM/G/∞ (t) =
+σ
+t−∆ σ
+ 
+
+
+
+t − στ
+t − ∆ − στ
+∗
+√
+√
+= λ erf
+− erf
+.
+2
+2
+
+(2.26)
+(2.27)
+
+Finally, the time of the peak is equal to
+∆
+.
+(2.28)
+2
+Proof. This follows from standard analysis and the symmetry of the Gaussian distribution.
+t∗ = τ +
+
+2.2.2
+
+Exponential Service Distribution
+
+When the service time distribution is exponential, the mean queue length, q∞ (t), solves the
+autonomous ordinary differential equation
+•
+
+q ∞ (t) = λ(t) − µ · q∞ (t).
+
+(2.29)
+
+The subsequent ordinary differential equation is linear and has a closed form solution
+given by the following expression
+Z t
+−µt
+−µt
+q∞ (t) = q0 e + e
+λ(s)eµs ds.
+(2.30)
+0
+
+Corollary 2.6. The Mt /M/∞ queue with arrival rate given by a Gaussian distribution with
+parameters has the following closed form expression for the mean transient queue length
+∗
+
+q∞ (t) = λ · e
+
+−µt
+
+µ2 σ 2 /2
+
+·e
+
+
+·Φ
+
+
+t
+− µσ .
+σ
+
+(2.31)
+
+Proof.
+q∞ (t) = E[λ(t − Se )] · E[S]
+
+
+λ∗
+t
+−µt
+µ2 σ 2 /2
+=
+· µσ · e · e
+·Φ
+− µσ · E[S]
+σ
+σ
+
+
+t
+∗ −µt
+µ2 σ 2 /2
+= λ e ·e
+·Φ
+− µσ
+σ
+
+11
+
+(2.32)
+(2.33)
+(2.34)
+
+Theorem 2.7. When the arrival rate is a Gaussian function and the service time is given
+by an exponential distribution, then the lag ` in the time between the peak arrival rate and
+the time of the peak queue length is given by the following expression
+` ≡ t∗ − τ = σ · (µσ + ψ(µσ))
+
+(2.35)
+
+where
+ψ −1 (x) =
+
+ϕ(x)
+.
+Φ(x)
+
+(2.36)
+
+Proof. The proof is given in the Appendix.
+Thus, for the exponential distribution, we have an explicit formula for the lag in terms of
+the ψ(·) function. This function is related to conditional expectations of Gaussian random
+variables and is related to the inverse Mills ratio i.e
+ψ −1 (x) = E [X|X ≤ x] =
+
+ϕ(x)
+.
+Φ(x)
+
+(2.37)
+
+In the context of operations research, the ψ(·) function has been analyzed in resource sharing
+settings in Hampshire et al. [9, 10], as well as, in the context of using risk measures for staffing
+multi-server queueing systems in Pender [21].
+
+2.3
+
+The Mt /G/∞ Queue with a Gamma Arrival Rate
+
+In this section, we describe the dynamics of the Mt /G/∞ queue whose arrival rate is driven
+by a Gamma distribution function. Thus, the arrival rate function λ(t) is given by the
+following expression
+λ(t, α, β) ≡ λ(t) ≡
+
+λ∗ β α α−1 −βt
+t e ,
+Γ(α)
+
+t≥0
+
+(2.38)
+
+where α is shape parameter of the Gamma distribution, β is the rate parameter Gamma
+distribution, λ∗ is the parameter. Unlike the standard Gaussian, the Gamma distribution is
+not guaranteed to be bounded unless the parameter α ≥ 1. Thus, for the remainder of this
+paper, we assume that α ≥ 1. Under this condition, we have that
+
+
+λ∗ β α α−1 −βt
+α−1
+λ∗ β
+λ (t) ≡
+t e
+≤λ
+=
+(α − 1)α−1 e−(α−1) .
+(2.39)
+Γ(α)
+β
+Γ(α)
+Using the Gamma pdf as our arrival rate gives us the following integral relationships
+v
+u Z∞
+Z ∞
+Z∞
+u
+1
+α
+α
+u1
+∗
+λ(t)dt = λ ,
+tλ(t)dt = , t ∗ (t − τ )2 · λ(t)dt = 2 .
+(2.40)
+∗
+λ
+β
+λ
+β
+0
+0
+
+0
+
+One reason for using the Gamma distribution is that it is not symmetric like the Gaussian
+distribution. From some of the data that we see in practice, the arrival rate distribution does
+12
+
+not appear to be symmetric and may have a heavy tail. For example in Figure ??, we see
+that the tail of the data is heavier than the Gaussian distribution tail. This fact of the data
+encourages us to explore the Gamma arrival rate function which is asymmetric.
+In Figure 5, we plot two gamma arrival rate functions. The blue curve is a Gamma(α =
+5, β = .5) and the red curve (flattened curve) is a Gamma(α = 10, σ = .5). By increasing
+the variance by a factor of 2, we have reduced the peak value of the arrival rate by a factor
+of two. This follows from the mode of gamma being inversely proportional to the standard
+deviation σ. Now that we have a full understanding of the gamma arrival rate function
+that we will use for patient arrivals, we can leverage insights from non-stationary queues to
+understand the dynamics of the total number infected and how long they stay infected.
+Theorem 2.8. The Mt /G/∞ queueing model with a Gamma(α, β) distribution arrival rate
+has a Poisson(qM/G/∞ (t)) distribution where the mean qM/G/∞ (t) is the solution to the following ordinary differential equation
+
+
+•
+λ∗ β α
+q M/G/∞ (t) =
+· E (α − 1 − β(t − Se )) · (t − Se )α−2 e−β(t−Se ) · E[S] (2.41)
+Γ(α)
+and the solution is given by
+qM/G/∞ (t) =
+
+
+
+λ∗ β α
+· E (t − Se )α−1 e−β(t−Se ) · E[S].
+Γ(α)
+
+(2.42)
+
+Moreover, for any value of t and α ≥ 1, we have that
+qM/G/∞ (t) ≤
+
+λ∗ β
+(α − 1)α−1 e−(α−1) · E[S].
+Γ(α)
+
+(2.43)
+
+Proof. We actually start with the solution. The solution is easily given by the the formula
+from Eick et al. [5]. To find the differential equation, one simply takes the derivative of the
+solution with respect to the time parameter t. Finally, the bound on the standard Gaussian
+density function yields the bounds on the queue length.
+Theorem 2.9. The time of the peak queue length is the solution to the following fixed point
+equation
+
+
+∗
+α − 1 E Se · (t∗ − Se )α−2 e−β(t −Se )
+∗
+t =
++
+.
+(2.44)
+β
+E [(t∗ − Se )α−2 e−β(t∗ −Se ) ]
+Proof. In order to find the peak queue length we need to set the time derivative of the queue
+length to zero i.e.
+•
+q (t∗ ) = 0.
+(2.45)
+Now using the differential equation given in Equation 2.41, we have
+
+
+•
+λ∗ β α
+q (t∗ ) =
+· E (α − 1 − β(t − Se )) · (t − Se )α−2 e−β(t−Se ) · E[S] = 0.
+Γ(α)
+Isolating t∗ by itself on the left hand side we obtain
+
+
+∗
+α−2 −β(t∗ −Se )
+E
+S
+·
+(t
+−
+S
+)
+e
+α
+−
+1
+e
+e
+.
+t∗ =
++
+β
+E [(t∗ − Se )α−2 e−β(t∗ −Se ) ]
+This completes the proof.
+13
+
+(2.46)
+
+(2.47)
+
+Figure 5: Plot of Gamma Arrival Rate Curves.
+What is nice about this result is that it decomposes into two parts. The first part is the
+mode of the arrival rate function, which in the case of the Gamma distribution occurs at
+α−1
+. The second part is the positive shift from the mode of the arrival rate function, which
+β
+∗
+E[Se ·((t∗ −Se )α−2 e−β(t −Se ) )]
+is E (t∗ −S )α−2 e−β(t∗ −Se ) . This also implies that the peak queue length occurs after the
+[
+e
+]
+peak arrival rate like in the Gaussian case.
+
+Figure 6: Gamma arrival curves and their queue lengths E[S] = 2 (Left) and E[S] = 10
+(Right).
+
+14
+
+Curve Type
+Gamma Arrival Curve
+Flattened Gamma Arrival Curve
+Queue Length
+Flattened Queue Length
+
+α
+5
+10
+5
+10
+
+β
+2
+2
+2
+2
+
+E[S]
+1
+1
+1
+1
+
+Peak Time
+8.00
+18.00
+9.06
+19.03
+
+Peak Value
+9.77
+6.59
+9.46
+6.50
+
+Table 4: Comparison between regular and flattened curves peak values and times.
+
+Curve Type
+Gamma Arrival Curve
+Flattened Gamma Arrival Curve
+Queue Length
+Flattened Queue Length
+
+α
+5
+10
+5
+10
+
+β
+2
+2
+2
+2
+
+E[S]
+10
+10
+10
+10
+
+Peak Time
+8.00
+18.00
+13.60
+24.39
+
+Peak Value
+9.77
+6.59
+49.59
+41.54
+
+Table 5: Comparison between regular and flattened curves peak values and times.
+
+3
+
+Understanding COVID-19 Through Data
+
+In this section, we use some of the data on COVID-19 infections and deaths, which was made
+available through Johns Hopkins University website Dong et al. [4]. In Figure 7, we plot the
+number of confirmed infections per day in the countries of China, South Korea, Italy, and
+the United States. One immediately can tell these countries apart since the confirmed cases
+start earlier in China, then South Korea, then Italy, and then finally the United States. We
+also observe that as of April 16th, it appears that the United States has hit its peak and is
+on its way down. On each of the plots, we also overlay a Gaussian and gamma distribution
+function to get a sense what distribution parameters best fit the data. For China, the best
+Gaussian fit was a Gaussian(λ∗ = 314101, τ = 23, σ = 8.28) and the best gamma fit was
+a Gamma(λ∗ = 369218, α = 6.75, β = .25). For South Korea, the best Gaussian fit was
+a Gaussian(λ∗ = 34914, τ = 42, σ = 16.37) and the best gamma fit was a Gamma(λ∗ =
+31220, α = 9.4, β = .2). For Italy, the best Gaussian fit was a Gaussian(λ∗ = 440393, τ =
+60, σ = 26.79) and the best gamma fit was a Gamma(λ∗ = 340126, α = 9.57, β = .15). For
+the United States, the best Gaussian fit was a Gaussian(λ∗ = 1295233, τ = 80, σ = 14.72)
+and the best gamma fit was a Gamma(λ∗ = 1768739, α = 17, β = .2).
+
+15
+
+Figure 7: Arrival Scatter Plots.
+In Figure 8, we plot the arrivals and deaths per day from January 22nd to April 16th
+normalized by their maximum value (arrival = black dots, deaths = red dots). For China,
+South Korea, Italy, and the United States, the maximum confirmed infections was (15,136),
+(851), (6557), and (35,098) respectively. Moreover, for China, South Korea, Italy, and the
+United States, the maximum confirmed deaths was (252), (11), (919), and (4591) respectively.
+We observe that for most all countries except Italy, the largest number of deaths lags the
+largest number of confirmed infections. This is the lag effect that we observe in our queueing
+models. This lag effect also inspires our construction of a new way to view the lag effect.
+In Figure 9, we plot the cumulative distribution function of the total number of arrivals
+and deaths for the countries of China, South Korea, Italy, United States, Japan, and Germany. This plot matches the quantiles of the arrivals to the quantiles to that of the deaths.
+In this plot we observe for 5 out of the 6 countries that the cdf of the death count lags behind
+the arrival cdf. The only country that does not follow the lag effect is Japan and this observation is consistent with Japan not testing its citizens enough Montanari [19]. Moreover, we
+also observe that the lag effect is most pronounced in South Korea, which has done a great
+job of testing its citizens and keeping them alive Kim [14]. If we rank the countries according
+16
+
+to their lag effects, it is from best to worst (South Korea, Germany, China, United States,
+Italy, Japan). This method of viewing the arrival and death cdfs allows one to understand
+the impact of testing and the quality of the healthcare system in that country. These observations are also confirmed in Table 6 where we plot the lag according to the quantile levels
+in the cdf plots given in Figure 9.
+
+Figure 8: Arrival and Death Scatter Plots.
+
+17
+
+Figure 9: CDF of Arrival and Death Numbers.
+
+18
+
+Country
+China
+Germany
+Italy
+Japan
+South Korea
+United States
+
+q = .1
+2
+9
+4
+-4
+5
+5
+
+q = .2
+4
+9
+3
+-7
+9
+5
+
+q = .3
+5
+8
+3
+-5
+13
+5
+
+q = .4
+6
+9
+3
+-2
+18
+5
+
+q = .5
+6
+8
+3
+-2
+20
+4
+
+q = .6
+6
+7
+3
+2
+21
+3
+
+q = .7
+9
+7
+2
+2
+22
+3
+
+q = .8
+11
+6
+2
+1
+18
+3
+
+q = .9
+14
+4
+2
+1
+12
+2
+
+Table 6: Lags between arrival and death cdfs by quantile.
+
+4
+
+Key Takeaways and Insights
+
+The analysis of the queueing model provides both qualitative insights and prescriptive guidance on how to flatten the demand for hospital resources.
+
+4.1
+
+Flattening the Curve
+
+First, we show that the peak number of hospitalized patients is inversely related to flattening
+the rate of arriving patients (Theorem 2.1). This insight provides a mechanism through the
+standard deviation parameter σ to control the peak number of hospitalized people. However,
+the effectiveness of social distancing on flattening the curve, i.e. increasing σ, remains an
+open question. As a result, in order to avoid overcrowding flattening should be inversely
+proportional to the amount of hospital capacity. Additionally, we find that flattening the
+curve has a smaller impact on the peak number of patients when the service times are long.
+This means the longer patients stay in the hospital, the more society must flatten the curve
+in order to achieve the same capacity level. In the three examples with an exponential service
+distribution and a Gaussian arrival rate, we flattened the peak arrival rate by 50%, however,
+we see that the peak queue length was reduced by 47%, 42%, 23% respectively for E[S] =
+{1,2,10}. For the gamma arrival rate setting, we see that a 33% reduction in the peak arrival
+rate, we obtain a 31% and 16% reduction respectively for E[S] = {1,10}.
+
+4.2
+
+Lag between the Peak Infection Rate and the Peak Number of
+Patients
+
+A key takeaway from the queueing analysis is that the time of the peak arrival rate of infected
+patients does not coincide with the time of the peak of number of hospitalized people (or
+deaths). There is a time lag. We characterize this lag exactly for the simplified queue model
+(Theorem 2.2). First, we show that the peak number of infected lags behind the peak number
+of new infected individuals. Surprisingly, there is a nonlinear relationship between flattening
+the curve and the time lag between the peak rate of newly admitted patients and the peak
+demand for hospital resources (Theorem 2.2). Moreover, we show in Theorem 6.2 that the
+
+19
+
+lag, `, is bounded by the mean service time for an exponential distribution i.e.
+1
+1
+1
+− 3 2
+≤ ` ≤ = E[S].
+µ µ σ +µ
+µ
+
+(4.48)
+
+This analysis also implies that as we flatten the curve i.e. increase σ, the lag converges to
+the mean service time µ1 .
+
+5
+
+Conclusion
+
+In this paper, we present a simple infinite server queueing model of the number of infected
+people with Covid-19. This analysis can be used to understand how many people will become
+infected, need a hospital bed, or need a ventilator. We show how the dynamics of the number
+infected explicitly depends on the arrival rate function. We explore two arrival rate functions.
+The first is symmetric and is given by a Gaussian distribution function and the second is
+is asymmetric and is given by a gamma distribution function. We explicitly calculate the
+time of the peak queue length, the peak queue length, and its dependence on the duration
+of infection. Despite the insights derived in this paper, this is not the whole story and many
+questions still remain. In what follows, we outline some of the important questions that still
+remain and need to be studied.
+By leveraging operations research tools and techniques, hospitals have prided themselves
+on the efficiency that comes with just-in-time supply management and minimizing empty
+beds, thus saving on hospital costs. However as a result, they are often not equipped for an
+epidemic surge such as this one. Despite our efforts to understand the impact of COVID-19
+on the healthcare system, there is plenty of additional research that needs to be done in
+order to understand emerging complexities. One area of importance is to understand the
+effects of surges in arrivals into the healthcare system. Some recent research has studied
+queueing models with self-exciting point processes that model random surges in demand, see
+for example Daw and Pender [1, 2, 3], Pender [21], Niyirora and Pender [20], Massey and
+Pender [18]. These types of models would generalize our model in this paper, but, they are
+more complicated and would disguise the easy to understand insights from simpler models.
+In this work we have not explicitly analyzed the impact of testing and lags in testing
+for the coronavirus. It has been shown through empirical analyses that testing delays can
+have a huge impact on the reported numbers of positive cases and health outcomes, see for
+example Ryan-Mosley [23]. We believe that more research in understanding how testing can
+affect the spread of the disease is important. It is clear from our cdf plots in Figure 9 that
+testing is important for predicting deaths that are to follow.
+Finally, we are observing in some cities that it is important to use demographic information for understanding the impact of COVID-19 on particular communities or regions of the
+country. In the city of Chicago, it has been observed that even though African Americans
+make up roughly 30% of Chicago’s population, African Americans make up 52% of cases of
+COVID-19 and 68% of deaths, see for example Reyes et al. [22]. Also in NYC, it has been
+reported that COVID-19 is impacting low-income communities much harder than those that
+are well off Wilson [24]. Recent work by Kahara and Pender [13] combines queueing theory
+with demographic information to get a deeper understanding of blood donation dynamics
+20
+
+and it is clear that similar demographic analyses are also needed to understand the full
+impact of COVID-19 on marginalized populations.
+
+References
+[1] Andrew Daw and Jamol Pender. Exact simulation of the queue-hawkes process. In
+Proceedings of the 2018 Winter Simulation Conference, pages 4234–4235. IEEE Press,
+2018.
+[2] Andrew Daw and Jamol Pender. The queue-hawkes process: Ephemeral self-excitement.
+arXiv preprint arXiv:1811.04282, 2018.
+[3] Andrew Daw and Jamol Pender. Queues driven by hawkes processes. Stochastic Systems,
+8(3):192–229, 2018.
+[4] Ensheng Dong, Hongru Du, and Lauren Gardner. An interactive web-based dashboard
+to track covid-19 in real time. The Lancet infectious diseases, 2020.
+[5] Stephen G Eick, William A Massey, and Ward Whitt. The physics of the Mt /G/∞
+queue. Operations Research, 41(4):731–742, 1993.
+[6] Stephen G Eick, William A Massey, and Ward Whitt. Mt /G/∞ queues with sinusoidal
+arrival rates. Management Science, 39(2):241–252, 1993.
+[7] Zohar Feldman, Avishai Mandelbaum, William A Massey, and Ward Whitt. Staffing of
+time-varying queues to achieve time-stable performance. Management Science, 54(2):
+324–338, 2008.
+[8] Brian Goebel. California substantially flattened the covid-19 curve in march, April 2020.
+URL https://www.noozhawk.com/article/brian_goebel_california_flattened_
+covid_19_curve_in_march_20200405.
+[9] Robert C Hampshire, William A Massey, Debasis Mitra, and Qiong Wang. Provisioning for bandwidth sharing and exchange. In Telecommunications Network Design and
+Management, pages 207–225. Springer, 2003.
+[10] Robert C Hampshire, William A Massey, and Qiong Wang. Dynamic pricing to control loss systems with quality of service targets. Probability in the Engineering and
+Informational Sciences, 23(2):357–383, 2009.
+[11] Matthew Hilk, Arman Azad, and Wes Bruer.
+Every hotspot has ’its
+own curve’: How coronavirus cases are growing around the united states.
+https://www.cnn.com/2020/03/24/health/coronavirus-state-hotspots/index.html, 2020.
+[12] Otis B Jennings, Avishai Mandelbaum, William A Massey, and Ward Whitt. Server
+staffing to meet time-varying demand. Management Science, 42(10):1383–1394, 1996.
+
+21
+
+[13] Marie Kahara and Jamol Pender. Using simulation to study the impact of racial demographics on blood transfusion allocation policies. In 2017 Winter Simulation Conference
+(WSC), pages 2786–2797. IEEE, 2017.
+[14] Nemo Kim.
+Covid-19:
+South koreans keep calm and carry on testing, April 2020.
+URL https://www.theguardian.com/world/2020/mar/18/
+covid-19-south-koreans-keep-calm-and-carry-on-testing.
+[15] Yunan Liu and Ward Whitt. Stabilizing customer abandonment in many-server queues
+with time-varying arrivals. Operations research, 60(6):1551–1564, 2012.
+[16] W.A. Massey and J. Pender. Approximating and stabilizing jackson networks with
+abandonment. 2014.
+[17] William A Massey and Jamol Pender. Gaussian skewness approximation for dynamic
+rate multi-server queues with abandonment. Queueing Systems, 75(2-4):243–277, 2013.
+[18] William A Massey and Jamol Pender. Dynamic Rate Erlang-A Queues. Queueing
+Systems, 89(1-2):127–164, 2018.
+[19] Shaena Montanari. Japan has a remarkably low number of coronavirus cases that experts
+worry may lead to a ’false sense of security’. URL https://www.businessinsider.
+com/why-japan-cases-of-coronavirus-are-so-low-2020-3.
+[20] Jerome Niyirora and Jamol Pender. Optimal staffing in nonstationary service centers
+with constraints. Naval Research Logistics (NRL), 63(8):615–630, 2016.
+[21] Jamol Pender. Risk measures and their application to staffing nonstationary service
+systems. European Journal of Operational Research, 254(1):113–126, 2016.
+
+[22] Cecilia Reyes, Nausheen Husain, Christy Gutowski, Stacy St. Clair,
+and Gregory Pratt.
+Chicago’s coronavirus disparity:
+Black chicagoans
+are dying at nearly six times the rate of white residents, data show,
+April
+2020.
+URL
+https://www.chicagotribune.com/coronavirus/
+ct-coronavirus-chicago-coronavirus-deaths-demographics-lightfoot-20200406-77nlylhiav
+html.
+[23] Tate Ryan-Mosley.
+How you could get your covid-19 test results
+faster, April 2020.
+URL https://www.technologyreview.com/s/615444/
+covid-19-test-results-faster-commercial-labs-delays-coronavirus/.
+[24] Chris Wilson.
+These graphs show how covid-19 is ravaging new york
+city’s low-income neighborhoods, April 2020. URL https://time.com/5821212/
+coronavirus-low-income-communities/.
+
+22
+
+6
+
+Appendix
+
+6.1
+
+The Mt /G/∞ Queue with a Gaussian Arrival Rate
+
+6.1.1
+
+Proof of Theorem 2.2
+
+Proof. In order to find the peak queue length we need to set the time derivative of the queue
+length to zero i.e.
+•
+q (t∗ ) = 0.
+(6.49)
+Now using the differential equation given in Equation 2.24, we have
+
+ ∗
+
+•
+t − τ − Se
+∗
+∗
+q (t ) = E (t − τ − Se ) · ϕ
+= 0.
+σ
+
+(6.50)
+
+This implies that
+  ∗
+
+
+ ∗
+
+t − τ − Se
+t − τ − Se
+(t − τ ) · E ϕ
+= E Se · ϕ
+.
+σ
+σ
+∗
+
+(6.51)
+
+Now isolate t∗ by itself to get
+
+
+∗
+E Se · ϕ t −τσ−Se
+
+
+= τ+
+∗
+E ϕ t −τσ−Se
+
+
+∗
+λ · ES · E Se · ϕ t −τσ−Se
+ t∗ −τ −Se 
+= τ+
+σ · λ·ES
+·
+E
+ϕ
+σ
+σ
+
+
+∗
+λ · ES · E Se · ϕ t −τσ−Se
+.
+= τ+
+σ · qM/G/∞ (t∗ )
+
+∗
+
+t
+
+(6.52)
+(6.53)
+(6.54)
+
+This completes the proof.
+6.1.2
+
+Discrete Service Distribution
+
+Corollary 6.1. The Mt /Dn /∞ queueing model with a Gaussian distribution arrival rate is
+the solution to the following ordinary differential equation
+n
+X
+•
+q (t) =
+pi · (λ(t) − λ(t − ∆i ))
+(6.55)
+i=1
+
+=
+
+n
+X
+
+
+pi ·
+
+i=1
+
+λ
+·ϕ
+σ
+
+
+
+t−τ
+σ
+
+
+
+λ
+− ·ϕ
+σ
+
+
+
+t − τ − ∆i
+σ
+
+
+(6.56)
+
+and the solution is given by
+n
+X
+
+Z t
+
+
+ 
+λ
+s−τ
+qM/G/∞ (t) =
+pi ·
+·ϕ
+ds
+σ
+(t−∆i )+ σ
+i=1
+  
+
+
+
+n
+X
+t − στ
+t − ∆i − στ
+√
+√
+− erf
+.
+pi · λ erf
+=
+2
+2
+i=1
+
+(6.57)
+(6.58)
+
+Proof. The proof follows the thinning of Poisson processes and the expression given in Equation 2.26.
+23
+
+6.1.3
+
+Exponential Service Distribution
+
+Theorem 2.7
+Proof. First we observe that from Theorem 2.2 that t∗ solves the following fixed point equation
+
+
+t∗ −τ −Se
+E
+S
+·
+ϕ
+e
+σ 
+
+t∗ = τ +
+.
+(6.59)
+∗
+E ϕ t −τσ−Se
+Thus, if we define X to be a unit exponential random variable, then we have
+
+
+e
+E Se · ϕ `−S
+σ
+
+` ≡ peak lag =
+e
+E ϕ `−S
+h
+σ
+i
+`−X /µ
+X
+E µ ·ϕ
+σ
+h 
+i
+=
+`−X /µ
+E ϕ
+σ
+
+(6.60)
+
+(6.61)
+
+
+2 2
+µσ · e−µ` · eµ ` /2 · (` − µσ 2 ) · Φ σ` − µσ + σ · ϕ
+
+=
+µσ · e−µ` · eµ2 `2 /2 · Φ σ` − µσ
+⇓
+
+ϕ σ` − µσ
+2
+
+` = ` − µσ + σ ·
+Φ σ` − µσ
+⇓
+
+ϕ σ` − µσ
+
+µσ =
+Φ σ` − µσ
+⇓
+`
+− µσ.
+ψ (µσ) =
+σ
+
+`
+− µσ
+σ
+
+
+(6.62)
+
+(6.63)
+
+(6.64)
+
+(6.65)
+
+Now it remains to prove the following equalities
+ 
+
+
+
+` − X /µ
+`
+−µ`
+µ2 `2 /2
+E ϕ
+= µσ · e
+·e
+·Φ
+− µσ
+(6.66)
+σ
+σ
+
+
+
+
+
+
+
+
+
+X
+` − X /µ
+`
+`
+−µ`
+µ2 `2 /2
+2
+E
+·ϕ
+= µσ · e
+·e
+· ` − µσ · Φ
+− µσ + σ · ϕ
+− µσ
+(6.67).
+µ
+σ
+σ
+σ
+For the first equality we define G to be a Gaussian random variable and we will exploit
+
+24
+
+the version of Stein’s lemma given in Massey and Pender [17, 18] to obtain
+ 
+
+  
+ 
+` − X /µ
+` − X /µ
+E ϕ
+= E E G· G>
+X
+σ
+σ
+  
+ 
+` − X /µ
+= E E G· G>
+G
+σ
+
+
+
+` − X /µ
+= E G·P G >
+G
+σ
+= E [G · P {X > µ · (` − σG)| G}]
+"
+ 
+!#
+
+`
+`
++ G≤
+= E G · e−µ·(`−σG) · G ≤
+σ
+σ
+
+
+
+
+`
+= E G · e−µ·(`−σG) − 1 · G ≤
+σ
+
+
+
+`
+= E µσ · e−µ·(`−σG) · G ≤
+σ
+
+
+
+`
+−µ`
+µσG
+= µσ · e
+·E e
+· G≤
+σ
+
+
+ µσG 
+`
+−µ`
+= µσ · e
+·E e
+· P G + µσ ≤
+σ
+
+
+`
+2 2
+− µσ .
+= µσ · e−µ` · eµ σ /2 · Φ
+σ
+
+25
+
+For the second equality, we have that
+
+
+
+ 
+
+ 
+X
+` − X /µ
+XG
+` − X /µ
+E
+·ϕ
+= E E
+· G>
+X
+µ
+σ
+µ
+σ
+
+ 
+ 
+` − X /µ
+XG
+· G>
+= E E
+G
+µ
+σ
+
+
+
+ 
+X
+` − X /µ
+= E G·E
+· G>
+G
+µ
+σ
+
+ 
+
+
+X
+X
+·
+> ` − σG G
+= E G·E
+µ
+µ
+"
+
+
+  
+
+
+!#
+ 
+X
+X
+X
+`
+`
+= E G· E
+·
+> ` − σG G · G ≤
++E
+G · G≤
+µ
+µ
+σ
+µ
+σ
+!#
+"
+ 
+
+
+
+
+`
+1
+`
+1
+−µ·(`−σG)
++ ` − σG · G ≤
++ · G≤
+= E G· e
+·
+µ
+σ
+µ
+σ
+ 
+
+
+ 
+
+1
+1
+`
+= E G · e−µ·(`−σG) ·
++ ` − σG −
+· G≤
+µ
+µ
+σ
+
+ 
+
+
+
+
+`
+1
+−µ·(`−σG)
++ ` − σG − σ
+· G≤
+= E e
+· µσ ·
+µ
+σ
+
+
+
+`
+= µσ · e−µ` · E eµσG · (` − σG) · G ≤
+σ
+
+
+
+
+
+`
+−µ`
+µσG
+= µσ · e
+·E e
+· E (` − σ · (G + µσ)) · G + µσ ≤
+σ
+
+
+
+
+
+
+`
+`
+−µ`
+µ2 σ 2 /2
+2
+− µσ + σ · ϕ
+− µσ
+.
+= µσ · e
+·e
+· ` − µσ · Φ
+σ
+σ
+This completes the proof.
+Theorem 6.2. For the function ψ(x), we have the following bounds.
+1
+1
+1
+− 3
+≤ ψ(x) + x ≤ .
+(6.68)
+x x +x
+x
+Thus, we have in the exponential service setting with a Gaussian arrival rate that the time
+lag is bounded by
+σ
+σ
+σ
+− 3 3
+≤ σ(ψ(µσ) + µσ) ≤
+(6.69)
+µσ µ σ + µσ
+µσ
+⇓
+1
+1
+1
+− 3 2
+≤ ` ≤ = E[S].
+µ µ σ +µ
+µ
+
+(6.70)
+
+Proof. The first inequality follows from Theorem 7.2 in Hampshire et al. [10]. Therefore, the
+lag bounds follow by substituting x = σµ.
+26
+
+6.1.4
+
+Hyper-Exponential Service Distribution
+
+Another continuous distribution of interest is the hyper-exponential distribution. The hyperexponential distribution is a special case of a phase type distribution. Unlike the Erlang
+distribution it allows for more variability and has more variance than the exponential distribution. Usually the hyper-exponential distribution is determined by two M-dimensional
+vectors of parameters (p1 , p2 , ..., pn ) and (µ1 , µ2 , ..., µn ). The vector (p1 , p2 , ..., pn ) represents the probabilistic weights of each exponential distribution and the vector (µ1 , µ2 , ..., µn )
+is the associated vector of rate parameters for each exponential distribution. Thus, the
+hyper-exponential is a convex combination of exponential distributions with different rate
+parameters.
+Corollary 6.3. The Mt /Hn /∞ queue with arrival rate given by a Gaussian distribution with
+parameters has the following closed form expression for the mean transient queue length
+
+Hn
+q∞
+(t)
+
+n
+X
+
+=
+
+µi
+pi · q∞
+(t)
+
+(6.71)
+
+i=1
+µi
+(t) is equal to
+where each q∞
+µi
+q∞
+(t)
+
+= σ·e
+
+−µi (t−τ )
+
+µ2i σ 2 /2
+
+·e
+
+
+·Φ
+
+(t − τ )
+− µi σ
+σ
+
+
+(6.72)
+
+Proof. This follows from the fact that the hyper-exponential is just a thinning of a Poisson
+process. Thus, the sum is also a Poisson process with the sum of the rates.
+Corollary 6.4. The Mt /Hn /∞ queue with arrival rate given by a Gaussian distribution with
+parameters has the following closed form expression for the lag
+Pn
+
+` = Pn
+
+j=1 αj µj σ · e
+
+j=1 αj µj σ · e
+µ2j σ 2 /2
+−µj `
+
+−µj `
+
+2 2
+
+· eµj σ /2 · Φ
+
+`
+− µj σ
+σ
+
+`
+− µj σ
+σ
+
+·e
+
+· (` − µj σ 2 ) · Φ
+
+αj
+
+Q
+( ni=1 µi ) pj
+Q
+
+= P
+n
+n
+i=1 pi
+i6=j µi
+
+
+
+
+
++σ·ϕ
+
+`
+− µj σ
+σ
+
+ (6.73)
+
+where
+(6.74)
+
+Proof. This follows from the fact that the hyper-exponential is just a thinning of a Poisson
+process. Thus, the sum is also a Poisson process with the sum of the rates. Moreover, the stationary excess distribution of a hyper-exponential is another hyper-exponential distribution
+with modified rates.
+
+27
+
+

@@ -1,0 +1,2312 @@
+Contents
+
+4. Weighted sum of completion times
+1
+Eugene L. Lawler, Maurice Queyranne, Andreas S. Schulz, David B. Shmoys
+4.1. Smith’s ratio rule
+2
+4.2. Preference orders on jobs
+6
+4.3. Preference orders on sequences & series-parallel precedence constraints
+9
+4.4. NP-hardness of further constrained min-sum problems
+16
+4.5. The ratio rule via linear programming
+21
+4.6. Approximation algorithms for 1|prec| ∑ w jC j
+23
+4.7. Sidney decompositions
+27
+4.8. An integrality theorem for series-parallel precedence constraints
+30
+4.9. Approximation algorithms for 1|r j | ∑ C j
+33
+4.10. Approximation algorithms for 1|r j | ∑ w jC j
+40
+
+i
+
+4
+Weighted sum of completion
+times
+Eugene L. Lawler
+University of California, Berkeley
+
+Maurice Queyranne
+University of British Columbia
+
+Andreas S. Schulz
+Technical University of Munich
+
+David B. Shmoys
+Cornell University
+
+Minimization of the mean completion time has always been an intuitively appealing
+objective. Although the origins of the Shortest Processing Time (SPT) rule are unknown, we do know that W. E. Smith, in one of the first publications in scheduling
+theory, showed that the ratio rule, a generalization of SPT, solves 1| | ∑ w jC j . We
+also know that Smith pointed out in 1956 that the ratio rule begs for abstraction in
+the form of a “preference order.”
+During the 1960’s and 1970’s, Smith’s results on 1| | ∑ w jC j were extended to apply to precedence constraints of various kinds, first to parallel chains, then to rooted
+trees, and then to series-parallel networks, with rooted trees as a special case. During
+the same period, it was found that the preference order concept applies to a variety
+of sequencing problems, including the least cost fault detection problem, the twomachine permutation flow shop problem, and problems with maximum cumulative
+cost and total weighted discounted cost as their objectives. Moreover, it was observed
+1
+
+2
+
+4. Weighted sum of completion times
+
+that the same O(n log n) algorithm solves any of these problems with series-parallel
+precedence constraints, provided the preference order has the property of applying
+to “sequences” and not simply to “jobs.” This led to an elegant theory for dealing
+with precedence constraints in sequencing problems with a variety of scheduling
+objectives, of which total weighted completion time is but a prototypical example.
+Later, the influence of polyhedral theory on combinatorial optimization made its
+impact on our understanding of a number of variations of the problem 1| | ∑ w jC j .
+This understanding led not only to new perspectives on these older results, but also
+to the development of an extensive literature of approximation algorithms for these
+problems. In this chapter, we will highlight both of these threads of understanding.
+
+4.1.
+
+Smith’s ratio rule
+
+By applying Smith’s ratio rule, the problem 1| | ∑ w jC j can be solved with nothing
+more than a simple O(n log n) sort of the jobs by their ratios w j /p j (throughout this
+chapter, we assume all job weights are nonnegative and all processing times positive,
+i.e., w j ≥ 0, and p j > 0, j = 1, . . . , n).
+Theorem 4.1. A sequence is optimal for 1| | ∑ w jC j if and only if it places the jobs
+in order of nonincreasing ratios w j /p j .
+Proof. We first prove that having nonincreasing ratios is a necessary condition for a
+sequence to be optimal. Let π be a sequence in which the jobs are not in ratio order.
+Then, in π, there is a job i that immediately precedes a job j and yet wi /pi < w j /p j .
+If job j completes at time C j , then job i completes at time C j − p j . If we interchange
+these two jobs, this affects only their completion times, not those of other jobs. The
+result is a strict decrease in total cost, by
+[wi (C j − p j ) + w jC j ] − [w j (C j − pi ) + wiC j ] = w j pi − wi p j
+
+
+w j wi
+−
+> 0,
+= pi p j
+pj
+pi
+from which it follows that π is not optimal.
+Conversely, we now prove that having nonincreasing ratios is a sufficient condition for a sequence to be optimal. Let π be a sequence in which the jobs are in ratio
+order and let π∗ be an optimal sequence. If π 6= π∗ , then in π∗ there is a job i immediately preceding a job j, where j precedes i in π. But then w j /p j ≥ wi /pi (because
+in π jobs are in order of nonincreasing ratios) and wi /pi ≥ w j /p j (by the first part of
+this proof because π∗ is optimal) and, therefore, wi /pi = w j /p j . Interchanging the
+jobs in π∗ creates a new sequence of equal cost. A finite number of such interchanges
+converts π∗ to π, demonstrating that π is optimal. 2
+The ratio rule immediately specializes to the celebrated Shortest Processing Time
+or SPT rule.
+
+4.1. Smith’s ratio rule
+
+3
+
+Corollary 4.2. A sequence is optimal for 1| | ∑ C j if and only if it places the jobs in
+order of nondecreasing processing times p j .
+The SPT rule is often applied to more complicated problems than 1| | ∑ C j , sometimes without much theoretical support for its performance. Although no additional
+proof of the SPT rule is needed, variations of the following proof turn out to be quite
+useful for parallel machine problems, as we shall see in Chapter 8. Suppose the jobs
+are executed in the order 1, 2, . . . , n. Then we have
+C1
+
+=
+
+p1 ,
+
+C2
+
+=
+
+p1 + p2 ,
+
+C3
+
+=
+
+p1 + p2 + p3 ,
+
+...
+Cn
+
+=
+
+p1 + p2 + p3 + · · · + pn ,
+
+giving us
+n
+
+∑ C j = np1 + (n − 1)p2 + (n − 2)p3 + · · · + 2pn−1 + pn .
+
+(4.1)
+
+j=1
+
+This means that the problem of minimizing ∑nj=1 C j is equivalent to the problem of
+assigning the coefficients 1, 2, . . . , n to the processing times p j in such a way that the
+weighted sum (4.1) is minimized. This is accomplished by assigning the coefficient 1
+to the largest p j , the coefficient 2 to the next-largest p j , etc., and the coefficient n to
+the smallest p j , as can be verified by an interchange argument similar to that used in
+the proof of Theorem 4.1.
+Smith’s ratio rule produces an optimal schedule for the nonpreemptive problem
+1| | ∑ w jC j . The reader may wonder if the total cost could be further reduced by
+allowing preemption, or inserting idle time before all jobs are complete. The answer
+is “No,” even for the most favorable model of preemption, whereby an interrupted
+job may be resumed at any date without any cost or time penalty. In fact, the same
+negative answer, “There is no advantage to preemption,” applies to a broad class of
+single-machine scheduling problems. If we let C = (C1 ,C2 , . . . ,Cn ) denote the completion time vector of a schedule, we say that an objective function f (C) is monotone
+if C ≤ C0 (i.e., C j ≤ C0j for each j = 1, . . . , n) implies f (C) ≤ f (C0 ). We leave the
+proof of the following theorem as an exercise, since it can be proved easily with the
+machinery of the previous chapter.
+Theorem 4.3. There is no advantage to preemption or idle time for the singlemachine problem 1| prec, d j , pmtn| f (C) whenever f is monotone.
+Of course, this theorem can be applied to the problem 1| pmtn| ∑ w jC j , since we
+assume throughout this book that each w j ≥ 0, j = 1, . . . , n. Hence, Theorem 4.3
+implies that Smith’s ratio rule is also optimal when preemption and/or idle time are
+allowed.
+
+4
+
+4. Weighted sum of completion times
+
+Many results in single-machine scheduling, starting with Smith’s ratio rule, have
+a simple and intuitive geometric justification using two-dimensional Gantt charts.
+As in ordinary Gantt charts, the horizontal axis in a 2D Gantt chart represents time.
+The vertical axis represents total weight: at date t ≥ 0, we plot the total weight
+W (t) of all the jobs that have not yet been completed by date t. In a nonpreemptive
+schedule, if job j is in process at date t, we may also plot W (t) − w j , so the two
+horizontal lines W (t) and W (t) − w j delimit a rectangle of length p j and height w j ,
+somewhat analogue to the rectangles that represent jobs in ordinary Gantt charts; see
+Figure 4.1(a).
+For any nonpreemptive schedule, the area under the curve W (t) is equal to
+∑nj=1 w jC j . This can be seen by identifying each term w jC j with the area of the
+horizontal slabs in Figure 4.1(b). From this, it is clear that there is no advantage to
+inserting idle time.
+We can draw a descending diagonal in each rectangle representing a job. The
+slope of job j is the ratio ρ( j) = w j /p j ; it is just the negative of the slope of its
+diagonal. Smith’s ratio rule states that the area under the W (t) curve is minimized
+when the jobs are sequenced with largest slopes first, that is, when the piecewise
+linear continuous curve W (t) defined by the slopes of the rectangles, is made convex.
+The adjacent pairwise argument used in the proof of Theorem 4.1 is visualized in
+Figure 4.2.
+One interpretation of the ∑ w jC j objective is to consider w j to be the holding
+cost (euros per time unit) of a resource needed for the processing of each job j. We
+assume that we have an initial inventory of the resource that is exactly equal to the
+amount needed to process all the given jobs; so W (0) = ∑nj=1 w j is the initial total
+holding cost. It is convenient to measure the resource inventory level at any time t
+in monetary units (euros), and to identify it with the corresponding total holding
+cost W (t). If all units of the resource used by job j are consumed instantly at the
+
+4.1. Smith’s ratio rule
+
+5
+
+completion of the job, then the inventory level W (t) follows the piecewise constant
+curve plotted in the 2D Gantt chart.
+
+In many situations, however, the resource is consumed at a constant rate ρ( j) =
+w j /p j units per time unit during the processing of job j. In that case, the inventory level follows the curve W (t), as in Figure 4.3(a). The total inventory cost,
+R +∞
+0 W (t) dt is the sum of the areas of the resulting horizontal trapezoids. Each
+trapezoid has the same area as a rectangle with length (C j − p j +C j )/2 = C j − p j /2
+and height w j ; see Figure 4.3(b). Alternatively, one can instead define the mean busy
+
+6
+
+4. Weighted sum of completion times
+
+time M j of each job j as the midpoint of its nonpreemptive processing: [(C j − p j ) +
+C j ]/2 = C j − p j /2. Thus, we are also interested in finding schedules to minimize
+the total weighted mean busy time, ∑ w j M j . In the nonpreemptive setting, since the
+difference between this new objective and ∑ w jC j is equal to ∑ w j p j /2 (a constant)
+for any feasible schedule, the two objective functions lead to equivalent optimization problems. Throughout this chapter, we shall see that this alternative perspective
+significantly improves our understanding.
+In the presence of release dates, idle time may be necessary, and we will see
+in Section 4.10 that there is an advantage to preemption, for both the ∑ w jC j and
+∑ w j M j objectives. It will also be shown there that the preemptive weighted mean
+busy time problem 1| r j , pmtn| ∑ w j M j is solvable to optimality by a very simple algorithm, whereas the preemptive weighted completion time problem
+1| r j , pmtn| ∑ w jC j is NP-hard.
+Finally, whereas the nonpreemptive optimization problems with ∑ w jC j and
+w
+∑ j M j objectives are equivalent (because of the constant difference 21 ∑ w j p j ),
+the corresponding approximation problems are not equivalent. In fact, an αapproximation algorithm for the nonpreemptive ∑ w j M j objective is also an αapproximation algorithm for the nonpreemptive ∑ w jC j objective, but the converse
+is not necessarily true.
+Exercises
+4.1. Prove Theorem 4.3.
+4.2. Consider 1|d j | ∑ C j . Assume that there exists a sequence in which all jobs meet
+their deadlines. Show that the following algorithm produces an optimal feasible
+sequence:
+From among all jobs j that are eligible to be sequenced last, i.e., are such that
+d j ≥ p1 + · · · + pn , put the job last which has the longest processing time. Repeat
+this procedure with the remaining n − 1 jobs.
+
+4.3. Use 2D Gantt charts to show that an instance of 1|prec| ∑ w jC j with processing
+times p j , weights w j , and precedence constraints → is equivalent to an instance with
+the same set of jobs, p0j = w j , w0j = p j for each job j, and j →0 k if and only if k → j.
+In particular, a sequence is optimal for the original instance if and only if the reverse
+sequence is optimal for the new instance, and both have the same objective function
+value.
+
+4.2.
+
+Preference orders on jobs
+
+A very general formulation of optimal sequencing problems is as follows: Given a
+real-valued function f that assigns a cost f (π) to each permutation π of a set N of
+n jobs, find a permutation π∗ of N such that
+f (π∗ ) = min{ f (π) : π is a permutation of N}.
+
+4.2. Preference orders on jobs
+
+7
+
+If we know nothing at all about the structure of the function f , then we have no
+alternative but to evaluate f for each of the n! permutations of N. This occurs if f
+is given to us by a “black box” subroutine, to which we can submit a permutation π,
+and from which we only receive the value f (π) in return. However, we usually know
+quite a bit about the structure of the function f . We use knowledge of f to solve
+problems like 1| |Lmax and 1| | ∑ w jC j by Jackson’s EDD rule and Smith’s ratio rule,
+respectively. Perhaps other problems lend themselves to solution by similar rules.
+But, if so, what do we mean by “similar?” What is it we need to know about f in
+order to infer such rules?
+Throughout this section and Section 4.3, we will use slightly different notation
+and will represent a permutation or sequence as the concatenation of disjoint subsequences, e.g., a permutation π of n jobs may be represented as π = (u, s,t, v), where
+each of the n jobs appears in exactly one of the subsequences u, s,t, v. A single job
+corresponds to a sequence of length one. In the case of 1| |Lmax , we observed that
+di ≤ d j implies that f (u, i, j, v) ≤ f (u, j, i, v) [Jackson’s rule]. In the proof of Theorem 4.1 we showed that wi /pi ≥ w j /p j implies f (u, i, j, v) ≤ f (u, j, i, v) [Smith’s
+rule].
+Definition 4.4. A transitive and complete relation ≤ f on N is said to be a preference
+order on jobs, relative to objective function f , if it satisfies the adjacent pairwise
+interchange property on jobs, i.e.,
+i ≤ f j implies that f (u, i, j, v) ≤ f (u, j, i, v),
+
+(4.2)
+
+for all jobs i, j and all subsequences u, v.
+Recall that a relation ≤ f is transitive if, for each triple i, j, k ∈ N, i ≤ f j and j ≤ f k
+imply that i ≤ f k. A relation ≤ f is complete if, for each pair i, j ∈ N, either i ≤ f j
+or j ≤ f i. A relation that is both transitive and complete is sometimes called a quasi
+total order. Such a relation induces a linear ordering of equivalence classes, where i
+and j are in the same equivalence class if and only if both i ≤ f j and j ≤ f i, in which
+case we may choose to write i ≡ f j. If i ≤ f j, but it is not the case that j ≤ f i, we
+may write i < f j.
+Theorem 4.5. Given a preference order ≤ f on N, an optimal sequence can be found
+by sorting jobs according to ≤ f , with O(n log n) comparisons of jobs with respect to
+≤f .
+Proof. Let π be any sequence consistent with the preference order, and let π∗ be an
+optimal permutation. If π∗ differs from π, then π∗ is of the form (u, j, i, v), for some
+pair i, j of jobs, where i precedes j in π and hence i ≤ f j. From (4.2) it follows that
+f (u, i, j, v) ≤ f (π∗ ), and hence (u, i, j, v) is also optimal. A finite number of such
+interchanges transforms π∗ into π and shows that π is optimal. 2
+As already observed, Smith’s ratio rule for 1| | ∑ w jC j and Jackson’s EDD rule
+for 1| |Lmax give rise to special cases of preference orders. Below we consider some
+
+8
+
+4. Weighted sum of completion times
+
+other examples of sequencing problems for which there are preference orders on
+jobs.
+Total Weighted Discounted Completion Time.
+Sometimes jobs must be scheduled over a time period so long that inflation and
+interest charges must be taken into account. Suppose that we will be paid w j dollars
+upon the completion of job j. The present value of one dollar at time t in the future is
+exp(−r t), where r > 0 is a fixed discount rate. Hence the present value of completing
+job j at time t is w j exp(−rt). It follows that to maximize the present value of
+the payments we will receive we should minimize ∑ j f j (C j ) with respect to cost
+functions of the form
+f j (t) = −w j exp(−r t).
+We assert (Exercise 4.6) that an optimal sequence is obtained by sequencing jobs in
+nondecreasing order of the ratios w j /[1 − exp(rp j )].
+Least Expected Cost Fault Detection.
+A system consisting of n components is to be inspected by testing the components
+one at a time until either one fails (the system is found to be defective) or until all the
+components pass their tests (the system passes inspection). The cost of testing component j is c j and the probability that it will pass its test is q j . Tests are assumed to be
+statistically independent. Hence if the components are tested in the order 1, 2, . . . , n,
+the probability that it will be necessary to test component j is
+Q j = q1 · q2 · . . . · q j−1 ,
+where by convention Q1 = 1. The expected cost of testing is then ∑ j c j Q j . We assert
+(Exercise 4.7) that it is optimal to test the components in nondecreasing order of the
+ratios c j /(1 − q j ).
+Weighted Monotone Cost Density.
+Suppose for each job j we have
+Z t
+
+f j (t) = w j
+
+g(u) du,
+t−p j
+
+where g is a nondecreasing “cost density” function, and we want to minimize
+∑ j f j (C j ). We assert (Exercise 4.9) that an optimal permutation is obtained by placing the jobs in order of nonincreasing w j .
+Exercises
+4.4. Suppose someone gives you a function f (π) in the form of a “black box” subroutine. But she also assures you that f (π) is actually the weighted sum of comple-
+
+4.3. Preference orders on sequences & series-parallel precedence constraints
+
+9
+
+tion times. You have total ignorance of the values of the parameters (i.e., the p j ’s
+and w j ’s) of the n jobs in your problem instance. But you can still find an optimal
+sequence with O(n log n) calls on the subroutine. How?
+4.5. If ≤ f is a preference order on jobs, does it follow that i ≤ f j implies
+f (u, i, v, j, w) ≤ f (u, j, v, i, w), for all i, j, u, v, w? Prove or disprove.
+4.6. Prove the validity of the ratio rule asserted for the total weighted discounted
+completion time problem.
+4.7. Prove the validity of the ratio rule asserted for the least expected cost fault detection problem.
+4.8. Any instance of the least expected cost fault detection problem can be transformed into an equivalent instance of the total weighted discounted completion time
+problem as follows. Let r = 1. For component j with parameters c j and q j , create
+a job j with parameters p j = − ln q j and w j = −c j /q j . Provide a similar transformation in the reverse direction, i.e., from the discounted completion time problem to
+the fault detection problem, showing that the two problems are equivalent.
+4.9. In the case of a weighted monotone cost density function, prove that an optimal
+sequence is obtained by placing jobs in nonincreasing order of w j .
+4.10. Show that total weighted completion time is a special case of weighted monotone cost density.
+4.11. Show that total weighted discounted completion time is a special case of
+weighted monotone cost density.
+
+4.3.
+
+Preference orders on sequences & series-parallel precedence constraints
+
+Let Π be the set of all feasible permutations of a set N = {1, . . . , n} of n jobs, and
+f : Π → R be a cost function. The constrained optimal sequencing problem is to find
+a permutation π∗ ∈ Π such that f (π∗ ) = min{ f (π) : π ∈ Π}.
+If the structure of the function f is unknown, then there is no alternative but to
+evaluate the cost of each feasible permutation in Π. And although the number of feasible permutations may be much smaller than n!, this number may still be hopelessly
+large. In practice, we are likely to know quite a bit about both the function f and
+the set Π. However, in order to successfully apply preference orders to constrained
+problems, our preference orders must satisfy stronger properties than before.
+Let N denote the set of all subpermutations of the jobs N, i.e., the set of all
+sequences that can be formed from subsets of N. We shall call elements of N sequences, or compound jobs.
+Definition 4.6. A transitive and complete relation ≤ f on N is said to be a preference order on sequences, relative to objective function f , if it satisfies the following
+adjacent pairwise interchange property on sequences:
+s ≤f t
+
+implies
+
+f (u, s,t, v) ≤ f (u,t, s, v) for all disjoint sequences u, s,t and v.
+
+10
+
+4. Weighted sum of completion times
+
+Thus, by assumption, ≤ f is a complete preorder or, in simpler terms, a total order
+with possible ties between sequences. We denote by < f the corresponding strict
+preorder, that is, s < f t when s ≤ f t and t 6≤ f s.
+Some sequencing problems, like 1| |Lmax , admit a preference order on jobs, but
+not on sequences. (See Exercise 4.13.) However, all of the other problems cited in
+Section 4.2 do admit preference orders on sequences, with the exception of problems
+with weighted monotone cost density functions. (See Exercise 4.14.) In particular, in
+the case of 1| | ∑ w jC j , the appropriate extension is s ≤ f t if and only if w(s)/p(s) ≥
+w(t)/s(t), where we extend our usual notation (slightly) to let p(s) and w(s) denote,
+respectively, the sum of the processing times and weights of the jobs in a sequence s.
+(See Exercise 4.12.)
+In this section, we are primarily interested in the case when the set Π of feasible
+permutations is specified by precedence constraints. We write i → j to denote the
+precedence constraint that job i must appear before job j in any feasible permutation π. One strategy for dealing with precedence constraints is to ignore them and
+simply sort the jobs by preference order. If we are lucky and the resulting sequence
+turns out to be feasible, then we are done. This follows from the fact that, by making
+all jobs independent, we have solved a relaxation of the original problem. If an optimal schedule for this relaxation happens to be feasible with respect to the precedence
+constraints, then it must also be optimal with respect to these constraints.
+If the permutation π obtained by sorting jobs by preference order is not feasible,
+it is due to the collision of one or more pairs of jobs i, j where i → j and j ≤ f i. If
+it happens that j and i are consecutive in π and i ≤ f j, the collision can be resolved
+immediately by interchanging j and i in π. Even if this is not the case, it may be
+possible to do something about the collision.
+Lemma 4.7. Let i and j be a pair of jobs such that i → j and j ≤ f i. Suppose
+that, for each k ∈ N distinct from i and j, either (i) k → i; or (ii) j → k; or (iii) k
+is unrelated by the precedence constraints to i and also unrelated to j. Then there
+exists an optimal feasible permutation in which i immediately precedes j.
+Proof. Let π∗ = (t, i, u, j, v) be an optimal feasible permutation. If u is empty,
+then we are done. Hence, assume that u is not empty. Since each job k in u is
+unrelated to both i and j, it follows that the precedence constraints are not violated
+by interchanging i and u, or by interchanging u and j. It must be the case that either
+u ≤ f i or j ≤ f u, else we would have i < f u < f j, contradicting the hypothesis that
+j ≤ f i. Hence at least one of the two interchanges results in an optimal feasible
+permutation in which i immediately precedes j. 2
+When the hypotheses of the lemma are found to apply to a colliding pair of jobs i
+and j, the pair can be replaced by the sequence (i, j), with (i, j) inheriting all of the
+precedence constraints of i and j, e.g., if j → k then (i, j) → k. The sequence (i, j)
+can then be treated as a single job, or compound job, for the purpose of reapplying
+the lemma.
+
+4.3. Preference orders on sequences & series-parallel precedence constraints
+
+11
+
+Precedence constraints that consist of parallel chains have the nice property that
+application of Lemma 4.7 is guaranteed to yield a set of sequences that is free of
+collisions. To see this, one need only note that if any pair of jobs is in collision,
+there is a colliding pair of jobs i, j that are adjacent in a chain. But then i and j
+satisfy the hypotheses of the lemma and can be replaced by a single sequence. With
+no more than n − 1 repeated applications of the lemma, a collision-free family of
+sets of sequences can be obtained, in the sense of the following definition. For this
+definition, let an ordering (s1 , . . . , s` ) of sequences be consistent with ≤ f if su ≤ f sv
+for all 1 ≤ u < v ≤ `; and feasible with respect to the precedence constraints if for
+any precedence relation i → j, we have that i ∈ su , and j ∈ sv , for some u ≤ v.
+Definition 4.8. Let X be a finite index set. A family S = {S(x) : x ∈ X} of sets S(x)
+of sequences is said to be collision-free, with respect to given precedence constraints
+and preference order ≤ f on sequences, if
+1. each job in N is contained in exactly one of the sequences in ∪x∈X S(x); and
+2. there exists an optimal feasible permutation of the jobs in N in which the jobs
+in each sequence s ∈ ∪x∈X S(x) appear consecutively; and
+3. any ordering of the sequences in each set S(x) which is consistent with ≤ f is
+also feasible with respect to the precedence constraints.
+In effect, Lemma 4.7 enables us to transform a problem instance with parallelchains precedence constraints into an instance, consisting of sequences (or compound jobs) s ∈ N 0 , for which the family S = { N 0 } is collision-free. Hence the
+resulting instance can be dealt with as if it was unconstrained and an optimal feasible permutation is obtained by simply sorting all these sequences in preference
+order ≤ f .
+Theorem 4.9. Let the precedence constraints form parallel chains. Given a preference order ≤ f on N , an optimal feasible permutation of N can be found with
+O(n log n) comparisons of sequences with respect to ≤ f .
+Series-parallel partial orders are defined recursively as follows:
+any partial order (N, →), where N is a singleton, is series-parallel.
+/ that are seriesLet (N1 , →) and (N2 , →) be disjoint partial orders (i.e., N1 ∩ N2 = 0)
+parallel. A partial order (N1 ∪ N2 , →) is also series-parallel, when relations between
+jobs in N1 and jobs in N2 are determined by either
+series composition, in which each job i in N1 precedes each job j in N2 , i.e.,
+i → j for all i ∈ N1 and j ∈ N2 ,
+or
+parallel composition, in which the jobs in N1 and N2 are unrelated, i.e.,
+i 6→ j and j 6→ i for all i ∈ N1 and j ∈ N2 .
+
+12
+
+4. Weighted sum of completion times
+
+(Relations between pairs of jobs, both of which are in N1 or in N2 , are unaffected.)
+The structure of series-parallel precedence constraints is represented by a composition (or decomposition) tree in which each leaf of the tree is identified with a job
+and each internal node of the tree corresponds to a series or a parallel composition
+operation, and is accordingly labeled either “S” or “P.” The left and right children of
+an S-node are respectively identified with the subsets N1 , N2 of the series composition operation. The same is true of the children of a P-node, except that the left-right
+ordering of its children is immaterial.
+Some examples of series-parallel precedence constraints and their composition
+trees are indicated in Figure 4.4. Note that parallel chains, in-trees, out-trees, and
+forests of in-trees and out-trees, are all special cases of series-parallel constraints.
+The smallest non-series-parallel partial order is the “Z” digraph shown in Figure 4.5.
+In fact, a partial order fails to be series-parallel if and only if it contains four elements
+in a “Z” relation.
+
+4.3. Preference orders on sequences & series-parallel precedence constraints
+
+13
+
+There are efficient algorithms for testing if precedence constraints are seriesparallel. In particular, a digraph G with m arcs and n nodes can be tested in O(m + n)
+time to determine whether the partial order it induces is series-parallel. If the partial
+order is series-parallel, the algorithm “parses” it and returns a decomposition tree. If
+the partial order is not series-parallel, the algorithm returns a “Z,” proving that it is
+not.
+Given a decomposition tree for series-parallel precedence constraints and a preference order ≤ f on sequences, a plausible strategy for finding an optimal feasible
+permutation is to work from the leaves of the tree toward the root, dealing with the
+subproblem at an internal node only after the subproblems at its children have been
+dealt with. At each node x of the tree we propose to obtain a collision-free family
+S of sets of sequences, in which a set S(x) ∈ S contains sequences which contain
+every job corresponding to node x, and no other job. The algorithm will maintain the
+following two invariants after each node has been dealt with:
+(1) the current family S of sets of sequences is collison-free; and
+(2) the permutation obtained by sorting all sequences in S in preference order ≤ f
+is optimal for the relaxed problem restricted only by the precedence constraints
+defined by the nodes dealt with so far.
+Thus, at the root node x0 the set S will consist of a single set S(x0 ), and an optimal feasible permutation will be obtained by simply sorting all these sequences in
+preference order ≤ f .
+We initialize S = {S( j) : j ∈ N} where each S( j) consists of the single sequence j.
+Thus all leaves have been dealt with, and invariants (1) and, by Theorem 4.5, (2) are
+verified. At a P-node x with children y and z, all that is necessary is to replace in S the
+sets S(y) and S(z) with the set S(x) = S(y) ∪ S(z), since none of the sequences in S(x)
+collide. If S is collision-free before this replacement, then it also is collision-free
+afterwards. Moreover, invariant (2) continues to hold because we have not added
+any new precedence constraint. At an S-node, things are a bit more complicated.
+However, collisions can be resolved by repeated application of the following generalization of Lemma 4.7.
+Lemma 4.10. Let S be a collision-free family of sets of sequences. Let S(a) and S(b)
+be two sets in S such that, for every s ∈ S(a) and t ∈ S(b) there exist jobs i ∈ s and
+j ∈ t such that i → j. Let α be a ≤ f -maximal sequence in S(a) and β be a ≤ f -
+
+14
+
+4. Weighted sum of completion times
+
+minimal sequence in S(b), such that β ≤ f α. Assume that, for each k ∈ N which is
+not in any sequence in S(a) ∪ S(b), either
+(i) k → i for some job i in every sequence in S(a); or
+(ii) j → k for some job j in every sequence in S(b); or
+(iii) k is unrelated by the precedence constraints to every job in every sequence
+in S(a) ∪ S(b).
+Then there exists an optimal feasible permutation in which every sequence in S is
+consecutive and sequence α immediately precedes sequence β.
+Proof. Since S is collision-free, let π∗ = (t, α, u, β, v) be an optimal feasible permutation in which each sequence appearing in S is consecutive, and for which the
+number |u| of jobs between α and β is as small as possible. If |u| = 0 we are done;
+hence assume that |u| ≥ 1. If any sequence in S(a) appears in u, let s be the first
+such sequence and let u = (u0 , s, u00 ) with no sequence in u0 contained in S(a). If u0 is
+empty, then by the ≤ f -maximality of α in S(a) we may interchange s and α, obtaining an optimal permutation with fewer than |u| jobs between α and β, a contradiction
+to u being of minimum size. If u0 is nonempty, u0 precedes s ∈ S(a) in the feasible
+permutation π∗ , and no sequence in u0 can be contained in S(b) either. Therefore, by
+condition (iii) of the lemma, we can feasibly interchange α with u0 , and u0 with s.
+The minimality of |u| and the optimality of π∗ imply that α < f u0 and u0 ≤ f s; hence
+α < f s, a contradiction to the ≤ f -maximality of α in S(a). Therefore, no sequence
+in S(a) can appear in u. A symmetric argument implies that no sequence in S(b) can
+appear in u. But now we may feasibly interchange α with u, and u with β, so we
+must have α < f u < f β, a contradiction with the assumption β ≤ f α. 2
+Let x be an S-node and y and z be its left and right children. Let ` be a ≤ f maximal sequence in S(y) and r be a ≤ f -minimal sequence in S(z). If ` < f r then we
+can simply merge S(y) and S(z) into a single set S(x) = S(y) ∪ S(z) and the resulting
+family is collision-free. Moreover, invariant (2) continues to hold. Otherwise, r ≤ f `
+and we can apply Lemma 4.10: there exists an optimal feasible permutation in which
+every sequence in S is consecutive and sequence ` immediately precedes sequence r.
+Thus we concatenate the two sequences ` and r into a single sequence λ = (`, r). If
+s < f λ for all s ∈ S(y) \ {`} and λ < f s for all s ∈ S(z) \ {r}, then we can replace
+S(y) and S(z) with S(x) = (S(y) \ {`}) ∪ (S(z) \ {r}) ∪ {λ}, and the resulting family is
+again collision-free. Otherwise, we form a collision-free family S 0 by replacing S(y)
+and S(z) with the three sets S0 (y) = S(y) \ {`}, {λ}, and S0 (z) = S(z) \ {r}. However,
+we aim to replace in turn these three sets with a single set S(x) that comprises all of
+the corresponding jobs: for the resulting family to be collision-free, S(x) must satisfy
+Property 3 of Definition 4.8.
+If λ ≤ f s for some s ∈ S0 (y) then we may again apply Lemma 4.10 with S0 (y) as
+S(a) and {λ} as S(b): we conclude that there exists an optimal feasible permutation
+in which every sequence in S 0 is consecutive and a ≤ f -maximal sequence α in S0 (y)
+
+4.3. Preference orders on sequences & series-parallel precedence constraints
+
+15
+
+immediately precedes sequence λ. Thus replacing λ with (α, λ) and S0 (y) with S0 (y)\
+{α} maintains the invariant that the resulting family is collision-free. Similarly, if
+s ≤ f λ for some s ∈ S0 (z) then we may remove from S0 (z) a ≤ f -minimal sequence β
+and merge it with λ (so (λ, β) now replaces λ). We may repeat these two operations
+until we obtain a collision-free family S 0 such that all sequences s ∈ S0 (y) satisfy
+s < f λ and all sequences t ∈ S0 (z) satisfy λ < f t. We may now replace these three
+sets by their union S(x) = S0 (y) ∪ {λ} ∪ S0 (z) and obtain the desired collision-free
+family. At this point, we have dealt with the S-node x and may proceed to another
+tree node.
+To summarize the preceding discussion, we now give a pseudo-code for the recursive computation of a set of sequences S(x) at a node x of a series-parallel decomposition tree, so as to maintain a collision-free family of sets of sequences. We suppose
+that the sets of sequences at each node are recorded in a priority queue supporting
+the operations of findmin, findmax, deletemin, deletemax, and merge.
+The findmin operation returns a sequence which is ≤ f -minimal in the set, while
+deletemin returns such a sequence and also deletes it from the set; similarly for
+findmax and deletemax. When L is empty the findmax and deletemax operations return a dummy job such that max L < f j, for all jobs j; similarly, when R
+is empty, min R > f j, for all jobs j. Finally, merge forms the union of two sets of
+sequences.
+S(x) :
+Case (x is a leaf):
+return S := { j}, where j is the job at x;
+Case (x is a P node): return S := merge(S(left(x)), S(right(x)));
+Case (x is an S node):
+L := S(left(x)); R := S(right(x));
+if findmax(L) < f findmin(R) then return S := merge(L, R);
+else
+s := (deletemax(L), deletemin(R));
+* concatenation *
+while (findmax(L) ≥ f s) or (findmin(R) ≤ f s)
+if findmax(L) ≥ f s then s := (deletemax(L), s);
+else s := (s, deletemin(R));
+endwhile
+S := merge(L, R);
+return S := merge(S, {s});
+endif.
+Each of the priority queue operations can be implemented to run in O(log n) time,
+and each operation is performed no more than O(n) times. The final sort of the
+strings obtained at the root of the tree requires no more than O(n log n) comparisons,
+and invariant (2) implies that this is an optimal sequence for the entire instance.
+Hence we have the following result.
+Theorem 4.11. Let series-parallel precedence constraints be specified by a decomposition tree. Given a preference order ≤ f on sequences, an optimal feasible per-
+
+16
+
+4. Weighted sum of completion times
+
+mutation of N can be found with O(n log n) comparisons of sequences with respect
+to ≤ f , and at most O(n log n) time for other operations.
+In particular, a variety of single-machine scheduling with precedence constraints
+can be solved in O(n log n) time; see the exercises below for examples.
+Exercises
+4.12. Prove that the preference order on sequences defined for the ∑ w jC j criterion
+is correct.
+4.13. Show that 1| |Lmax does not admit a preference order on sequences.
+4.14. Show that there is no preference order on sequences when f is determined by
+weighted monotone cost density functions.
+4.15. Find a preference order on sequences for each of the following problems:
+(a) Total weighted discounted completion time problem.
+(b) Least cost fault detection problem.
+4.16. Provide pseudocode for obtaining a collision-free set in the case of parallelchains precedence constraints. You should be able to achieve O(n) running time.
+
+4.4.
+
+NP-hardness of further constrained min-sum problems
+
+Unfortunately, it is relatively easy to move from the world of polynomial-time solvable problems to the world of NP-hard ones. In this section, we will present three
+NP-hardness results: 1|r j | ∑ C j , 1|r j , pmtn| ∑ w jC j , and 1|prec| ∑ w jC j .
+Theorem 4.12. The problem 1|r j | ∑ C j is NP-hard in the strong sense.
+Proof. We will show that the 3- PARTITION problem (see Chapter 2) reduces to the
+decision version of 1|r j | ∑ C j . Consider an instance of 3- PARTITION, consisting of
+positive integers a1 , . . . , a3t , b, with b/4 < a j < b/2 for all j and ∑ j a j = tb. Recall
+that this is a yes-instance if and only if the index set T = {1, . . . , 3t} can be partitioned
+into t mutually disjoint 3-element subsets S1 , . . . , St with ∑ j∈Si a j = b for i = 1, . . . ,t.
+We will define an instance of 1|r j | ∑ C j and an integer Z such that there exists a
+schedule of value ∑ C j ≤ Z if and only if the instance of 3- PARTITION is a yesinstance.
+The scheduling instance has three types of jobs. First, for each j ∈ T , there is a
+job j with release date 0 and processing time a j . Second, for each i ∈ {1, . . . ,t − 1},
+(i)
+there are v jobs Kk with release date ib and processing time 0 (k = 1, . . . , v). Finally,
+there are w jobs L` with release date tb and processing time 1 (` = 1, . . . , w). The
+values of Z, v and w will be defined later.
+Suppose we have a yes-instance of 3- PARTITION, and consider the following
+schedule (see Figure 4.6). The three jobs j with j ∈ Si are processed in the interval [(i − 1)b, ib], for i = 1, . . . ,t; the sum of their completion times is bounded from
+
+4.4. NP-hardness of further constrained min-sum problems
+
+17
+
+above by
+t
+3
+ZJ = ∑ 3ib = t(t + 1)b.
+2
+i=1
+(i)
+
+The jobs Kk are scheduled to start at their release dates; their total completion time
+is equal to
+t−1
+1
+ZK = ∑ vib = vt(t − 1)b.
+2
+i=1
+The jobs L` are processed consecutively in the interval [tb,tb + w]; their total completion time is given by
+w
+1
+ZL = ∑ (tb + `) = wtb + w(w + 1).
+2
+`=1
+
+We now define v = ZJ , w = ZJ + ZK , and Z = ZJ + ZK + ZL . The schedule corresponding to the yes-instance of 3- PARTITION has a value ∑ C j ≤ Z.
+Conversely, consider a schedule satisfying ∑ C j ≤ Z. We claim that, in any such
+schedule, all jobs j are completed by time tb. If this is not the case, then at least one
+job j as well as all jobs L` finish after tb, so that
+w+1
+
+∑ C j > ∑ (tb + `) = ZL + tb + w + 1 > Z.
+`=1
+
+(i)
+
+It may be assumed that, for any i, all jobs Kk (k = 1, . . . , v) are processed consecutively; this follows from a straighforward interchange argument. We now also claim
+(i)
+that, if ∑ C j ≤ Z, then all jobs Kk start at their release dates. Otherwise, at least v of
+these jobs are delayed by one time unit, so that
+
+∑ C j > ZK + v + ZL = Z.
+We conclude that, in any schedule of value ∑ C j ≤ Z, all jobs j are processed in the
+interval [0,tb], interrupted by zero-time jobs at each point in time ib (i = 1, . . . ,t − 1).
+
+18
+
+4. Weighted sum of completion times
+
+Hence, in each interval [(i − 1)b, ib], three jobs j are processed for a total duration of
+b time units. This implies that we have a yes-instance of 3- PARTITION.
+Note that the number of jobs is proportional to b, so that the correctness of the
+reduction essentially depends upon the strong NP-completeness of 3- PARTITION.
+Finally, let us mention that one can modify the reduction such that all jobs have a
+positive length (Exercise 4.17). 2
+We did mention earlier that, in the presence of release dates, there can be advantage to preemption. In fact, for 1|r j | ∑ C j there is; in addition, 1|r j , pmtn| ∑ C j can
+be solved efficiently by the Shortest Remaining Processing Time (SRPT) rule; see
+Theorem 4.25 below. However, the preemptive problem is NP-hard if jobs can have
+different weights.
+Theorem 4.13. The problem 1|r j , pmtn| ∑ w jC j is NP-hard in the strong sense.
+Proof. We will show that this problem is NP-hard in the ordinary sense, by a reduction from the PARTITION problem. It is not hard to extend this to a reduction
+from the 3- PARTITION problem, which implies NP-hardness in the strong sense; see
+Exercise 4.18.
+An instance of PARTITION consists of positive integers a1 , . . . , at , b with ∑ j a j =
+2b. It is a yes-instance if and only if the index set T = {1, . . . ,t} includes a subset S
+with ∑ j∈S a j = b.
+Given an instance of PARTITION, we define t jobs j ( j = 1, . . . ,t), with r j = 0
+and p j = w j = a j . For these jobs, any nonpreemptive schedule without idle time is
+optimal: all r j = 0, so that there is no advantage to preemption, and all w j /p j = 1,
+so that the ratio rule may choose any job order. The value of such a schedule is given
+by
+ZJ = ∑ a j ak .
+1≤ j≤k≤t
+
+(This can easily seen by considering 2-dimensional Gantt charts; see Section 4.5
+below.) We define one more job, K, with release date b, processing time 1, and
+weight 2.
+Suppose we have a yes-instance of PARTITION, and consider the following schedule. All jobs j with j ∈ S are processed in the interval [0, b], job K is scheduled in
+[b, b + 1], and the remaining jobs are processed in [b + 1, 2b + 1] (see Figure 4.7(a)).
+Since these latter jobs are all delayed by one time unit, their contribution to ∑ w jC j
+increases by the sum of their weights, which is equal to the sum of their processing
+times. The value of this schedule is therefore equal to
+Z = (ZJ + b) + 2(b + 1) = ZJ + 3b + 2.
+Now consider any feasible schedule, and suppose that job K finishes at time b+1+c,
+for some c ≥ 0. It may be assumed that there is no idle time in the interval [0, 2b + 1]
+and that job K starts at time b + c. For the jobs that finish after job K, let d be the total
+amount of processing done on them prior to K, for some d ≥ 0 (see Figure 4.7(b)).
+
+4.4. NP-hardness of further constrained min-sum problems
+
+19
+
+Again, the contribution of these jobs to ∑ w jC j increases by the sum of their weights,
+which is now equal to d + b − c. Hence, the value of this schedule is given by
+(ZJ + d + b − c) + 2(b + c + 1) = ZJ + 3b + c + d + 2 = Z + c + d.
+It follows that a schedule has value ∑ w jC j ≤ Z if and only if c = d = 0; that is, job
+K is processed in [b, b + 1] and each other job is entirely processed either before K or
+after K. Such a schedule exists if and only if we have a yes-instance of PARTITION.
+2
+Note that, alternatively, we could have given a very high weight to job K, thereby
+immediately fixing its starting time to b. The above technique, however, can be
+extended to yield similar and simple reductions to a number of related problems,
+including 1|d¯j | ∑ w jC j , 1| | ∑ w j T j , and P| | ∑ w jC j .
+We show the strong NP-hardness of the problem 1| prec| ∑ w jC j by a two-step
+reduction from the L INEAR A RRANGEMENT problem, which is defined as follows:
+assign the vertices of an undirected graph G = (V, E) to integer points on the real
+line so that the sum of edge lengths is minimized. More formally, given G = (V, E)
+and a positive integer Z, is there a one-to-one mapping f of V to {1, . . . , n} such that
+∑{u,v}∈E | f (u) − f (v)| ≤ Z? This problem is NP-complete, and we first reduce it to
+a version of 1| prec| ∑ w jC j where jobs can have zero processing times and negative
+weights.
+Lemma 4.14. The optimal linear arrangement problem is polynomially reducible
+to the precedence-constrained single-machine scheduling problem with nonnegative
+processing times and arbitrary weights.
+Proof. Given an instance G = (V, E) and Z of the L INEAR A RRANGEMENT problem, we introduce a job for each vertex and one for each edge. Let dv be the degree
+of vertex v in G. For each vertex v ∈ V , the corresponding job v has weight wv = −dv
+and processing time pv = 1. For each edge {u, v} ∈ E, the corresponding job {u, v}
+has weight w{u,v} = 2 and processing time p{u,v} = 0. Moreover, each edge job {u, v}
+has exactly two predecessors, namely u and v.
+
+20
+
+4. Weighted sum of completion times
+
+Suppose that we have a mapping f of V to {1, . . . , n} such that ∑{u,v}∈E | f (u) −
+f (v)| ≤ Z. Schedule the vertex jobs in the same order; i.e., v is scheduled in position
+f (v) among all vertex jobs. An edge job {u, v} is scheduled immediately after its
+predecessor that completes later. The total weighted completion time of the resulting
+schedule is given by
+
+∑ wvCv + ∑ w{u,v}C{u,v}
+
+v∈V
+
+{u,v}∈E
+
+= − ∑ dv f (v) +
+v∈V
+
+=
+
+∑
+
+∑ 2 max{ f (u), f (v)}
+
+{u,v}∈E
+
+
+2 max{ f (u), f (v)} − f (u) − f (v)
+
+{u,v}∈E
+
+=
+
+∑ | f (u) − f (v)| .
+
+{u,v}∈E
+
+It is therefore at most Z. On the other hand, if there is a schedule of total weighted
+completion time at most Z, we may assume, without loss of generality, that each edge
+job {u, v} is processed as soon as both jobs u and v are completed. Then, the same
+calculation as before implies that the order of the vertex jobs defines a solution of
+the given instance of the L INEAR A RRANGEMENT problem with value at most Z. 2
+Given an instance of 1| prec| ∑ w jC j , adding a constant to the weight of every job
+not only changes the value of each schedule, but also can change the relative order
+of schedules with respect to their objective function values. However, if the constant
+is only added to the weights of jobs with processing time 1, and all other jobs have
+zero processing time, then the relative order of schedules is maintained. Let dmax be
+the maximal degree of a vertex in G. We can then add dmax to the weight of each
+vertex job in the proof of Lemma 4.14 to see that the scheduling problem remains
+NP-hard for instances with nonnegative weights.
+One can also easily modify the reduction so that all jobs have positive processing
+times (Exercise 4.19). We have completed the proof of the following theorem.
+Theorem 4.15. The problem 1| prec| ∑ w jC j is NP-hard in the strong sense.
+Exercises
+4.17. Modify the reduction in the proof of Theorem 4.12 so that all jobs in the resulting instance of 1|r j | ∑ C j have strictly positive processing times.
+4.18. Give a reduction from the 3- PARTITION problem to show that the problem
+1|r j , pmtn| ∑ w jC j is indeed NP-hard in the strong sense.
+4.19. Modify the reduction in the proof of Theorem 4.15 so that all jobs in the resulting instance of 1|prec| ∑ w jC j have unit processing time.
+4.20. Modify the reduction in the proof of Theorem 4.15 so that all jobs in the resulting instance of 1|prec| ∑ C j have unit weight and processing times 0 or 1.
+
+4.5. The ratio rule via linear programming
+
+4.5.
+
+21
+
+The ratio rule via linear programming
+
+Linear programming methods have played a significant role in the development of
+combinatorial optimization; scheduling is no exception to this rule. We next present
+another proof of correctness for Smith’s ratio rule using the tools of linear programming.
+Let us draw a 2-dimensional Gantt chart where the “resource consumed” during
+the execution of every job j is in fact the amount of processing, or work done on the
+job. The vertical axis may thus be interpreted as the remaining work; see Figure 4.8
+for an illustration. Note that all jobs now have the same slope ρ( j) = 1. Recall that
+the mean busy time of a job j in a nonpreemptive schedule is M j = C j − p j /2.
+
+Consider any subset A ⊆ N, where N = {1, . . . , n} is the set of all jobs to be
+processed. From the 2D Gantt chart, or from Smith’s ratio rule, it follows that a
+schedule minimizes ∑ j∈A p j M j if and only if all jobs in A start at time zero and no
+idle time is incurred until the processing of all jobs in A is complete. Jobs not in A
+have a zero weight in the objective ∑ j∈A p j M j , and can be processed at any time after
+all jobs in A are complete. The resulting minimum objective value is the area of the
+2
+triangle below job set A, that is, 21 p(A)2 = 21 ∑ j∈A p j . This shows that for any
+
+22
+
+4. Weighted sum of completion times
+
+subset A ⊆ N, the following so-called parallel inequality
+1
+
+∑ p j M j ≥ 2 p(A)2
+
+(4.3)
+
+j∈A
+
+holds for any feasible schedule in which no job can start before time 0 and the machine can process at most one job at a time. These inequalities are valid for any
+scheduling problem, whenever N is a set of jobs or operations to be processed on a
+machine with unit speed and unit capacity.
+The parallel inequalities may be written, using completion times instead of mean
+busy times, in the equivalent form
+1
+
+1
+
+∑ p jC j ≥ 2 p(A)2 + 2 ∑ p2j
+
+j∈A
+
+(4.4)
+
+j∈A
+
+and may be interpreted as enforcing the requirement that no set of jobs can be completed too early on a machine with limited processing capacity.
+The parallel inequalities (4.3) or (4.4), and variations or strengthenings thereof to
+take into account additional constraints or characteristics (such as precedence constraints, release dates, different processing speeds on different machines, etc.) play
+an important role in defining relaxations and approximation algorithms for more
+complicated scheduling problems.
+In this light, we start by considering the problem that we know how to solve:
+1| | ∑ w j M j . Suppose, without loss of generality, that we have reindexed the jobs so
+that ρ(1) ≥ ρ(2) ≥ · · · ≥ ρ(n). Consider the linear program
+(
+)
+1
+min ∑ w j M j : ∑ p j M j ≥ p(A)2 for all A ⊆ N .
+(4.5)
+2
+j∈N
+j∈A
+We can show that the ratio rule is optimal by proving that if we schedule the jobs
+in the order 1, 2, . . . , n, this feasible solution is an optimal solution to this linear
+program. Consequently, this schedule must also be optimal for 1| | ∑ w j M j (and
+also 1| | ∑ w jC j ).
+Let M j , j = 1, . . . , n, denote the mean busy times of the jobs scheduled in the
+order 1, 2, . . . , n. We use linear programming duality to prove the optimality of this
+schedule. That is, we exhibit a feasible dual solution that satisfies the complementary slackness conditions with M j , j = 1, . . . , n. The dual linear program has nonnegative variables yA , for each A ⊆ N , and has a constraint for each j = 1, . . . , n,
+∑A: j∈A p j yA = w j , or equivalently, that ∑A: j∈A yA = ρ( j).
+The complementary slackness conditions for this pair of linear programs amount
+to yA > 0 only if the corresponding parallel inequality is satisfied with equality. If
+we keep this in mind, then we can deduce a feasible solution for the dual as follows:
+the parallel inequalities corresponding to the sets A j = {1, . . . , j} hold with equality. Since n is only in An , we set yAn = ρ(n); working backwards, we see then that
+
+4.6. Approximation algorithms for 1|prec| ∑ w jC j
+
+23
+
+yAn−1 = ρ(n − 1) − ρ(n), and in general, yA j = ρ( j) − ρ( j + 1), j = 1, . . . , n − 1. The
+sorting of the jobs ensures that these values are all nonnegative. Moreover, yA = 0
+for all other A ⊆ N. Hence, we have feasible primal and dual solutions satisfying
+the complementary slackness conditions, and so they are optimal for their respective
+linear programs.
+This proof of the correctness of the ratio rule actually says something much
+stronger, and truly remarkable. What it says, at its core, is that the parallel inequalities completely describe the feasible set of mean busy time vectors; more precisely,
+what we have shown is, in essence, that the feasible region of the linear program in
+M j variables is exactly the convex hull of vectors that correspond to mean busy times
+of feasible schedules. Of course, the same holds true for completion time vectors.
+Exercises
+4.21. If one would want to solve the linear program (4.5) by standard linear programming methods, one would have to deal with the exponential number of constraints. Because of the equivalence of optimization and separation (see Chapter 2),
+it suffices to solve the separation problem associated with the parallel inequalities
+∑ j∈A p j M j ≥ 21 p(A)2 , A ⊆ N. Given a vector M ∗ ∈ QN , the separation problem is to
+decide whether M ∗ satisfies all parallel inequalities and, if not, to produce a parallel
+inequality that is violated by M ∗ .
+(a) Defining the violation v(A) = 12 p(A)2 − ∑ j∈A p j M ∗j , A ⊆ N, compute v(A ∪
+{k}) − v(A) for k 6∈ A, and v(A) − v(A \ { j}) for j ∈ A.
+(b) Assume, without loss of generality, that M1∗ ≤ M2∗ ≤ · · · ≤ Mn∗ . Using (a), show
+that a parallel inequality most violated by M ∗ , if any, can be found among one
+of the consecutive sets {1}, {1, 2}, . . . , {1, 2, . . . , n}.
+It follows that (4.5) can be solved in polynomial time. This should be hardly surprising, since it is solved by Smith’s ratio rule. The real interest of the separation algorithm is in solving linear programming relaxations of more complicated scheduling
+problems, as will be seen later in this and other chapters.
+4.22. Show that the mean busy times M j , j = 1, . . . , n, of any feasible schedule for
+1|r j | ∑ w jC j satisfy the inequalities ∑ j∈A p j M j ≥ (min j∈A r j + 21 p(A))p(A).
+4.23. Solve the separation problem associated with the inequalities in Exercise 4.22.
+
+4.6.
+
+Approximation algorithms for 1|prec| ∑ w jC j
+
+In light of the NP-hardness of 1|prec| ∑ w jC j , it is natural to consider approximation
+algorithms. In Section 4.5, we used a linear program to give an alternative proof of
+optimality for Smith’s ratio rule. Looking at this proof from a different angle, we see
+that sequencing jobs in nondecreasing order of their completion times in the solution
+to the linear program results in an optimal schedule for 1| | ∑ w jC j . We now use the
+same idea to create a schedule whose cost is within a factor 2 of that of an optimum
+for the strongly NP-hard problem 1|prec| ∑ w jC j .
+
+24
+
+4. Weighted sum of completion times
+
+While the constraints of the linear program for 1| | ∑ w jC j consisted of the parallel inequalities (4.4) only, we add the following inequalities to make sure that the
+resulting schedule is consistent with the precedence constraints:
+C j −Ci ≥ p j for all pairs i → j.
+
+(4.6)
+
+Let C j , j = 1, . . . , n, be a solution of the linear program to minimize ∑ j∈N w jC j subject to the parallel inequalities (4.4) for all A ⊆ N and the precedence constraints (4.6).
+Without loss of generality, we can reindex the jobs so that C1 ≤ C2 ≤ · · · ≤ Cn . Because of (4.6), i < j whenever i → j. In contrast to the case 1| | ∑ w jC j , the values C j do in general not correspond to job completion times in an actual schedule, even when they correspond to a basic feasible solution; see Exercise 4.25.
+However, we can easily construct a feasible schedule by sequencing the jobs in
+the order 1, 2, . . . , n. The completion times C j of this schedule are C1 = p1 ,C2 =
+p1 + p2 , . . . ,Cn = p1 + p2 + · · · + pn . Note that this schedule does not violate any
+precedence constraints. We will now show that the total weighted completion time
+of this schedule is at most twice that of an optimal schedule.
+Consider an arbitrary, but fixed job k. Recall that (C1 ,C2 , . . . ,Cn ) satisfies the
+parallel inequalities (4.4); in particular, for A = {1, 2, . . . , k},
+k
+
+∑ p jC j ≥
+
+j=1
+
+2
+1 k
+p
+,
+j
+∑
+2 j=1
+
+where we have even dropped a nonnegative term from the right-hand side of inequality (4.4). Because of the ordering of jobs, the left-hand side of this inequality
+is bounded from above by Ck ∑kj=1 p j . We therefore obtain
+k
+
+Ck = ∑ p j ≤ 2Ck .
+j=1
+
+Thus, ∑nj=1 w jC j ≤ 2 ∑nj=1 w jC j ; given any feasible solution of the linear program
+to minimize ∑ j∈N w jC j subject to all parallel inequalities and precedence constraints,
+we can construct a schedule with total weighted completion time at most twice its
+value. If we start with an optimal solution C j , j = 1, 2, . . . , n, of the linear program,
+then ∑ j∈N w jC j is a lower bound on the cost of an optimal schedule; we have proved
+the following theorem.
+Theorem 4.16. Scheduling jobs in nondecreasing order of completion times in an
+optimal solution to the linear program min{∑nj=1 w jC j : C satisfies (4.4) and (4.6)}
+is a 2-approximation algorithm for the problem 1|prec| ∑ w jC j .
+Actually, we still have to argue that the linear program in C j variables can be
+solved in polynomial time, because there are exponentially many parallel inequalities. While it follows from Exercise 4.21 that this is indeed the case, we here take a
+different route. Suppose there is another linear programming relaxation that only has
+
+4.6. Approximation algorithms for 1|prec| ∑ w jC j
+
+25
+
+polynomially many variables and constraints, so it can obviously be solved in polynomial time. Furthermore, suppose that every solution of the new linear program
+can be mapped to a feasible solution of the original linear program with no change
+of its objective function value. Then we could compute an optimal solution to the
+new linear program, map it to a solution of the old linear program, and apply the
+previous algorithm. We now describe such a linear program.
+One way to derive another linear programming relaxation of the scheduling problem 1|prec| ∑ w jC j is to formulate it as an integer program, and then relax the integrality constraints. Solving 1|prec| ∑ w jC j is equivalent to determining, for each pair
+i and j of jobs, whether i precedes j in the solution, or not. For any pair i 6= j of jobs,
+we introduce the variable δi j ∈ {0, 1}: δi j = 1 indicates that job i precedes job j, and
+δi j = 0 indicates otherwise. Therefore,
+δi j + δ ji = 1 for all pairs i, j ∈ N, i 6= j.
+
+(4.7)
+
+We can obviously represent every feasible schedule by a 0/1-vector δ = (δi j )i6= j
+of this type; moreover, the resulting 0/1-vectors satisfy further inequalities. The
+precedence constraints imply that
+δi j = 1 for all i → j.
+
+(4.8)
+
+In addition, when job j precedes job k, and k precedes i, then j also precedes job i.
+This translates into the following inequalities:
+δ jk + δki − δ ji ≤ 1 for all triples i, j, k ∈ N, i 6= j 6= k 6= i.
+
+(4.9)
+
+These inequalities are called transitivity constraints. On the other hand, every 0/1vector δ that satisfies the transitivity constraints (4.9), the precedence constraints (4.8),
+and (4.7) represents a feasible job sequence. Given such δ, the completion time C j
+of job j in the corresponding schedule is
+C j = ∑ pi δi j + p j .
+
+(4.10)
+
+i6= j
+
+So 1| prec| ∑ w jC j is equivalent to minimizing ∑nj=1 ∑i6= j w j pi δi j + ∑nj=1 w j p j subject
+to the constraints (4.7) – (4.9), and δi j ∈ {0, 1} for all i 6= j. If we replace δi j ∈ {0, 1}
+by
+δi j ≥ 0 for all i 6= j,
+(4.11)
+we obtain a linear program of polynomial size whose optimal value is a lower bound
+on the value of an optimal schedule. It remains to show that, if δ is a solution to this
+linear program, then the vector defined by (4.10), for j = 1, 2, . . . , n, is a solution to
+the linear program in C j variables.
+
+26
+
+4. Weighted sum of completion times
+
+Let us consider the precedence constraints (4.6) first. Assume i → j; then δi j = 1,
+and (4.10) gives
+C j = ∑ p k δk j + p i + p j .
+k6=i, j
+
+Because of (4.7), δ ji = 0, and thus (4.10) yields
+Ci = ∑ pk δki + pi .
+k6=i, j
+
+Let k be a job with k 6= i, j. Since δ ji = 0, the transitivity constraint (4.9) for this
+triple implies that δk j = 1 − δ jk ≥ δki . Hence, C j ≥ Ci + p j .
+We now turn our attention to the parallel inequalities (4.4). Fix A ⊆ N. Then,
+
+
+∑ p jC j = ∑ p j ∑ pk δk j + p j = ∑ p j pk δk j + ∑ p2j
+j∈A
+
+j∈A
+
+≥
+
+j∈A,k∈N
+j6=k
+
+j∈A
+
+∑ p j pk δk j + ∑ p2j = ∑ p j pk (δ jk + δk j ) + ∑ p2j
+j,k∈A
+j6=k
+
+=
+
+k6= j
+
+j∈A
+
+j,k∈A
+j<k
+
+j∈A
+
+1
+1
+p(A)2 + ∑ p2j .
+2
+2 j∈A
+
+The last equality follows from (4.7).
+Corollary 4.17. Let δ be an optimal solution to the linear program min
+{∑k6= j wk p j δ jk : δ ≥ 0 satisfies (4.7)–(4.9)}. Define C j according to (4.10), for j =
+1, 2, . . . , n, and sequence the jobs in nondecreasing order of C j values. Then, the
+total weighted completion time of the resulting schedule is at most twice that of an
+optimal schedule.
+The analysis of this 2-approximation algorithm is tight; i.e., there exist instances
+for which the resulting schedule has cost close to twice that of an optimal schedule.
+There are also instances for which the value of an optimal schedule is essentially
+twice that of the linear program; see Exercise 4.27.
+The technique of scheduling jobs in order of their “completion times” in a linear
+programming relaxation of the problem is of use in more complicated problems than
+1| prec| ∑ w jC j , including parallel machine and open shop problems.
+Interestingly, no approximation algorithm with a performance guarantee strictly
+less than 2 is known for the problem 1| prec| ∑ w jC j . However, there is a generic
+way of designing a 2-approximation algorithm that does not require solving a linear
+program, which we describe next. For that, we need the concept of Sidney decomposition.
+Exercises
+4.24. For an instance of 1| | ∑ w jC j , consider the linear program min{∑i, j,i6= j w j pi δi j :
+δi j + δ ji = 1, δi j ≥ 0 for all i 6= j}. Show that the optimal value of this linear program
+
+4.7. Sidney decompositions
+
+27
+
+plus ∑ j w j p j is equal to the value of an optimal schedule. How can one use this fact
+to give another proof of the optimality of Smith’s ratio rule?
+4.25. Consider the following instance of 1|prec| ∑ w jC j : there are three jobs of unit
+length each, job 1 precedes jobs 2 and 3, and w1 = 0, w2 = 1, and w3 = 1. Show that
+C1 = 4/3, C2 = 7/3, and C3 = 7/3 is an optimal basic feasible solution of the linear
+program min{∑ j w jC j : C satisfies (4.4) and (4.6)}.
+4.26. Show that the analysis that led to Theorem 4.16 is tight:
+(a) Describe a family of instances for which the ratio of the objective function
+value returned by the algorithm to that of an optimal schedule converges to 2
+with increasing values of n.
+(b) Give a family of instances for which the ratio of the cost of an optimal schedule
+to that of an optimal solution to the linear program in completion time variables
+converges to 2 with increasing values of n.
+4.27. Show that the analysis that led to Corollary 4.17 is tight.
+
+4.7.
+
+Sidney decompositions
+
+Recall that any optimal sequence for 1| | ∑ w jC j orders jobs according to nonincreasing ratios w j /p j . In the presence of precedence constraints, we already saw that this
+ordering can lead to collisions that cannot always be resolved. The Sidney decomposition offers one way to extend Smith’s ratio rule to 1| prec| ∑ w jC j by considering
+ratios of subsets. A subset I ⊆ N that contains all its predecessors under the precedence constraints is said to be an initial set of N. That is, I is an initial set if j ∈ I and
+i → j imply i ∈ I. Note that a subset I ⊆ N is an initial set of N if and only if there
+is a feasible sequence that schedules all jobs in I before all remaining jobs. A ratiomaximal initial set I is an initial set of N with maximum ratio ρ(I) = w(I)/p(I).
+Here, as before, w(I) = ∑ j∈I w j and p(I) = ∑ j∈I p j .
+Theorem 4.18. Let I ∗ be a ratio-maximal initial set of N. There exists an optimal
+sequence of N that schedules the jobs in I ∗ before all remaining jobs.
+Before we prove this theorem, we discuss its implications and related aspects.
+First, note that an initial set is a closure in the directed graph defined by reversing
+all precedence constraints. A ratio-maximal initial set can therefore be computed
+in polynomial time; see Chapter 2. Second, we can apply Theorem 4.18 to the set
+N \I ∗ of remaining jobs. If we repeat this, then we eventually obtain a decomposition
+/ for all 1 ≤ i < j ≤ k, I1 ∪ I2 ∪ . . . ∪ Ik = N,
+(I1 , I2 , . . . , Ik ) of N such that Ii ∩ I j = 0,
+and I j is a ratio-maximal initial set of N \ (I1 ∪ . . . ∪ I j−1 ). A decomposition of this
+kind is known as a Sidney decomposition. Note that each set I j , for j = 1, 2, . . . , k,
+is ratio-maximal for itself; i.e., ρ(I) ≤ ρ(I j ) for all initial sets I ⊆ I j . A sequence is
+consistent with a given Sidney decomposition if it first schedules the jobs in I1 , then
+the jobs in I2 , and so forth, until it eventually schedules all jobs in Ik . We can now
+reformulate Theorem 4.18 so that it encompasses Smith’s ratio rule (Theorem 4.1).
+
+28
+
+4. Weighted sum of completion times
+
+Corollary 4.19. A sequence π = (π1 , π2 , . . . , πk ) is optimal for 1| prec| ∑ w jC j if π is
+consistent with a Sidney decomposition (I1 , I2 , . . . , Ik ) of N, and each subsequence π j
+is optimal for I j , j = 1, . . . , k.
+Corollary 4.19 implies that it suffices to consider approximation algorithms
+that are consistent with a Sidney decomposition. In particular, if we had a 2approximation algorithm for instances whose ground sets are ratio-maximal, then
+we could apply this algorithm to all sets I j in a Sidney decomposition, concatenate
+the resulting sequences in order, and thus obtain a 2-approximation algorithm for
+the entire instance. It turns out that we do not have to work hard to find such a
+2-approximation algorithm.
+
+An important structural property of instances with a ratio-maximal ground set N
+is that sequencing the jobs in any feasible order constitutes a 2-approximation algorithm. Assume that N is a ratio-maximal initial set of itself. That is, ρ(I) ≤ ρ(N)
+for all initial sets I ⊆ N. Let us interpret this situation with the help of 2D Gantt
+charts. Consider an arbitrary feasible schedule, such as the one in Figure 4.9, and
+the line segment connecting the point (0, w(N)) on the vertical axis with the lower
+right corner of any rectangle representing a job j. The absolute value of the slope
+of this line segment is equal to the ratio ρ(I) of the initial set I of jobs defined by
+I = {k ∈ N : Ck ≤ C j }. For any job j, the lower endpoint of this line segment is on
+or above the diagonal defined by the two points (0, w(N)) and (p(N), 0), because N
+is ratio-maximal and the negative value of the slope of this diagonal is ρ(N). Recall
+that the area under the curve W (t) is equal to ∑nj=1 w jC j . So we have just argued
+that the total weighted completion time of any feasible schedule, especially that of
+an optimal one, is at least the area under the diagonal, which is w(N)p(N)/2. On the
+
+4.7. Sidney decompositions
+
+29
+
+other hand, the cost of any schedule is at most w(N)p(N). The proof of the following
+theorem is complete.
+Theorem 4.20. The total weighted completion time of any feasible sequence for
+1| prec| ∑ w jC j that is consistent with a Sidney decomposition is at most twice that of
+an optimal schedule.
+So even if the only ratio-maximal initial set is N itself, i.e., we cannot divide the
+original problem into smaller pieces, we are at least assured that no feasible sequence
+is too far from optimal.
+It is time to prove Theorem 4.18. For notational convenience, we use the equivalent integer programming formulation of 1| prec| ∑ w jC j to do so. We have to prove
+that, if I ∗ is a ratio-maximal initial set of N, then there exists an optimal solution
+δ∗ to the integer program defined by the constraints (4.7) – (4.9) and the objective
+∑i6= j w j pi δi j such that δ∗i j = 1 for all i ∈ I ∗ , j ∈ N \ I ∗ .
+Proof. [Theorem 4.18] Let δ be an optimal solution of the integer program. Suppose
+δi j < 1 for some i ∈ I ∗ , j ∈ N \ I ∗ . For each k ∈ I ∗ , define Ik = { j ∈ N \ I ∗ : δ jk >
+0}. If a job i ∈ N \ I ∗ is a predecessor of j ∈ Ik , i.e., i → j, then the transitivity
+constraint (4.9) applied to the triple i, j, k, and δ ji = 1 − δi j = 0 imply that δik =
+1 − δki ≥ δ jk > 0. Hence, i ∈ Ik , and Ik is an initial set of N \ I ∗ . Similarly, for each
+k ∈ N \ I ∗ , Fk = {i ∈ I ∗ : δki > 0} is a final set of I ∗ . (That is, I ∗ \ Fk is an initial set
+of I ∗ .)
+Let ε = min{δi j : i ∈ N \ I ∗ , j ∈ I ∗ , δi j > 0}, and consider the vector δ∗ defined as:
+
+ δi j + ε if i ∈ I ∗ , j ∈ N \ I ∗ , and δi j < 1;
+∗
+δi j − ε if i ∈ N \ I ∗ , j ∈ I ∗ , and δi j > 0;
+δi j =
+for i, j ∈ N, i 6= j.
+
+δi j
+otherwise;
+Clearly, δ∗i j + δ∗ji = 1 for all i 6= j, and δ∗i j = 1 for all i → j. Consider now a triple
+i, j, k ∈ N, i 6= j 6= k 6= i. If {i, j, k} ∈ I ∗ or {i, j, k} ∈ N \ I ∗ , then the associated transitivity constraint is satisfied because δ∗ and δ coincide in the relevant components.
+Otherwise, it is convenient to rewrite the transitivity constraint δ jk + δki − δ ji ≤ 1 as
+δ jk + δki + δi j ≤ 2. We may assume, because of symmetry, that i ∈ I ∗ and j ∈ N \ I ∗ .
+Suppose that δ∗jk +δ∗ki +δ∗i j > 2. There are two cases: either k ∈ I ∗ or k ∈ N \I ∗ . In the
+first case, δ∗ki = δki , so we must have δ∗i j = δi j + ε and δ∗jk > 0. But then δ jk = δ∗jk + ε,
+and, therefore, δ∗jk + δ∗ki + δ∗i j = δ jk + δki + δi j , a contradiction. The second case is
+handled analogously. Thus, δ∗ also satisfies the transitivity constraints.
+The difference in the objective function values of δ and δ∗ can be calculated as
+follows:
+pi w j δ∗i j
+∑ pi w j δi j − i,∑
+j∈N
+
+i, j∈N
+i6= j
+
+= ε
+
+∑ pk w(Fk ) − ε ∑∗ pk w(Ik )
+
+k∈N\I ∗
+
+i6= j
+
+= ε
+
+k∈I
+
+∑ pk p(Fk )ρ(Fk ) − ε ∑∗ pk p(Ik )ρ(Ik ) .
+
+k∈N\I ∗
+
+k∈I
+
+30
+
+4. Weighted sum of completion times
+
+Because I ∗ is ratio-maximal, ρ(Ik ) ≤ ρ(I ∗ ) ≤ ρ(Fk ), for all k; see Exercise 4.28.
+Hence, the difference in objective function values can be bounded from below by
+
+
+ερ(I ∗ ) ∑ pk p(Fk ) − ∑ pk0 p(Ik0 ) .
+k∈N\I ∗
+
+k0 ∈I ∗
+
+Because k0 ∈ Fk if and only if k ∈ Ik0 , this expression evaluates to zero. Therefore,
+the objective function value of δ∗ is not worse than that of δ. So δ∗ is an optimal
+solution as well, and δ∗i j = 1 for all i ∈ I ∗ and j ∈ N \ I ∗ . 2
+Of course, in the proof ε = 1, and the reader might have wondered why we avoided
+using the integrality of δ and δ∗ . The reason is that the result holds true for the linear
+programming relaxation in δ variables as well. That is, if I ∗ is a ratio-maximal
+initial set, then there exists an optimal solution δ∗ to the linear program to minimize
+∑ j∈N w jC j subject to (4.7) – (4.11) such that δ∗i j = 1 whenever i ∈ I ∗ and j ∈ N \ I ∗ .
+We can use the same proof; while ε need not be equal to 1 anymore, the variable that
+determined the value of ε will be reduced to 0 in δ∗ . If δ∗ does not have the desired
+property yet, we can repeat the same procedure with δ = δ∗ until it does.
+Corollary 4.21. Let (I1 , I2 , . . . , Ik ) be a Sidney decomposition of 1| prec| ∑ w jC j .
+There exists an optimal solution δ∗ of the linear program to minimize ∑ j∈N w jC j
+subject to (4.7) – (4.11) such that δ∗i j = 1 for all i ∈ Ih , j ∈ I` whenever 1 ≤ h < ` ≤ k.
+Exercises
+4.28. Let S be a ratio-maximal initial set of N, I an initial set of N \ S, and F a final
+set of S. Show that ρ(I) ≤ ρ(S) ≤ ρ(F).
+4.29. Let I and J be two ratio-maximal initial sets of N. Are I ∩ J and I ∪ J ratiomaximal initial sets as well? Prove or disprove.
+4.30. Show that there exists a unique Sidney decomposition (I1 , I2 , . . . , Ik ) such that
+ρ(I1 ) > ρ(I2 ) > · · · > ρ(Ik ). Prove also that for any other Sidney decomposition
+(J1 , J2 , . . . , J` ) of the same instance and any index i ∈ {1, . . . , `}, Ji ⊆ I j for some
+j ∈ {1, . . . , k}.
+4.31. Let (N, →) be a series-parallel partial order that is the parallel composition of
+(N1 , →) and (N2 , →). Show that there exists a ratio-maximal initial set I of N that is
+completely contained in either N1 or N2 .
+
+4.8.
+
+An integrality theorem for series-parallel precedence constraints
+
+With Corollary 4.21 in place, the following result comes essentially for free.
+Theorem 4.22. When the precedence constraints are series-parallel, then the linear program to minimize ∑ j∈N w jC j subject to (4.7) – (4.11) has an integer optimal
+solution.
+
+4.8. An integrality theorem for series-parallel precedence constraints
+
+31
+
+Proof. The proof is by induction on the number of jobs. The result is obviously
+true if there are just one or two jobs. Suppose it is true for all instances with seriesparallel precedence constraints on n jobs, and consider the case with |N| = n +1. The
+set N is either a series or a parallel composition of two proper subsets N1 and N2 . In
+the first case, all variables δi j with i ∈ N1 and j ∈ N2 have to be equal to 1, because
+of (4.8). Hence, the linear program for N1 ∪ N2 decomposes into two separate linear
+programs, one for N1 and one for N2 , each of which has an integer optimal solution,
+by induction. In the second case, N is the parallel composition of N1 and N2 . Let I ∗
+be an inclusion-minimal ratio-maximal initial set of N; it follows from Exercise 4.31
+that I ∗ is entirely contained in N1 or N2 . By Corollary 4.21, there exists an optimal
+solution δ∗ such that δ∗i j = 1 for i ∈ I ∗ and j ∈ N \ I ∗ . The linear program for N
+therefore decomposes again into two separate, smaller linear programs for I ∗ and
+N \ I ∗ , respectively, which have integer optimal solutions. 2
+Theorem 4.22 implies that the optimal value of the linear program is identical
+to the value of the optimal schedule. It does not necessarily imply that an optimal
+solution to the linear program is integer (and, therefore, a schedule) because there can
+be noninteger optimal basic feasible solutions, although this can be overcome by data
+perturbation (see Exercise 4.32 (a) and (b)). There is a related, seemingly weaker
+linear program in δ variables that has the same properties as the one that we have
+presented so far. It has the additional property that all its basic feasible solutions are
+integer if the precedence constraints are series-parallel. To prove this result, it will
+be convenient to work with the following characteristic of series-parallel precedence
+constraints.
+Lemma 4.23. If the precedence constraints are series-parallel, then there exists a
+total ordering π of all jobs, which is consistent with the precedence constraints, such
+that, for all triples i, j, k ∈ N with i → j and k unrelated to i and j, either k precedes
+i in π or j precedes k.
+Proof. Consider the decomposition tree of the precedence constraints, and the total
+ordering of jobs obtained by parsing the leafs from left to right. Note that this ordering is consistent with the precedence constraints; if i → j, then the leaf corresponding
+to i is to the left of that of j. Now consider a job k that is unrelated to i and j. The
+tree has an internal node representing a parallel composition where i and j are part
+of one of the two subtrees, while k is in the other subtree. Hence, k’s leaf is to the
+left of the leafs of both i and j, or to their right. 2
+We use the total ordering π from Lemma 4.23 to eliminate half of the δ variables
+from the previous linear program. Because of (4.7), i.e., δi j + δ ji = 1, we know the
+value of δi j when we know that of δ ji , and vice versa. We only keep the variables δi j
+for which i precedes j in π. We also eliminate all variables whose values are fixed
+by the precedence constraints; i.e., we do not keep δi j with i → j. Apart from the
+nonnegativity constraints, we are left with the transitivity constraints, some of which
+
+32
+
+4. Weighted sum of completion times
+
+we shall drop as well. More precisely, we only keep the transitivity constraints
+δ jk + δki − δ ji ≤ 1
+for triples i, j, k ∈ N, i 6= j 6= k 6= i, for which i → j, and k is unrelated to both i
+and j. Depending on whether j precedes k or k precedes i in π, we derive one of the
+following two inequalities:
+δ jk ≤ δik or δki ≤ δk j .
+For convenience, let us assume that we (re)index the jobs so that they appear in the
+order 1, 2, . . . , n in π. The resulting linear program,
+min
+
+(4.12a)
+
+w j pi δi j
+∑
+i< j
+i6→ j
+
+s.t.
+
+δ jk ≤ δik
+
+for i → j, j < k,
+
+(4.12b)
+
+δki ≤ δk j
+
+for i → j, k < i,
+
+(4.12c)
+
+δi j ≥ 0
+
+for i < j,
+
+(4.12d)
+
+is a min-weight closure problem (see Chapter 2; in particular, its constraint matrix is
+totally unimodular, and thus all basic feasible solutions are integral.
+Interestingly, the linear program (4.12) has the same optimal value as the previous one, although it has fewer constraints (Exercise 4.32 (c)). Because one can find
+an optimal sequence when one can determine the optimal value (Exercise 4.33), this
+yields another way of efficiently computing an optimal sequence for series-parallel
+precedence constraints. As the derivation of the linear program (4.12) only hinges
+on Lemma 4.23, we have actually proved that 1|prec| ∑ w jC j can be solved in polynomial time for a much larger class of precedence constraints. The class of partial
+orders possessing a nonseparating linear extension, i.e., a total order π with the property described in Lemma 4.23 coincides with that of two-dimensional partial orders.
+The dimension of a partial order → is the minimum number of linear orders whose
+intersection is →. There are efficient algorithms for recognizing two-dimensional
+partial orders. If the partial order is two-dimensional, they return a nonseparating
+linear extension. We can conclude this section with the following theorem.
+Theorem 4.24. If the precedence constraints are two-dimensional, an optimal sequence for 1|prec| ∑ w jC j can be found in polynomial time.
+Exercises
+4.32. Consider the linear program to minimize ∑ j∈N w jC j subject to (4.7) – (4.11).
+(a) Show that it can have nonintegral optimal basic feasible solutions, even if there
+are no precedence constraints.
+(b) Let 0 < ε < 1/(2 ∑ j∈N p j ), and assume that the precedence constraints are
+e j = w j + ε2 j
+series-parallel. Prove that the instance with redefined weights w
+
+4.9. Approximation algorithms for 1|r j | ∑ C j
+
+33
+
+has a unique Sidney decomposition. Use this fact in the proof of Theorem 4.22
+to show that the linear program has a unique optimal solution, which is a schedule.
+(c) Show that any optimal solution to this linear program is also an optimal solution
+to the linear program (4.12).
+4.33. Suppose someone gives you a “black box” subroutine that, given an instance of
+1|prec| ∑ w jC j , returns its optimal value. Show that you can find an optimal sequence
+with a polynomial number of calls on the subroutine.
+4.34. Show that a partial order is two-dimensional if and only if it has a nonseparating linear extension.
+4.35. Present a two-dimensional partial order that is not series-parallel.
+
+4.9.
+
+Approximation algorithms for 1|r j | ∑ C j
+
+Once we add release dates to the problem of minimizing the average completion
+time, we again reach the realm of NP-complete problems. Since we are unlikely
+to have a polynomial-time algorithm to solve this problem, we turn our attention
+to approximation algorithms. Our approach will again be based on solving a relaxation to the problem; in this case, we relax the condition that the schedule must be
+nonpreemptive. We then show how to convert the optimal preemptive schedule to a
+nonpreemptive one, without increasing the objective function value of the schedule
+too much.
+The first component of this approach is that the preemptive variant can be solved
+efficiently. The natural rule to consider is the Shortest Remaining Processing Time
+(SRPT) rule: at each moment in time, one should always be processing a job that
+could be completed earliest. This rule only preempts jobs when a new job is released.
+A straightforward interchange argument can be used to prove the following theorem;
+this will be left as an exercise.
+Theorem 4.25. Any SRPT schedule is optimal for the problem 1|r j , pmtn| ∑ C j .
+An important property of the SRPT rule is that it is an online algorithm, in the sense
+that the algorithm need only know of the existence of a job and its parameters at the
+moment in time that it is released.
+A seemingly naive approach to converting a preemptive schedule into a nonpreemptive one is to schedule the jobs in the order in which they completed in the preemptive one. Yet, recall that a similar approach has worked well for 1|prec| ∑ w jC j .
+Let C j , j = 1 . . . , n, denote the completion times of jobs in a preemptive schedule.
+We can assume, without loss of generality, that we have reindexed the jobs so that
+C1 ≤ C2 ≤ · · · ≤ Cn . We construct the minimal nonpreemptive schedule in which the
+jobs are processed in this order; job 1 is processed from r1 to r1 + p1 , and each job
+j + 1 is either scheduled to start at the time C j that j completes, or at its release date,
+r j+1 , whichever is later.
+
+34
+
+4. Weighted sum of completion times
+
+We can analyze the completion time C j of job j in the following way. Trace
+backwards from C j in this schedule to find the latest idle time prior to the completion
+of job j; we see that
+j
+
+C j = rk + ∑ p` ,
+`=k
+
+where job k is the first job processed after this idle time. Since the completion of
+job k also precedes the completion of job j in the preemptive schedule, we have
+that rk ≤ Ck ≤ C j . Furthermore, all of the jobs `, ` = k, . . . , j, have been completely
+j
+processed in the preemptive schedule by C j , and hence ∑`=k p` ≤ C j . Therefore
+C j ≤ 2C j .
+Thus, we see that ∑nj=1 w jC j ≤ 2 ∑nj=1 w jC j ; given any preemptive schedule, we
+can find a nonpreemptive schedule with total weighted completion time no more than
+twice that of the preemptive one. Of course, if we start with the optimal preemptive schedule, then we have found a nonpreemptive schedule with objective function
+value at most twice that of the preemptive optimum. The preeemptive optimum is
+always at most the nonpreemptive optimal value, and so we have just proved that the
+schedule found has total weighted completion time at most twice the optimal value.
+Theorem 4.26. Sequencing jobs in order of nondecreasing completion times in the
+SRPT schedule is a 2-approximation algorithm for the problem 1|r j | ∑ C j .
+In fact, we can strengthen this result to derive an algorithm that is an online 2approximation algorithm. The idea behind this is quite simple. We maintain a queue
+of available jobs (which handles the jobs in a “first-in first-out” manner, and hence
+fixes the order in which the jobs are processed in the schedule). Instead of making a
+job available at its release time, we will use the online SRPT rule to create a shadow
+schedule. This schedule is not used for the actual processing of the jobs, but only
+as a kind of side computation. Nonetheless, this side computation can be done in an
+online manner.
+We make a job j available only at date CSRPT
+j , the time that it is completed in the
+SRPT schedule. Clearly, this queueing mechanism ensures that the jobs are processed in the order of their completion in the preemptive schedule, but it most likely
+introduces additional idle time into the schedule. However, the analysis does not
+change much. Now, the latest idle time prior to C j ends with the point in time that
+some job k is made available (instead of being released). Hence,
+j
+
+C j = CkSRPT + ∑ p` ≤ 2CSRPT
+j ,
+`=k
+
+and we still have that ∑ w jC j ≤ 2 ∑ w jCSRPT
+j ; we have proved the following theorem.
+Theorem 4.27. Scheduling jobs in the order of nondecreasing SRPT completion
+times with delayed starts is an online 2-approximation algorithm for the problem
+1|r j | ∑ C j .
+
+4.9. Approximation algorithms for 1|r j | ∑ C j
+
+35
+
+Surprisingly, this result is best possible, in the sense that, for any α < 2, there
+does not exist a deterministic online α-approximation algorithm for 1|r j | ∑ C j (Exercise 4.37). However, as we shall see next, if the algorithm is allowed to “toss coins,”
+one can prove a better result, in expectation. For each input, the objective function
+value of the schedule found by such a randomized algorithm is a random variable; it
+is natural to analyze the performance of such a randomized algorithm by considering
+its expected value, and to show, for each possible input, that this expectation is no
+more than a factor of ρ times the optimum value. We call an algorithm with this
+performance guarantee a randomized ρ-approximation algorithm.
+We will now give an online randomized e/(e − 1)-approximation algorithm called
+the randomized α-point algorithm. The algorithm is based on a more general procedure to convert a preemptive schedule σ into a nonpreemptive one. The algorithm
+first picks an α ∈ (0, 1] according to some probability density function f . We define
+the α-point C j (α) of job j to be the first moment in time where a total of αp j units of
+processing of job j have been completed in σ. We now modify the online algorithm
+discussed above, so that each job is made available, and placed into the queue, only
+at its α-point. This means that the algorithm now schedules the jobs in the order
+that the α-points occur in σ, with the additional condition that j is not allowed to
+be started prior to C j (α). Subject to these two constraints, the schedule σ̄ produced
+is minimal in the sense that each jobs starts as early as possible. Let C j denote the
+completion time of job j in σ̄; that is, if π is the order in which the jobs are processed,
+then π(1) completes at time Cπ(1) = Cπ(1) (α) + pπ(1) , and in general, each job π( j)
+starts at the maximum of its α-point in σ and Cπ( j−1) , and completes pπ( j) time units
+later, j = 2, . . . , n. We will analyze the expected objective function value ∑ j C j as a
+function of the choice of α.
+We next introduce notation that will be convenient for the analysis of σ̄. We will
+give, for each j = 1, . . . , n, an upper bound on C j that depends on our choice of α.
+Let us focus on the completion time of some job j. Let βk (α) be the fraction of job k
+that has been completed in the preemptive schedule σ by the α-point of job j, that
+is, by C j (α). For simplicity, let βk = βk (1). Similarly, let R(α) denote the total idle
+time in the preemptive schedule prior to the α-point of j. Since the machine, at any
+point in time, is either processing some job, or idle, we get the following lemma.
+Lemma 4.28. In the preemptive schedule σ, for each α ∈ (0, 1], the α-point of job j
+is equal to C j (α) = R(α) + ∑nk=1 βk (α)pk .
+On the other hand, we show next that we can also express the completion time
+of j in σ̄ in terms of similar components.
+Lemma 4.29. In the nonpreemptive schedule σ̄, job j completes by time
+C j ≤ C j (α) +
+
+∑
+k:βk (α)≥α
+
+(1 + α − βk (α))pk .
+
+36
+
+4. Weighted sum of completion times
+
+Proof. We shall analyze a worse nonpreemptive schedule σ̂, in the sense that for
+each k = 1, . . . , n, we have that the completion time Ĉk ≥ Ck .
+Imagine starting out with the optimal schedule σ for the preemptive relaxation,
+and write the Gantt chart for this schedule on a strip of ticker tape. We will modify
+this schedule by a number of “cut and paste” operations to convert it into a nonpreemptive schedule σ̂.
+Consider the schedule σ “over time,” starting at time 0 and advancing in time,
+until an α-point of some job k is reached. Cut the schedule at this point, and paste
+into this schedule a block of time of length pk that will be used for the nonpreemptive
+processing of job k. For the intervals of time that are spent processing job k earlier
+in this schedule, replace the processing of job k with new idle time, which we will
+call omission time. For each interval of time that is spent processing k after this
+nonpreemptive block, cut that time interval out of the schedule, and then rejoin the
+schedule without any new idle time introduced at this point. Continue processing
+the schedule in this way until the α-point of each job has been reached. Call this
+schedule σ̂. See Figure 4.10 for an illustration.
+We begin by making a number of observations. The effect of inserting the nonpreemptive block of length pk shifts the entire subsequent schedule exactly pk time
+units later. However, the deletion of the processing of job k beyond this new block
+of length pk shifts earlier some portion of the schedule beyond this block. A total of
+length (1 − α)pk is deleted, and so the end of the schedule is shifted (1 − α)pk time
+units earlier by these deletions. However, the net effect of the changes prompted by
+reaching the α-point of job k does not shift any portion of the schedule earlier. This
+allows us to conclude, for example, that the schedule is feasible, since each job k
+starts no earlier than rk before the modifications, and hence must start no earlier than
+rk after them. Furthermore, we also see that as we modify the schedule, when we
+find an α-point of job k in the schedule, it must currently correspond to a time that
+is at least Ck (α). Thus, we are scheduling the nonpreemptive block for each job k
+to start no earlier than Ck (α). Finally, the jobs are processed in this schedule in the
+same order as their α-points in σ. We have constructed a schedule σ̂ in which the
+jobs are processed in the same order as in σ, and no job k starts before Ck (α). Since
+
+4.9. Approximation algorithms for 1|r j | ∑ C j
+
+37
+
+σ̄ is the minimal nonpreemptive schedule that is consistent with these constraints,
+we see that Ck ≤ Ĉk , k = 1, . . . , n.
+We now analyze the schedule σ̂ up to the completion time of job j. Each time
+interval on the ticker tape after these operations corresponds to one of the following:
+• true idle time (i.e., in the preemptive schedule σ, not omission time): these add
+up exactly to R(α) since we have not altered true idle time.
+• processing time: the jobs k that are processed in σ̂ by time Ĉ j are exactly those
+that reach their α-point in σ no later than C j (α); in terms of the notation that
+we have set up, this is equivalent to writing that βk (α) ≥ α. Hence this total is
+equal to ∑k:βk (α)≥α pk .
+• omission time for each job k that has reached its α-point in σ by time C j (α)
+(including j itself): for each job k, we replaced the first αpk times unit of its
+processing by omission time (here all of this time occurs prior to the processing
+of j); hence this totals ∑k:βk (α)≥α αpk .
+• omission time for each job k that reaches its α-point in σ after time C j (α): in
+this case, considering just the part of schedule σ̂ up to Ĉ j , only the fraction
+βk (α) of the processing of k that precedes C j (α) is replaced by omission time;
+hence this contributes a total of ∑k:βk (α)<α βk (α)pk .
+This yields
+Ĉ j = R(α) +
+
+βk (α)pk + (1 + α)
+
+∑
+k:βk (α)<α
+
+∑
+
+pk .
+
+k:βk (α)≥α
+
+Applying Lemma 4.28, we see that this can be written as
+Ĉ j = C j (α) +
+
+∑
+
+(1 + α − βk (α))pk .
+
+k:βk (α)≥α
+
+Since C j ≤ Ĉ j , for any given choice of α ,
+C j ≤ C j (α) +
+
+∑
+
+(1 + α − βk (α))pk .
+
+k:βk (α)≥α
+
+This completes the proof of the lemma. 2
+This also has the following immediate consequence.
+Corollary 4.30. In the nonpreemptive schedule σ̄, job j completes by time
+C j ≤ Cj +
+
+∑ (1 + α − βk )pk .
+
+k:βk ≥α
+
+Here, C j is the completion time of job j in the preemptive schedule σ.
+
+38
+
+4. Weighted sum of completion times
+
+Proof. From Lemma 4.29,
+Cj
+
+≤ C j (α) +
+
+∑
+
+(1 + α − βk (α))pk
+
+k:βk (α)≥α
+
+= C j (α) +
+
+∑
+
+(βk − βk (α))pk +
+
+∑
+
+(1 + α − βk )pk .
+
+k:βk (α)≥α
+
+k:βk (α)≥α
+
+The second term in this last expression corresponds to work done on jobs k between
+C j (α) and C j , and hence the sum of the first two terms is at most C j . 2
+It is now just a straightforward calculation to compute an upper bound on the
+expected completion time E[C j ] of job j in σ̄: for any probability density function
+f (x), we can compute the expectation of the upper bound just derived.
+Theorem 4.31. If α ∈ (0, 1] is selected according to the probability density function
+e
+Cj.
+f (x) = ex /(e − 1), then for the nonpreemptive schedule σ̄, E[C j ] ≤ e−1
+Proof. We can bound E[C j ] by integrating the bound in Corollary 4.30. Note that
+α appears in two ways in the bound of this corollary: in the (1 + α − βk )pk term,
+and in the fact that we need that α ≤ βk for any job k that contributes to the bound.
+Alternatively, for each job k, we can focus on those α such that α ≤ βk . Hence, we
+have that
+Z
+n
+
+E[C j ] ≤ C j + ∑ pk
+k=1
+
+βk
+
+0
+
+f (α)(1 + α − βk )dα.
+
+Straightforward calculus (if one recalls that integrating xex yields ex (x − 1)) shows
+that
+Z β
+β
+f (x)(1 + x − β)dx =
+.
+e−1
+0
+Hence, since ∑nk=1 pk βk ≤ C j by Lemma 4.28,
+E[C j ] ≤ C j +
+
+1 n
+e
+∑ pk βk ≤ e − 1 C j .
+e − 1 k=1
+
+2
+The expectation of the total completion time is, by linearity of expectation, within
+a factor e/(e−1) of the total completion time of the preemptive schedule σ. If we apply this randomized conversion to the optimal solution σ∗ for 1|r j , pmtn| ∑ C j found
+by the SRPT rule, we see that the expected total completion time is at most e/(e − 1)
+times the preemptive optimum. The preemptive optimum is, of course, a lower bound
+on the nonpreemptive optimum and hence we have obtained the following theorem.
+Theorem 4.32. The randomized α-point algorithm which draws α according to
+the density function in Theorem 4.31 provides an online randomized e/(e − 1)approximation algorithm for the problem 1|r j | ∑ C j .
+There are a few immediate implications of this result. Note that we have constructed a nonpreemptive schedule of total completion time within a factor of
+
+4.9. Approximation algorithms for 1|r j | ∑ C j
+
+39
+
+e/(e − 1) ≈ 1.58 of the preemptive optimum. This places a limit on the power of
+preemption: by allowing preemption, we can improve the objective function by at
+most a factor of 1.58. As this argument does not depend on our ability to solve the
+preemptive problem in polynomial time, the limit on the power of preemption is the
+same for the total weighted completion time objective.
+Many people are troubled at first by the fact that our focus on approximation
+algorithms is in order to be guaranteed that the result is good, and yet now we only
+know that it is expected to be good. While that is true, it is important to realize that
+this theorem says that for every input we are assured that the expected result will be
+good, and the source of randomness is merely the coin tosses used by the algorithm.
+However, one can convert this randomized algorithm into a deterministic algorithm (provided we are considering off-line algorithms, where we can see the entire input in advance). We now just compute the minimal schedule in which the
+jobs are ordered consistently with their α-points. (That is, C1 = r1 + p1 and C j =
+max{C j−1 , r j } + p j .) Since we have shown that by choosing α in this random manner, the α-point algorithm delivers a schedule with expected objective function value
+within a factor of 1.58 of the optimum, then there must exist some α with the property that if that α is used, then that schedule has objective function value within a
+factor of 1.58 of the optimum. So, if we could compute an α for which this α-point
+algorithm would deliver the best solution, then the schedule found must be within a
+factor of 1.58 of the optimum.
+If we consider the schedule constructed for various values of α, the schedule only
+changes when the order in which the jobs reach their α-points in the SRPT schedule
+σ∗ changes. This can only happen when there exists some job that is preempted
+when exactly an α fraction of its processing has been completed. Recall that in σ∗ a
+job is only preempted if another job arrives whose processing time is shorter than the
+remaining one of the current job. In particular, there are at most n − 1 preemptions.
+Hence there are at most n potentially critical values of α, and we can compute these
+critical values directly from σ∗ . If we run the α-point algorithm for all of these values
+of α and take the best schedule, then we have deterministically computed a schedule
+within a factor of 1.58 of optimal.
+e
+Theorem 4.33. The best α-point algorithm is a (deterministic) e−1
+-approximation
+algorithm for the problem 1|r j | ∑ C j .
+
+The only reason that the same approach does not lead to an approximation algorithm of the same performance guarantee for 1|r j | ∑ w jC j is that its preemptive
+relaxation 1|r j , pmtn| ∑ w jC j is NP-hard (see Theorem 4.13). We will therefore discuss a similar conversion technique that starts from another, efficiently computable
+preemptive schedule in the next section.
+Exercises
+4.36. Prove Theorem 4.25.
+4.37. Show that no deterministic approximation algorithm for 1|r j | ∑ C j that works
+online, can have a performance guarantee smaller than 2.
+
+40
+
+4. Weighted sum of completion times
+
+4.38. Use Yao’s minimax principle to show that no randomized approximation algorithm for 1|r j | ∑ C j that works online, can have an expected performance guarantee
+smaller than e/(e − 1).
+
+4.10.
+
+Approximation algorithms for 1|r j | ∑ w jC j
+
+For nonpreemptive schedules, the mean busy time of each job j is a mere translation
+of the completion time by p j /2. But it is also interesting to consider mean busy
+times for preemptive schedules. Let I j (t) = 1 if job j is in process at time t, and
+0 otherwise. The function I j is called the indicator function of job j in the given
+schedule. Because the schedule is feasible, all p j units of work for each job j are
+processed, that is,
+Z
++∞
+
+I j (t) dt = p j .
+
+0
+
+Consider again the 2-dimensional Gantt chart, and the interpretation that ρ( j)
+specifies the holding cost of job j per unit of unprocessed work. Consider the curve
+defined by the function W (t), introduced in Section 4.1, which is piecewise linear;
+each piece corresponding to the (partial) processing of job j has slope −ρ( j) =
+−w j /p j . As we have already seen, the area under this curve corresponds to the total
+cost of holding the inventory over the planning horizon. We can decompose this
+area by breaking it into horizontal trapezoidal pieces, each of which corresponds to
+a unique job j being (partially) processed for an interval [s, s0 ]; see Figure 4.11. The
+area in this trapezoid is
+0
+
+0
+
+ρ( j)(s − s)(s + s)/2 =
+
+Z s0
+
+ρ( j)t dt
+s
+
+and so the total area in all of the trapezoids corresponding to j is 0+∞ ρ( j)t I j (t) dt.
+This is the total cost of holding job j over the planning horizon; this is equivalent to
+w j times M j , the mean busy time of job j, where
+R
+
+Mj =
+
+1
+pj
+
+Z +∞
+0
+
+I j (t)t dt .
+
+(4.13)
+
+Note that this is the natural extension of the definition of M j in the nonpreemptive
+case. Thus the mean busy time M j is the average time at which the machine is
+processing job j. Even in this preemptive setting, if we let S j denote the start time of
+job j in a given schedule, we have
+Sj +
+
+1
+1
+pj ≤ Mj ≤ Cj − pj ,
+2
+2
+
+(4.14)
+
+where each of these inequalities holds with equality if and only if job j is processed
+without preemption.
+
+4.10. Approximation algorithms for 1|r j | ∑ w jC j
+
+41
+
+The interpretation of ∑ j w j M j as the area under the curve W (t) leads to an easy
+extension of the ratio rule to solve the problem 1|r j , pmtn| ∑ w j M j . Intuitively, this
+area is made small by having the curve descend to 0 as sharply and as early as possible. In other words, consider the preemptive ratio rule: at each moment in time,
+among all available jobs choose a job j for which the ratio w j /p j is maximum. Thus,
+we need preempt a job j only when a job k with a bigger ratio is released.
+We can prove the optimality of the preemptive ratio rule by an interchange argument. Suppose that the schedule σ produced by the algorithm is not optimal, and consider an optimal schedule σ∗ whose earliest difference from σ is as late as possible.
+Suppose that the two schedules agree up to time t, at which point σ∗ processes job j,
+whereas σ processes job k. Of course, this means that σ∗ has not completed work
+on job k at time t, and k must still be processed later, next starting at some time t 0 .
+Consider these two fragments of processing jobs, job j at t and job k at t 0 in σ∗ , and
+suppose that the jobs are processed in time periods [t,t + δ) and [t 0 ,t 0 + δ), respectively, for some δ > 0. Both jobs have been released by t, and so we could swap the
+processing of δ time units of the two jobs. By the preemptive ratio rule, ρ(k) ≥ ρ( j).
+However, since the objective function value is the area under the W (t) curve, we see
+that unless ρ( j) = ρ(k), this interchange will improve the objective function value,
+which contradicts the optimality of σ∗ . But if ρ( j) = ρ(k) then this interchange produces another optimal schedule, but one for which the ratio rule agrees even longer
+than for σ∗ . This contradiction yields the following theorem.
+Theorem 4.34. A schedule is optimal for 1|r j , pmtn| ∑ w j M j if and only if it is a
+preemptive ratio rule schedule.
+In the previous section, we saw that the fact that 1|r j , pmtn| ∑ C j could be solved
+in polynomial time led to a good approximation algorithm for the nonpreemptive
+variant. Next, we will see that Theorem 4.34 provides a similar engine for the
+
+42
+
+4. Weighted sum of completion times
+
+weighted extension. In fact, it might seem natural to take the solution provided
+by this algorithm, and then process the jobs nonpreemptively in the order in which
+their mean busy times occur. Unfortunately, this algorithm does not perform well
+(see Exercise 4.40). Instead, we will use the second technique of the previous section: we will consider a randomized approach to converting the preemptive ratio rule
+schedule to a nonpreemptive one.
+In fact, we will consider a somewhat more flexible algorithm, which we call the
+randomized α j -point algorithm:
+(1) compute an optimal schedule for 1|r j , pmtn| ∑ w j M j ;
+(2) for j = 1, . . . , n, pick α j independently and uniformly at
+random from the interval (0, 1];
+(3) for each job j, compute its α j -point C j (α j )
+in the optimal preemptive schedule;
+(4) schedule the jobs nonpreemptively in nondecreasing order of their
+α j -points, always scheduling the next job as early as possible
+(subject to this ordering constraint).
+As we did in the previous section, our analysis of the algorithm is more general
+than we need for deriving an approximation algorithm; we will show that given any
+preemptive schedule in which job j has mean busy time M j , the expected value of
+∑ w jC j for the schedule produced by this algorithm is at most 2 ∑ j w j (p j /2 + M j ).
+We start with an easy observation, that follows directly from the definition of the
+mean busy time: choosing α j uniformly in (0, 1] is just a rescaled version of choosing
+a time uniformly within (0, p j ].
+Lemma 4.35. If α j is selected uniformly at random in (0, 1], then E[C j (α j )] = M j .
+Let C j denote the completion time of job j in the schedule σ̄ produced by the
+algorithm. Note that C j is a random variable, since the ordering depends on the
+random choices α j , j = 1, . . . , n. Nonetheless, we can write that C j = Pj + R j , where
+the random variables Pj and R j are, respectively, the total processing and total idle
+times prior to the completion of job j in the schedule.
+Lemma 4.36. The randomized α j -point algorithm produces a schedule that, with
+probability 1, has R j ≤ C j (α j ), j = 1, . . . , n.
+Proof. We will show that for any realization of the values α j , j = 1, . . . , n, the
+machine is never idle within the time interval (C j (α j ),C j ]; clearly, this implies the
+lemma. Any job k that is processed prior to job j can have its release date no later
+than C j (α j ) (since it has reached its αk -point by then). Suppose that there was idle
+time in the interval (C j (α j ),C j ]; this must be due to the fact that the next job in the
+ordering is not yet released, but this is impossible, since all jobs processed before j
+have been released by this point. 2
+Next we analyze, for each job j, the total time Pj the machine is busy prior to the
+completion of j.
+
+4.10. Approximation algorithms for 1|r j | ∑ w jC j
+
+43
+
+Lemma 4.37. The randomized α j -point algorithm produces a schedule for which
+E[Pj ] ≤ p j + M j .
+Proof. Focus on a job j; each job is processed prior to its own completion, and so
+we see that
+E[Pj ] = p j + ∑ Pr[k precedes j in the schedule σ̄]pk .
+k6= j
+
+In order to analyze the summand, we first fix a value α ∈ (0, 1], and condition on
+the event that α j = α. This fixes the α j -point of job j at some time t. Once we have
+done this, it is easy to compute the conditional probability that job k precedes job j; k
+precedes j if and only if αk is chosen such that Ck (αk ) is at most t. If we let βk denote
+the fraction of job k that is processed in the preemptive schedule prior to t, then the
+probability that Ck (αk ) is at most t is exactly βk . Note that this uses the fact that
+each αk is chosen independently of α j . Thus, ∑k6= j Pr[k precedes j in σ̄ | α j = α] =
+∑k6= j βk pk . But this is exactly the total processing done prior to t (in the preemptive
+schedule) on jobs other than j, and hence is at most t = C j (α). Thus, E[Pj | α j =
+α] ≤ p j +C j (α).
+Taking the expectation over all such choices α and applying Lemma 4.35, we see
+that E[Pj ] ≤ p j + M j . 2
+It is now a simple matter of putting the pieces together to obtain the following
+theorem.
+Theorem 4.38. The randomized α j -point algorithm is a randomized 2-approximation
+algorithm for 1|r j | ∑ w jC j .
+Proof. Let C∗j , j = 1, . . . , n, denote the completion times in an optimal schedule for
+1|r j | ∑ w jC j . This implies that the mean busy times for this schedule are C∗j − p j /2,
+and hence the preemptive ratio rule produces a schedule whose mean busy times M j ,
+j = 1, . . . , n, satisfy the inequality
+n
+
+n
+
+j=1
+
+j=1
+
+∑ w j M j ≤ ∑ w j (C∗j − p j /2).
+
+However, the randomized α j -point algorithm produces a schedule with completion
+times C j , j = 1, . . . , n, such that, by Lemmata 4.36 and 4.37,
+n
+
+n
+
+n
+
+n
+
+n
+
+j=1
+
+j=1
+
+j=1
+
+j=1
+
+j=1
+
+E[ ∑ w jC j ] = ∑ w j E[C j ] = ∑ w j E[Pj + R j ] ≤ ∑ w j (p j + 2M j ) ≤ 2 ∑ w jC∗j ,
+which concludes the proof of the theorem. 2
+Note that the randomized α j -point algorithm works online. One can also derandomize it to obtain a deterministic 2-approximation algorithm; however, for this we
+
+44
+
+4. Weighted sum of completion times
+
+need to see the entire instance in advance, and so it does not work online. We conclude this chapter by describing a (deterministic) online algorithm that produces a
+solution that is within a factor 2 of the offline optimum.
+The delayed ratio rule works as follows: At time t, let j be an available job with
+highest w j /p j ratio. If t ≥ p j , then start job j. Otherwise, do nothing until either
+time p j or a job with better ratio is released, whichever comes first.
+Let σ0 be the schedule returned by the delayed ratio rule. As any other feasible nonpreemptive schedule for 1|r j | ∑ w jC j , σ0 can be decomposed into blocks of
+consecutive jobs and idle time between the blocks. For the analysis, it will suffice
+to look at an arbitrary block. Let I be the instance defined by the jobs in one such
+block, and let σ be the restriction of σ0 to I. We define another instance I 0 from I
+by changing the release dates of all jobs j in I to r0j = min{S j , 2r j }, where S j is the
+starting time of job j in the schedule σ. Moreover, we add a new job k to I 0 with
+rk = 0 and pk = tI , where tI = min{S j : j ∈ I}. In order to define wk , let us consider
+the situation in σ0 right before time tI , when the machine was idle (unless tI = 0, in
+which case we set wk = 0). This idle time can be caused by either the fact that no job
+is available or the job h with the currently highest ratio wh /ph is delayed because of
+ph ≥ tI . If h belongs to I, we define wk = wh pk /ph ; otherwise wk = 0. In either case,
+we have
+(4.15)
+∑ w j p j ≥ wk pk .
+j∈I
+
+Finally, let σ0 be defined from σ by assigning job k to the time period [0,tI ).
+Lemma 4.39. The schedule σ0 is an optimal preemptive schedule for the instance I 0
+and the weighted mean busy time objective.
+Proof. According to Theorem 4.34, we only need to show that σ0 processes at
+any point t in time a job with the highest ratio among all the jobs that are not yet
+completed. We distinguish two cases.
+In case t < tI , σ0 is currently processing job k. Suppose there is another job j ∈ I 0
+available at that time; i.e., r j ≤ r0j ≤ t. Job j is not started in σ0 before time tI ,
+so wh /ph ≥ w j /p j . If h ∈ I 0 , then wk /pk = wh /ph , and k is a job of highest ratio available at time t. If h 6∈ I 0 , the algorithm did not wait until time ph before it
+started processing other jobs. By the definition of the delayed ratio rule, this implies
+w j /p j > wh /ph for all jobs j ∈ I, a contradiction.
+In case t ≥ tI , suppose that job i is processed at time t and job j is available.
+Hence, r0j ≤ t ≤ Si + pi ≤ 2Si . The last inequality follows from the fact that the
+delayed ratio rule only starts a job after its processing time has passed. Since j does
+not start at its release time r0j , we have r0j = 2r j . Therefore, r j = r0j /2 ≤ Si , and j was
+available when job i was started. Hence, wi /pi ≥ w j /p j . 2
+Let σ∗ be an optimal preemptive schedule for the instance I and the weighted
+completion time objective. We denote the mean busy times and completion times
+of a job j in a schedule π by M πj and Cπj , respectively. The following equations are
+
+4.10. Approximation algorithms for 1|r j | ∑ w jC j
+
+45
+
+easily verified:
+
+∑ w jCσj
+
+=
+
+∑ w j Mσj
+
+=
+
+1
+
+∑ w j Mσj + 2 ∑ w j p j ,
+
+j∈I
+
+j∈I
+
+(4.16)
+
+j∈I
+
+0
+
+1
+
+∑0 w j Mσj − 2 wk pk ,
+
+j∈I
+
+(4.17)
+
+j∈I
+∗
+
+∑ w j Mσj
+
+∗
+
+1
+
+∑ w jCσj − 2 ∑ w j p j .
+
+≤
+
+j∈I
+
+j∈I
+
+(4.18)
+
+j∈I
+
+From the preemptive schedule σ∗ we define a “pseudo-schedule” by letting the machine process all jobs at half speed. That is, if a fraction of job j was previously
+scheduled in the interval [a j , b j ), it is now scheduled in [2a j , 2b j ). Consequently,
+the mean busy time of each job increases by a factor of 2. We also process job k at
+half speed from time 0 to 2tI . This pseudo-schedule satisfies the release dates of the
+instance I 0 , and we use it to derive a feasible preemptive schedule σ̂ for I 0 with no
+further increase in any mean busy time. We can now put the pieces together:
+
+∑ w jCσj
+
+(4.16)
+=
+
+1
+
+∑ w j Mσj + 2 ∑ w j p j
+j∈I
+
+j∈I
+
+j∈I
+
+(4.17)
+=
+
+1
+1
+∑0 w j M j − 2 wk pk + 2 ∑ w j p j
+j∈I
+j∈I
+
+Lemma 4.39
+≤
+
+∑0 w j Mσ̂j − 2 wk pk + 2 ∑ w j p j
+
+σ0
+
+1
+
+j∈I
+
+j∈I
+
+≤
+
+2 ∑ w j M σ∗
+j +
+j∈I
+
+(4.18)
+≤
+
+∗
+
+2 ∑ w jCσj −
+j∈I
+
+(4.15)
+≤
+
+1
+
+1
+∑0 w j p j
+2 j∈I
+1
+1
+w j p j + wk pk
+∑
+2 j∈I
+2
+
+∗
+
+2 ∑ w jCσj .
+j∈I
+
+Theorem 4.40. The delayed ratio rule is a deterministic online 2-approximation algorithm for 1|r j | ∑ w jC j .
+Exercises
+4.39. Define the mean busy time MS of a subset S ⊆ N of jobs as the average point
+in time that the machine is busy scheduling a job from S. Show that ∑ j∈S p j MS =
+∑ j∈S p j M j .
+4.40. Give an example for 1|r j | ∑ w jC j that shows that scheduling the jobs nonpreemptively in order of nondecreasing mean busy times in the optimal preemptive ratio
+schedule can lead to a schedule that is arbitrarily worse than the optimal one.
+4.41. Prove that the preemptive ratio rule is a 2-approximation algorithm for
+1|r j , pmtn| ∑ w jC j . Show that this analysis is tight.
+
+46
+
+4. Weighted sum of completion times
+
+4.42. Give an example that shows that the randomized α j -point algorithm can return
+an exponential number of different schedules.
+4.43. Use the method of conditional probabilities to derandomize the randomized
+α j -point algorithm.
+Notes
+4.1. Smith’s ratio rule. The ratio rule is, of course, due to W. E. Smith (1956). The
+observation
+given two nondecreasing sequences of numbers,
+a1 ≤ a2 ≤ · · · ≤ an and b1 ≤ b2 ≤ · · · ≤ bn ,
+the permutation σ = (n, n − 1, . . . , 2, 1) minimizes ∑nj=1 a j bσ( j) among all permutations of (1, 2, . . . , n)
+
+used in the alternate justification of the SPT rule, appears in Hardy, Littlewood and
+Pólya (1934). Two-dimensional Gantt charts go at least as far back as Eastman,
+Even and Isaacs (1964). Goemans and Williamson (2000) showed that many results
+in single-machine scheduling have a simple and intuitive geometric justification using 2D Gantt charts. Mean busy times were introduced by Goemans, Queyranne,
+Schulz, Skutella and Wang (2002) in the context of linear programming relaxations
+and approximation algorithms for 1|r j | ∑ w jC j ; see Sections 4.5 and 4.10 for further
+details. Exercise 4.3 is due to Goemans and Williamson (2000). The equivalence
+in this exercise was shown by Chudak and Hochbaum (1999) and, for the case all
+p j = 1, von Arnim, Faigle and Schrader [1990].
+4.2. Preference orders on jobs. When Smith (1956) defined a preference order, he
+did not require the relation to be transitive. This has the consequence that there
+might not exist a total order consistent with the relation. However, for relations
+for which there does exist a consistent total order, Smith’s definition and the one
+given in this section are equivalent. Jackson (1955) showed that the earliest due
+date rule is optimal for 1| |Lmax . The total weighted discounted completion time
+criterion was introduced by Rothkopf (1966). The least cost fault detection problem
+was studied by Boothroyd (1960), Mitten (1960]), Mankekar and Mitten (1965),
+and Garey (1973), among others. Monotone cost density functions were introduced
+by Lawler and Sivazlian (1978). The cumulative cost problem was formulated by
+Abdel-Wahab and Kameda (1978) and generalized by Monma (1980).
+4.3. Preference orders on sequences & series-parallel precedence constraints.
+Monma and Sidney (1979) introduced the notion of preference relations on sequences.
+Parallel-chains precedence constraints were treated by Conway, Maxwell and Miller
+(1967). Horn (1972), Adolphson and Hu (1973), and Sidney (1975) gave algorithms
+for tree-like precedence constraints. Lawler (1978) presented the O(n log n) algorithm for series-parallel precedence constraints. Goemans and Williamson (2000)
+used 2D Gantt charts and linear programming duality to give an alternative proof
+
+4.10. Approximation algorithms for 1|r j | ∑ w jC j
+
+47
+
+of correctness of Lawler’s algorithm for 1|prec| ∑ w jC j . The equivalent characterization of series-parallel partial orders in terms of a forbidden substructure is due to
+Duffin (1965). Valdes, Tarjan and Lawler (1982) gave a linear-time algorithm that
+recognizes series-parallel partial orders and creates a decomposition tree.
+4.4. NP-hardness of further constrained min-sum problems. The strong NP-hardness
+of 1|r j | ∑ C j was established by Lenstra, Rinnooy Kan and Brucker (1977). The
+proofs presented here for this result and the NP-hardness of 1|r j , pmtn| ∑ w jC j are
+due to Lenstra (–). The latter result was originally obtained by Labetoulle, Lawler,
+Lenstra and Rinnooy Kan (1984). Lawler (1978) showed that 1|prec| ∑ w jC j is NPhard, even if either all w j = 1 or all p j = 1. The proof of Theorem 4.15 follows that
+of Lenstra and Rinnooy Kan (1978).
+4.5. The ratio rule via linear programming. The parallel inequalities were conceived by Wolsey (1985) and Queyranne (1993), who also showed that these inequalities completely describe the convex hull of feasible completion time vectors
+for 1| | ∑ w jC j . The relationship between Smith’s ratio rule and optimizing a linear
+function over the polyhedron defined by the parallel inequalities is laid out further in
+Queyranne (1993) and Queyranne and Schulz (1994). The separation algorithm for
+the parallel inequalities discussed in Exercise 4.21 appeared in Queyranne (1993).
+The “shifted” parallel inequalities in Exercises 4.22 and 4.23 were introduced by
+Queyranne (1988).
+4.6. Approximation algorithms for 1|prec| ∑ w jC j . Hall, Schulz, Shmoys and Wein
+(1997) devised linear programming based approximation algorithms to yield the
+first constant performance guarantees for a variety of minimum-sum single-machine
+scheduling problems, including Theorem 4.16, and gave the tight examples asked
+for in Exercise 4.26. Potts (1980C) suggested the integer programming formulation
+in δ-variables, and Wolsey (1989) showed that any feasible solution to its linear programming relaxation satisfies the parallel inequalities and precedence constraints,
+which implies Corollary 4.17. A family of instances provided by Chekuri and Motwani (1999) demonstrates that the integrality gap of this linear programming relaxation is essentially 2 (Exercise 4.27). The first part of Exercise 4.24 is due to Peters
+(1988) and Nemhauser and Savelsbergh (1992). Potts (1980C) showed that the linear
+programming relaxation of his integer programming formulation with the transitivity constraints dropped can be used to obtain an alternative derivation of Smith’s
+ratio rule, which corresponds to the second part of this exercise. 2-approximation
+algorithms for 1|prec| ∑ w jC j that do not rely on solving a linear program were proposed by Chekuri and Motwani (1999), Chudak and Hochbaum (1999), and Margot,
+Queyranne and Wang (2003).
+4.7. Sidney decompositions. The concept of Sidney decomposition is, of course, due
+to J. B. Sidney (1975). The proof of Theorem 4.18 presented herein is adapted from
+Correa and Schulz (2005). Chekuri and Motwani (1999) and Margot, Queyranne and
+
+48
+
+4. Weighted sum of completion times
+
+Wang (2003) observed that each sequence that is consistent with a Sidney decomposition is within a factor of 2 from optimum. The 2D Gantt chart illustration of this
+fact is due to Goemans and Williamson (2000). Correa and Schulz (2005) noted that
+all known 2-approximation algorithms are of this type. Exercise 4.30 is based on an
+observation by Margot, Queyranne and Wang (2003).
+4.8. An integrality theorem for series-parallel precedence constraints. This section
+is largely based on Correa and Schulz (2005). Chudak and Hochbaum (1999) suggested to drop all transitivity constraints associated with triples of unrelated jobs
+from Potts’ linear programming relaxation. They observed that the resulting linear
+program is half-integral and can be solved by a min-cut computation, and used this
+insight to develop a combinatorial 2-approximation algorithm for the single-machine
+problem with general precedence constraints. Two-dimensional partial orders were
+introduced by Dushnik and Miller (1941), who also proved that a partial order is
+two-dimensional if and only if it has a nonseparating linear extension. The first
+polynomial-time recognition algorithm for 2D orders was presented by Pnueli, Lempel and Even (1971). Exercise 4.32, which is needed to complete the proof of Theorem 4.24, is based on a conjecture by Correa and Schulz (2005) that was proved by
+Ambühl and Mastrolilli (2006).
+4.9. Approximation algorithms for 1|r j | ∑ C j . The optimality of the SRPT rule for
+1|r j , pmtn| ∑ C j was shown by Baker (1974). Phillips, Stein and Wein (1998) introduced the idea of scheduling jobs in order of their preemptive completion times
+into the design of approximation algorithms. Theorem 4.26 belongs to them. The
+lower bound of 2 on the performance guarantee of any deterministic online algorithm is due to Hoogeveen and Vestjens (1996). Chekuri, Motwani, Natarajan and
+Stein (2001) presented the randomized α-point algorithm and proved Theorem 4.32.
+Goemans et al. (2002) showed that the sample space of this algorithm is O(n), which
+makes the straightforward derandomization possible. The construction of a matching lower bound on the performance guarantee of any randomized online algorithm
+can be found in Vestjens (1997).
+4.10. Approximation algorithms for 1|r j | ∑ w jC j . The randomized α j -point algorithm was suggested by Goemans et al. (2002). They also showed that drawing the
+α j ’s according to a truncated exponential distribution results in an expected performance guarantee of 1.69. Working with the same α for all jobs complicates the
+analysis, and the best density function known leads to an expected performance guarantee of 1.75. Theorem 4.40 is due to Anderson and Potts (2002). The proof presented here follows an interpretation by Sitters of a simplified proof suggested by
+Queyranne. Exercises 4.39, 4.42 and 4.43 are from Goemans et al. (2002). The
+tight example sought in Exercise 4.41 was presented by Schulz and Skutella (2002).
+Therein, they also proved the upper bound, which is due to Goemans, Wein and
+Williamson (2000).
+
+

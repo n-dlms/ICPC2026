@@ -1,0 +1,5643 @@
+
+Jump to content
+
+	
+		
+			
+				
+
+	
+	
+
+Main menu
+	
+	
+
+				
+		
+
+	
+	Main menu
+	move to sidebar
+	hide
+
+	
+
+	
+		Navigation
+	
+	
+		
+		
+			
+			Main page
+Contents
+Current events
+Random article
+About Wikipedia
+Contact us
+
+		
+		
+	
+
+	
+
+	
+		Contribute
+	
+	
+		
+		
+			
+			Help
+Learn to edit
+Community portal
+Recent changes
+Upload file
+Special pages
+
+		
+		
+	
+
+				
+
+	
+
+		
+			
+
+	
+	
+		
+		
+	
+
+		
+		
+			
+
+	
+
+Search
+	
+	
+		
+			
+				
+					
+						
+						
+					
+					
+				
+				Search
+			
+		
+	
+
+			
+	
+	
+
+	
+		
+		
+			
+			
+		
+		
+	
+
+	
+
+	
+		
+		
+			
+			
+		
+		
+	
+
+	
+		
+
+	
+	
+
+Appearance
+	
+	
+
+			
+				
+			
+		
+	
+
+	
+	
+
+	
+		
+		
+			
+			
+		
+		
+	
+
+	
+
+	
+		
+		
+			Donate
+
+Create account
+
+Log in
+
+			
+		
+		
+	
+
+	
+	
+
+	
+	
+
+Personal tools
+	
+	
+
+		
+
+	
+		
+		
+			
+
+Donate
+
+Create account
+
+Log in
+
+			
+		
+		
+	
+
+	
+	
+
+		
+	
+
+	
+		
+			
+		
+		
+			
+		
+			
+				
+				
+				
+		
+		
+	
+	
+				
+					
+					
+	
+	Contents
+
+	move to sidebar
+	hide
+
+	
+		
+			
+				(Top)
+			
+		
+
+		
+		
+			
+				1
+				Basic concepts
+			
+		
+		
+		
+		
+	
+
+	
+		
+			
+				2
+				Problem definition
+			
+		
+		
+		
+		
+	
+
+	
+		
+			
+				3
+				Derivation of the Kaplan–Meier estimator
+			
+		
+		
+			
+				
+				Toggle Derivation of the Kaplan–Meier estimator subsection
+			
+		
+		
+			
+			
+				
+					3.1
+					A naive estimator
+				
+			
+			
+			
+			
+		
+
+		
+			
+				
+					3.2
+					The plug-in approach
+				
+			
+			
+			
+			
+		
+
+		
+			
+				
+					3.3
+					Derivation as a maximum likelihood estimator
+				
+			
+			
+			
+			
+		
+
+	
+	
+
+	
+		
+			
+				4
+				Benefits and limitations
+			
+		
+		
+		
+		
+	
+
+	
+		
+			
+				5
+				Statistical considerations
+			
+		
+		
+		
+		
+	
+
+	
+		
+			
+				6
+				Software
+			
+		
+		
+		
+		
+	
+
+	
+		
+			
+				7
+				See also
+			
+		
+		
+		
+		
+	
+
+	
+		
+			
+				8
+				References
+			
+		
+		
+		
+		
+	
+
+	
+		
+			
+				9
+				Further reading
+			
+		
+		
+		
+		
+	
+
+	
+		
+			
+				10
+				External links
+			
+		
+		
+		
+		
+	
+
+					
+		
+			
+		
+		
+			
+				
+					
+						
+
+	
+	
+
+Toggle the table of contents
+	
+	
+
+							
+			
+		
+	
+
+					
+					Kaplan–Meier estimator
+							
+
+	
+	
+
+12 languages
+	
+	
+
+		
+			
+			
+				
+				Deutsch
+Español
+Euskara
+فارسی
+Français
+Italiano
+日本語
+한국어
+Polski
+Русский
+ไทย
+粵語
+
+			
+			Edit links
+		
+
+	
+
+				
+					
+						
+							
+								
+
+	
+		
+		
+			Article
+
+Talk
+
+			
+		
+		
+	
+
+								
+
+	
+	English
+	
+	
+
+					
+
+	
+		
+		
+			
+			
+		
+		
+	
+
+				
+	
+
+							
+						
+						
+							
+			    
+
+	
+		
+		
+			Read
+
+Edit
+
+View history
+
+			
+		
+		
+	
+
+			
+
+							
+								
+
+	
+	
+
+Tools
+	
+	
+
+									
+						
+
+	
+	Tools
+	move to sidebar
+	hide
+
+	
+
+	
+		Actions
+	
+	
+		
+		
+			
+
+Read
+
+Edit
+
+View history
+
+			
+		
+		
+	
+
+	
+		General
+	
+	
+		
+		
+			
+			What links here
+Related changes
+Upload file
+Permanent link
+Page information
+Cite this page
+Get shortened URL
+Switch to legacy parser
+
+		
+		
+	
+
+	
+		Print/export
+	
+	
+		
+		
+			
+			Download as PDF
+Printable version
+
+		
+		
+	
+
+	
+		In other projects
+	
+	
+		
+		
+			
+			Wikimedia Commons
+Wikidata item
+
+		
+		
+	
+
+									
+				
+	
+
+							
+						
+					
+				
+				
+					
+						
+							
+				
+							
+		
+						
+							
+				
+	
+	Appearance
+	move to sidebar
+	hide
+
+							
+		
+					
+				
+				
+					
+							
+		
+
+						From Wikipedia, the free encyclopedia
+					
+					
+					
+					
+					Non-parametric statistic used to estimate the survival function
+
+An example of a Kaplan–Meier plot for two conditions associated with patient survival.
+
+The Kaplan–Meier estimator,[1][2] also known as the product limit estimator, is a non-parametric statistic used to estimate the survival function from lifetime data.  In medical research, it is often used to measure the fraction of patients living for a certain amount of time after treatment. In other fields, Kaplan–Meier estimators may be used to measure the length of time people remain unemployed after a job loss,[3] the time-to-failure of machine parts, or how long fleshy fruits remain on plants before they are removed by frugivores. The estimator is named after Edward L. Kaplan and Paul Meier, who each submitted similar manuscripts to the Journal of the American Statistical Association.[4] The journal editor, John Tukey, convinced them to combine their work into one paper, which has been cited more than 34,000 times since its publication in 1958.[5][6]
+
+The estimator of the survival function 
+  
+    
+      
+        S
+        (
+        t
+        )
+      
+    
+    {\displaystyle S(t)}
+  
+ (the probability that life is longer than 
+  
+    
+      
+        t
+      
+    
+    {\displaystyle t}
+  
+) is given by:
+
+  
+    
+      
+        
+          
+            
+              S
+              ^
+            
+          
+        
+        (
+        t
+        )
+        =
+        
+          ∏
+          
+            i
+            :
+             
+            
+              t
+              
+                i
+              
+            
+            ≤
+            t
+          
+        
+        
+          (
+          
+            1
+            −
+            
+              
+                
+                  d
+                  
+                    i
+                  
+                
+                
+                  n
+                  
+                    i
+                  
+                
+              
+            
+          
+          )
+        
+        ,
+      
+    
+    {\displaystyle {\widehat {S}}(t)=\prod \limits _{i:\ t_{i}\leq t}\left(1-{\frac {d_{i}}{n_{i}}}\right),}
+  
+
+with 
+  
+    
+      
+        
+          t
+          
+            i
+          
+        
+      
+    
+    {\displaystyle t_{i}}
+  
+ a time when at least one event happened, di the number of events (e.g., deaths) that happened at time 
+  
+    
+      
+        
+          t
+          
+            i
+          
+        
+      
+    
+    {\displaystyle t_{i}}
+  
+, and 
+  
+    
+      
+        
+          n
+          
+            i
+          
+        
+      
+    
+    {\displaystyle n_{i}}
+  
+ the individuals known to have survived (have not yet had an event or been censored) up to time 
+  
+    
+      
+        
+          t
+          
+            i
+          
+        
+      
+    
+    {\displaystyle t_{i}}
+  
+.
+
+Basic concepts
+[edit]
+A plot of the Kaplan–Meier estimator is a series of declining horizontal steps which, with a large enough sample size, approaches the true survival function for that population. The value of the survival function between successive distinct sampled observations ("clicks") is assumed to be constant.
+
+An important advantage of the Kaplan–Meier curve is that the method can take into account some types of censored data, particularly right-censoring, which occurs if a patient withdraws from a study, is lost to follow-up, or is alive without event occurrence at last follow-up.  On the plot, small vertical tick-marks state individual patients whose survival times have been right-censored.  When no truncation or censoring occurs, the Kaplan–Meier curve is the complement of the empirical distribution function.
+
+In medical statistics, a typical application might involve grouping patients into categories, for instance, those with Gene A profile and those with Gene B profile.  In the graph, patients with Gene B die much quicker than those with Gene A. After two years, about 80% of the Gene A patients survive, but less than half of patients with Gene B.
+
+To generate a Kaplan–Meier estimator, at least two pieces of data are required for each patient (or each subject): the status at last observation (event occurrence or right-censored), and the time to event (or time to censoring). If the survival functions between two or more groups are to be compared, then a third piece of data is required: the group assignment of each subject.[7]
+
+Problem definition
+[edit]
+Let 
+  
+    
+      
+        τ
+        ≥
+        0
+      
+    
+    {\displaystyle \tau \geq 0}
+  
+ be a random variable as the time that passes between the start of the possible exposure period, 
+  
+    
+      
+        
+          t
+          
+            0
+          
+        
+      
+    
+    {\displaystyle t_{0}}
+  
+, and the time that the event of interest takes place, 
+  
+    
+      
+        
+          t
+          
+            1
+          
+        
+      
+    
+    {\displaystyle t_{1}}
+  
+. As indicated above, the goal is to estimate the survival function 
+  
+    
+      
+        S
+      
+    
+    {\displaystyle S}
+  
+ underlying 
+  
+    
+      
+        τ
+      
+    
+    {\displaystyle \tau }
+  
+. Recall that this function is defined as
+
+  
+    
+      
+        S
+        (
+        t
+        )
+        =
+        Prob
+        ⁡
+        (
+        τ
+        >
+        t
+        )
+      
+    
+    {\displaystyle S(t)=\operatorname {Prob} (\tau >t)}
+  
+, where 
+  
+    
+      
+        t
+        =
+        0
+        ,
+        1
+        ,
+        …
+      
+    
+    {\displaystyle t=0,1,\dots }
+  
+ is the time.
+
+Let 
+  
+    
+      
+        
+          τ
+          
+            1
+          
+        
+        ,
+        …
+        ,
+        
+          τ
+          
+            n
+          
+        
+        ≥
+        0
+      
+    
+    {\displaystyle \tau _{1},\dots ,\tau _{n}\geq 0}
+  
+ be independent, identically distributed random variables, whose common distribution is that of 
+  
+    
+      
+        τ
+      
+    
+    {\displaystyle \tau }
+  
+: 
+  
+    
+      
+        
+          τ
+          
+            j
+          
+        
+      
+    
+    {\displaystyle \tau _{j}}
+  
+ is the random time when some event 
+  
+    
+      
+        j
+      
+    
+    {\displaystyle j}
+  
+ happened. The data available for estimating 
+  
+    
+      
+        S
+      
+    
+    {\displaystyle S}
+  
+ is not 
+  
+    
+      
+        (
+        
+          τ
+          
+            j
+          
+        
+        
+          )
+          
+            j
+            =
+            1
+            ,
+            …
+            ,
+            n
+          
+        
+      
+    
+    {\displaystyle (\tau _{j})_{j=1,\dots ,n}}
+  
+, but the list of pairs 
+  
+    
+      
+        (
+        
+        (
+        
+          
+            
+              
+                τ
+                ~
+              
+            
+          
+          
+            j
+          
+        
+        ,
+        
+          c
+          
+            j
+          
+        
+        )
+        
+        
+          )
+          
+            j
+            =
+            1
+            ,
+            …
+            ,
+            n
+          
+        
+      
+    
+    {\displaystyle (\,({\tilde {\tau }}_{j},c_{j})\,)_{j=1,\dots ,n}}
+  
+ where for 
+  
+    
+      
+        j
+        ∈
+        [
+        n
+        ]
+        :=
+        {
+        1
+        ,
+        2
+        ,
+        …
+        ,
+        n
+        }
+      
+    
+    {\displaystyle j\in [n]:=\{1,2,\dots ,n\}}
+  
+,  
+  
+    
+      
+        
+          c
+          
+            j
+          
+        
+        ≥
+        0
+      
+    
+    {\displaystyle c_{j}\geq 0}
+  
+ is a fixed, deterministic integer, the censoring time of event 
+  
+    
+      
+        j
+      
+    
+    {\displaystyle j}
+  
+ and 
+  
+    
+      
+        
+          
+            
+              
+                τ
+                ~
+              
+            
+          
+          
+            j
+          
+        
+        =
+        min
+        (
+        
+          τ
+          
+            j
+          
+        
+        ,
+        
+          c
+          
+            j
+          
+        
+        )
+      
+    
+    {\displaystyle {\tilde {\tau }}_{j}=\min(\tau _{j},c_{j})}
+  
+. In particular, the information available about the timing of event 
+  
+    
+      
+        j
+      
+    
+    {\displaystyle j}
+  
+ is whether the event happened before the fixed time 
+  
+    
+      
+        
+          c
+          
+            j
+          
+        
+      
+    
+    {\displaystyle c_{j}}
+  
+ and if so, then the actual time of the event is also available. The challenge is to estimate 
+  
+    
+      
+        S
+        (
+        t
+        )
+      
+    
+    {\displaystyle S(t)}
+  
+ given this data.
+
+Derivation of the Kaplan–Meier estimator
+[edit]
+Two derivations of the Kaplan–Meier estimator are shown. Both are based on rewriting the survival function in terms of what is sometimes called hazard, or mortality rates. However, before doing this it is worthwhile to consider a naive estimator.
+
+A naive estimator
+[edit]
+To understand the power of the Kaplan–Meier estimator, it is worthwhile to first describe a naive estimator of the survival function.
+
+Fix 
+  
+    
+      
+        k
+        ∈
+        [
+        n
+        ]
+        :=
+        {
+        1
+        ,
+        …
+        ,
+        n
+        }
+      
+    
+    {\displaystyle k\in [n]:=\{1,\dots ,n\}}
+  
+ and let 
+  
+    
+      
+        t
+        >
+        0
+      
+    
+    {\displaystyle t>0}
+  
+. A basic argument shows that the following proposition holds:
+
+Proposition 1: If the censoring time 
+  
+    
+      
+        
+          c
+          
+            k
+          
+        
+      
+    
+    {\displaystyle c_{k}}
+  
+ of event 
+  
+    
+      
+        k
+      
+    
+    {\displaystyle k}
+  
+ exceeds 
+  
+    
+      
+        t
+      
+    
+    {\displaystyle t}
+  
+ (
+  
+    
+      
+        
+          c
+          
+            k
+          
+        
+        ≥
+        t
+      
+    
+    {\displaystyle c_{k}\geq t}
+  
+), then 
+  
+    
+      
+        
+          
+            
+              
+                τ
+                ~
+              
+            
+          
+          
+            k
+          
+        
+        ≥
+        t
+      
+    
+    {\displaystyle {\tilde {\tau }}_{k}\geq t}
+  
+ if and only if  
+  
+    
+      
+        
+          τ
+          
+            k
+          
+        
+        ≥
+        t
+      
+    
+    {\displaystyle \tau _{k}\geq t}
+  
+.
+
+Let 
+  
+    
+      
+        k
+      
+    
+    {\displaystyle k}
+  
+ be such that 
+  
+    
+      
+        
+          c
+          
+            k
+          
+        
+        ≥
+        t
+      
+    
+    {\displaystyle c_{k}\geq t}
+  
+. It follows from the above proposition that
+
+  
+    
+      
+        Prob
+        ⁡
+        (
+        
+          τ
+          
+            k
+          
+        
+        ≥
+        t
+        )
+        =
+        Prob
+        ⁡
+        (
+        
+          
+            
+              
+                τ
+                ~
+              
+            
+          
+          
+            k
+          
+        
+        ≥
+        t
+        )
+        .
+      
+    
+    {\displaystyle \operatorname {Prob} (\tau _{k}\geq t)=\operatorname {Prob} ({\tilde {\tau }}_{k}\geq t).}
+  
+
+Let 
+  
+    
+      
+        
+          X
+          
+            k
+          
+        
+        =
+        
+          I
+        
+        (
+        
+          
+            
+              
+                τ
+                ~
+              
+            
+          
+          
+            k
+          
+        
+        ≥
+        t
+        )
+      
+    
+    {\displaystyle X_{k}=\mathbb {I} ({\tilde {\tau }}_{k}\geq t)}
+  
+ and consider only those 
+  
+    
+      
+        k
+        ∈
+        C
+        (
+        t
+        )
+        :=
+        {
+        k
+        
+        :
+        
+        
+          c
+          
+            k
+          
+        
+        ≥
+        t
+        }
+      
+    
+    {\displaystyle k\in C(t):=\{k\,:\,c_{k}\geq t\}}
+  
+, i.e. the events for which the outcome was not censored before time 
+  
+    
+      
+        t
+      
+    
+    {\displaystyle t}
+  
+. Let 
+  
+    
+      
+        m
+        (
+        t
+        )
+        =
+        
+          |
+        
+        C
+        (
+        t
+        )
+        
+          |
+        
+      
+    
+    {\displaystyle m(t)=|C(t)|}
+  
+ be the number of elements in 
+  
+    
+      
+        C
+        (
+        t
+        )
+      
+    
+    {\displaystyle C(t)}
+  
+. Note that the set 
+  
+    
+      
+        C
+        (
+        t
+        )
+      
+    
+    {\displaystyle C(t)}
+  
+ is not random and so neither is 
+  
+    
+      
+        m
+        (
+        t
+        )
+      
+    
+    {\displaystyle m(t)}
+  
+. Furthermore, 
+  
+    
+      
+        (
+        
+          X
+          
+            k
+          
+        
+        
+          )
+          
+            k
+            ∈
+            C
+            (
+            t
+            )
+          
+        
+      
+    
+    {\displaystyle (X_{k})_{k\in C(t)}}
+  
+ is a sequence of independent, identically distributed Bernoulli random variables with common parameter 
+  
+    
+      
+        S
+        (
+        t
+        )
+        =
+        Prob
+        ⁡
+        (
+        τ
+        ≥
+        t
+        )
+      
+    
+    {\displaystyle S(t)=\operatorname {Prob} (\tau \geq t)}
+  
+. Assuming that 
+  
+    
+      
+        m
+        (
+        t
+        )
+        >
+        0
+      
+    
+    {\displaystyle m(t)>0}
+  
+, this suggests to estimate 
+  
+    
+      
+        S
+        (
+        t
+        )
+      
+    
+    {\displaystyle S(t)}
+  
+ using
+
+  
+    
+      
+        
+          
+            
+              
+                S
+                ^
+              
+            
+          
+          
+            naive
+          
+        
+        (
+        t
+        )
+        =
+        
+          
+            1
+            
+              m
+              (
+              t
+              )
+            
+          
+        
+        
+          ∑
+          
+            k
+            :
+            
+              c
+              
+                k
+              
+            
+            ≥
+            t
+          
+        
+        
+          X
+          
+            k
+          
+        
+        =
+        
+          
+            
+              
+                |
+              
+              {
+              1
+              ≤
+              k
+              ≤
+              n
+              
+              :
+              
+              
+                
+                  
+                    
+                      τ
+                      ~
+                    
+                  
+                
+                
+                  k
+                
+              
+              ≥
+              t
+              }
+              
+                |
+              
+            
+            
+              
+                |
+              
+              {
+              1
+              ≤
+              k
+              ≤
+              n
+              
+              :
+              
+              
+                c
+                
+                  k
+                
+              
+              ≥
+              t
+              }
+              
+                |
+              
+            
+          
+        
+        =
+        
+          
+            
+              
+                |
+              
+              {
+              1
+              ≤
+              k
+              ≤
+              n
+              
+              :
+              
+              
+                
+                  
+                    
+                      τ
+                      ~
+                    
+                  
+                
+                
+                  k
+                
+              
+              ≥
+              t
+              }
+              
+                |
+              
+            
+            
+              m
+              (
+              t
+              )
+            
+          
+        
+        ,
+      
+    
+    {\displaystyle {\hat {S}}_{\text{naive}}(t)={\frac {1}{m(t)}}\sum _{k:c_{k}\geq t}X_{k}={\frac {|\{1\leq k\leq n\,:\,{\tilde {\tau }}_{k}\geq t\}|}{|\{1\leq k\leq n\,:\,c_{k}\geq t\}|}}={\frac {|\{1\leq k\leq n\,:\,{\tilde {\tau }}_{k}\geq t\}|}{m(t)}},}
+  
+
+where the second equality follows because 
+  
+    
+      
+        
+          
+            
+              
+                τ
+                ~
+              
+            
+          
+          
+            k
+          
+        
+        ≥
+        t
+      
+    
+    {\displaystyle {\tilde {\tau }}_{k}\geq t}
+  
+ implies 
+  
+    
+      
+        
+          c
+          
+            k
+          
+        
+        ≥
+        t
+      
+    
+    {\displaystyle c_{k}\geq t}
+  
+, while the last equality is simply a change of notation.
+
+The quality of this estimate is governed by the size of 
+  
+    
+      
+        m
+        (
+        t
+        )
+      
+    
+    {\displaystyle m(t)}
+  
+. This can be problematic when 
+  
+    
+      
+        m
+        (
+        t
+        )
+      
+    
+    {\displaystyle m(t)}
+  
+ is small, which happens, by definition, when a lot of the events are censored. A particularly unpleasant property of this estimator, that suggests that perhaps it is not the "best" estimator, is that it ignores all the observations whose censoring time precedes 
+  
+    
+      
+        t
+      
+    
+    {\displaystyle t}
+  
+. Intuitively, these observations still contain information about 
+  
+    
+      
+        S
+        (
+        t
+        )
+      
+    
+    {\displaystyle S(t)}
+  
+: For example, when for many events with 
+  
+    
+      
+        
+          c
+          
+            k
+          
+        
+        <
+        t
+      
+    
+    {\displaystyle c_{k}<t}
+  
+, 
+  
+    
+      
+        
+          τ
+          
+            k
+          
+        
+        <
+        
+          c
+          
+            k
+          
+        
+      
+    
+    {\displaystyle \tau _{k}<c_{k}}
+  
+ also holds, we can infer that events often happen early, which implies that 
+  
+    
+      
+        Prob
+        ⁡
+        (
+        τ
+        ≤
+        t
+        )
+      
+    
+    {\displaystyle \operatorname {Prob} (\tau \leq t)}
+  
+ is large, which, through 
+  
+    
+      
+        S
+        (
+        t
+        )
+        =
+        1
+        −
+        Prob
+        ⁡
+        (
+        τ
+        ≤
+        t
+        )
+      
+    
+    {\displaystyle S(t)=1-\operatorname {Prob} (\tau \leq t)}
+  
+ means that 
+  
+    
+      
+        S
+        (
+        t
+        )
+      
+    
+    {\displaystyle S(t)}
+  
+ must be small. However, this information is ignored by this naive estimator. The question is then whether there exists an estimator that makes a better use of all the data. This is what the Kaplan–Meier estimator accomplishes. Note that the naive estimator cannot be improved when censoring does not take place; so whether an improvement is possible critically hinges upon whether censoring is in place.
+
+The plug-in approach
+[edit]
+
+By elementary calculations,
+
+  
+    
+      
+        
+          
+            
+              
+                S
+                (
+                t
+                )
+              
+              
+                
+                =
+                Prob
+                ⁡
+                (
+                τ
+                >
+                t
+                ∣
+                τ
+                >
+                t
+                −
+                1
+                )
+                Prob
+                ⁡
+                (
+                τ
+                >
+                t
+                −
+                1
+                )
+              
+            
+            
+              
+              
+                
+                =
+                (
+                1
+                −
+                Prob
+                ⁡
+                (
+                τ
+                ≤
+                t
+                ∣
+                τ
+                >
+                t
+                −
+                1
+                )
+                )
+                Prob
+                ⁡
+                (
+                τ
+                >
+                t
+                −
+                1
+                )
+              
+            
+            
+              
+              
+                
+                =
+                (
+                1
+                −
+                Prob
+                ⁡
+                (
+                τ
+                =
+                t
+                ∣
+                τ
+                ≥
+                t
+                )
+                )
+                Prob
+                ⁡
+                (
+                τ
+                >
+                t
+                −
+                1
+                )
+              
+            
+            
+              
+              
+                
+                =
+                q
+                (
+                t
+                )
+                S
+                (
+                t
+                −
+                1
+                )
+                
+                ,
+              
+            
+          
+        
+      
+    
+    {\displaystyle {\begin{aligned}S(t)&=\operatorname {Prob} (\tau >t\mid \tau >t-1)\operatorname {Prob} (\tau >t-1)\\[4pt]&=(1-\operatorname {Prob} (\tau \leq t\mid \tau >t-1))\operatorname {Prob} (\tau >t-1)\\[4pt]&=(1-\operatorname {Prob} (\tau =t\mid \tau \geq t))\operatorname {Prob} (\tau >t-1)\\[4pt]&=q(t)S(t-1)\,,\end{aligned}}}
+  
+
+where the second to last equality used that 
+  
+    
+      
+        τ
+      
+    
+    {\displaystyle \tau }
+  
+ is integer valued and for the last line we introduced
+
+  
+    
+      
+        q
+        (
+        t
+        )
+        =
+        1
+        −
+        Prob
+        ⁡
+        (
+        τ
+        =
+        t
+        ∣
+        τ
+        ≥
+        t
+        )
+        .
+      
+    
+    {\displaystyle q(t)=1-\operatorname {Prob} (\tau =t\mid \tau \geq t).}
+  
+
+By a recursive expansion of the equality 
+  
+    
+      
+        S
+        (
+        t
+        )
+        =
+        q
+        (
+        t
+        )
+        S
+        (
+        t
+        −
+        1
+        )
+      
+    
+    {\displaystyle S(t)=q(t)S(t-1)}
+  
+, we get
+
+  
+    
+      
+        S
+        (
+        t
+        )
+        =
+        q
+        (
+        t
+        )
+        q
+        (
+        t
+        −
+        1
+        )
+        ⋯
+        q
+        (
+        0
+        )
+        .
+      
+    
+    {\displaystyle S(t)=q(t)q(t-1)\cdots q(0).}
+  
+
+Note that here 
+  
+    
+      
+        q
+        (
+        0
+        )
+        =
+        1
+        −
+        Prob
+        ⁡
+        (
+        τ
+        =
+        0
+        ∣
+        τ
+        >
+        −
+        1
+        )
+        =
+        1
+        −
+        Prob
+        ⁡
+        (
+        τ
+        =
+        0
+        )
+      
+    
+    {\displaystyle q(0)=1-\operatorname {Prob} (\tau =0\mid \tau >-1)=1-\operatorname {Prob} (\tau =0)}
+  
+.
+
+The Kaplan–Meier estimator can be seen as a "plug-in estimator" where each 
+  
+    
+      
+        q
+        (
+        s
+        )
+      
+    
+    {\displaystyle q(s)}
+  
+ is estimated based on the data and the estimator of 
+  
+    
+      
+        S
+        (
+        t
+        )
+      
+    
+    {\displaystyle S(t)}
+  
+ is obtained as a product of these estimates.
+
+It remains to specify how 
+  
+    
+      
+        q
+        (
+        s
+        )
+        =
+        1
+        −
+        Prob
+        ⁡
+        (
+        τ
+        =
+        s
+        ∣
+        τ
+        ≥
+        s
+        )
+      
+    
+    {\displaystyle q(s)=1-\operatorname {Prob} (\tau =s\mid \tau \geq s)}
+  
+ is to be estimated. By a similar reasoning that lead to the construction of the naive estimator above, for any 
+  
+    
+      
+        k
+        ∈
+        [
+        n
+        ]
+      
+    
+    {\displaystyle k\in [n]}
+  
+ such that 
+  
+    
+      
+        
+          c
+          
+            k
+          
+        
+        >
+        s
+      
+    
+    {\displaystyle c_{k}>s}
+  
+, 
+  
+    
+      
+        Prob
+        ⁡
+        (
+        τ
+        =
+        s
+        )
+        =
+        Prob
+        ⁡
+        (
+        
+          
+            
+              
+                τ
+                ~
+              
+            
+          
+          
+            k
+          
+        
+        =
+        s
+        )
+      
+    
+    {\displaystyle \operatorname {Prob} (\tau =s)=\operatorname {Prob} ({\tilde {\tau }}_{k}=s)}
+  
+ and 
+  
+    
+      
+        Prob
+        ⁡
+        (
+        τ
+        ≥
+        s
+        )
+        =
+        Prob
+        ⁡
+        (
+        
+          
+            
+              
+                τ
+                ~
+              
+            
+          
+          
+            k
+          
+        
+        ≥
+        s
+        )
+      
+    
+    {\displaystyle \operatorname {Prob} (\tau \geq s)=\operatorname {Prob} ({\tilde {\tau }}_{k}\geq s)}
+  
+ both hold. Hence, for any 
+  
+    
+      
+        k
+        ∈
+        [
+        n
+        ]
+      
+    
+    {\displaystyle k\in [n]}
+  
+ such that 
+  
+    
+      
+        
+          c
+          
+            k
+          
+        
+        >
+        s
+      
+    
+    {\displaystyle c_{k}>s}
+  
+,
+
+  
+    
+      
+        Prob
+        ⁡
+        (
+        τ
+        =
+        s
+        
+          |
+        
+        τ
+        ≥
+        s
+        )
+        =
+        Prob
+        ⁡
+        (
+        
+          
+            
+              
+                τ
+                ~
+              
+            
+          
+          
+            k
+          
+        
+        =
+        s
+        )
+        
+          /
+        
+        Prob
+        ⁡
+        (
+        
+          
+            
+              
+                τ
+                ~
+              
+            
+          
+          
+            k
+          
+        
+        ≥
+        s
+        )
+        .
+      
+    
+    {\displaystyle \operatorname {Prob} (\tau =s|\tau \geq s)=\operatorname {Prob} ({\tilde {\tau }}_{k}=s)/\operatorname {Prob} ({\tilde {\tau }}_{k}\geq s).}
+  
+
+Hence we arrive at the estimator
+
+  
+    
+      
+        
+          
+            
+              q
+              ^
+            
+          
+        
+        (
+        s
+        )
+        =
+        1
+        −
+        
+          
+            
+              
+                |
+              
+              {
+              1
+              ≤
+              k
+              ≤
+              n
+              
+              :
+              
+              
+                c
+                
+                  k
+                
+              
+              >
+              s
+              ,
+              
+                
+                  
+                    
+                      τ
+                      ~
+                    
+                  
+                
+                
+                  k
+                
+              
+              =
+              s
+              }
+              
+                |
+              
+            
+            
+              
+                |
+              
+              {
+              1
+              ≤
+              k
+              ≤
+              n
+              
+              :
+              
+              
+                c
+                
+                  k
+                
+              
+              >
+              s
+              ,
+              
+                
+                  
+                    
+                      τ
+                      ~
+                    
+                  
+                
+                
+                  k
+                
+              
+              ≥
+              s
+              }
+              
+                |
+              
+            
+          
+        
+      
+    
+    {\displaystyle {\hat {q}}(s)=1-{\frac {|\{1\leq k\leq n\,:\,c_{k}>s,{\tilde {\tau }}_{k}=s\}|}{|\{1\leq k\leq n\,:\,c_{k}>s,{\tilde {\tau }}_{k}\geq s\}|}}}
+  
+
+(think of estimating the numerator and denominator separately in the definition of the "hazard rate" 
+  
+    
+      
+        Prob
+        ⁡
+        (
+        τ
+        =
+        s
+        
+          |
+        
+        τ
+        ≥
+        s
+        )
+      
+    
+    {\displaystyle \operatorname {Prob} (\tau =s|\tau \geq s)}
+  
+). The Kaplan–Meier estimator is then given by
+
+  
+    
+      
+        
+          
+            
+              S
+              ^
+            
+          
+        
+        (
+        t
+        )
+        =
+        
+          ∏
+          
+            s
+            =
+            0
+          
+          
+            t
+          
+        
+        
+          
+            
+              q
+              ^
+            
+          
+        
+        (
+        s
+        )
+        .
+      
+    
+    {\displaystyle {\hat {S}}(t)=\prod _{s=0}^{t}{\hat {q}}(s).}
+  
+
+The form of the estimator stated at the beginning of the article can be obtained by some further algebra. For this,  write 
+  
+    
+      
+        
+          
+            
+              q
+              ^
+            
+          
+        
+        (
+        s
+        )
+        =
+        1
+        −
+        d
+        (
+        s
+        )
+        
+          /
+        
+        n
+        (
+        s
+        )
+      
+    
+    {\displaystyle {\hat {q}}(s)=1-d(s)/n(s)}
+  
+ where, using the actuarial science terminology,  
+  
+    
+      
+        d
+        (
+        s
+        )
+        =
+        
+          |
+        
+        {
+        1
+        ≤
+        k
+        ≤
+        n
+        
+        :
+        
+        
+          c
+          
+            k
+          
+        
+        >
+        s
+        ,
+        
+          
+            
+              
+                τ
+                ~
+              
+            
+          
+          
+            k
+          
+        
+        =
+        s
+        }
+        
+          |
+        
+      
+    
+    {\displaystyle d(s)=|\{1\leq k\leq n\,:\,c_{k}>s,{\tilde {\tau }}_{k}=s\}|}
+  
+ is the number of known deaths at time 
+  
+    
+      
+        s
+      
+    
+    {\displaystyle s}
+  
+, while 
+  
+    
+      
+        n
+        (
+        s
+        )
+        =
+        
+          |
+        
+        {
+        1
+        ≤
+        k
+        ≤
+        n
+        
+        :
+        
+        
+          c
+          
+            k
+          
+        
+        >
+        s
+        ,
+        
+          
+            
+              
+                τ
+                ~
+              
+            
+          
+          
+            k
+          
+        
+        ≥
+        s
+        }
+        
+          |
+        
+      
+    
+    {\displaystyle n(s)=|\{1\leq k\leq n\,:\,c_{k}>s,{\tilde {\tau }}_{k}\geq s\}|}
+  
+ is the number of those persons who are alive (and not being censored) at time 
+  
+    
+      
+        s
+      
+    
+    {\displaystyle s}
+  
+.
+
+Note that if 
+  
+    
+      
+        d
+        (
+        s
+        )
+        =
+        0
+      
+    
+    {\displaystyle d(s)=0}
+  
+, 
+  
+    
+      
+        
+          
+            
+              q
+              ^
+            
+          
+        
+        (
+        s
+        )
+        =
+        1
+      
+    
+    {\displaystyle {\hat {q}}(s)=1}
+  
+. This implies that we can leave out from the product defining 
+  
+    
+      
+        
+          
+            
+              S
+              ^
+            
+          
+        
+        (
+        t
+        )
+      
+    
+    {\displaystyle {\hat {S}}(t)}
+  
+ all those terms where 
+  
+    
+      
+        d
+        (
+        s
+        )
+        =
+        0
+      
+    
+    {\displaystyle d(s)=0}
+  
+. Then, letting 
+  
+    
+      
+        0
+        ≤
+        
+          t
+          
+            1
+          
+        
+        <
+        
+          t
+          
+            2
+          
+        
+        <
+        ⋯
+        <
+        
+          t
+          
+            m
+          
+        
+      
+    
+    {\displaystyle 0\leq t_{1}<t_{2}<\dots <t_{m}}
+  
+ be the times 
+  
+    
+      
+        s
+      
+    
+    {\displaystyle s}
+  
+ when 
+  
+    
+      
+        d
+        (
+        s
+        )
+        >
+        0
+      
+    
+    {\displaystyle d(s)>0}
+  
+, 
+  
+    
+      
+        
+          d
+          
+            i
+          
+        
+        =
+        d
+        (
+        
+          t
+          
+            i
+          
+        
+        )
+      
+    
+    {\displaystyle d_{i}=d(t_{i})}
+  
+ and 
+  
+    
+      
+        
+          n
+          
+            i
+          
+        
+        =
+        n
+        (
+        
+          t
+          
+            i
+          
+        
+        )
+      
+    
+    {\displaystyle n_{i}=n(t_{i})}
+  
+, we arrive at the form of the Kaplan–Meier estimator given at the beginning of the article:
+
+  
+    
+      
+        
+          
+            
+              S
+              ^
+            
+          
+        
+        (
+        t
+        )
+        =
+        
+          ∏
+          
+            i
+            :
+            
+              t
+              
+                i
+              
+            
+            ≤
+            t
+          
+        
+        
+          (
+          
+            1
+            −
+            
+              
+                
+                  d
+                  
+                    i
+                  
+                
+                
+                  n
+                  
+                    i
+                  
+                
+              
+            
+          
+          )
+        
+        .
+      
+    
+    {\displaystyle {\hat {S}}(t)=\prod _{i:t_{i}\leq t}\left(1-{\frac {d_{i}}{n_{i}}}\right).}
+  
+
+As opposed to the naive estimator, this estimator can be seen to use the available information more effectively: In the special case mentioned beforehand, when there are many early events recorded, the estimator will multiply many terms with a value below one and will thus take into account that the survival probability cannot be large.
+
+Derivation as a maximum likelihood estimator
+[edit]
+Kaplan–Meier estimator can be derived from maximum likelihood estimation of the discrete hazard function.[8] More specifically given 
+  
+    
+      
+        
+          d
+          
+            i
+          
+        
+      
+    
+    {\displaystyle d_{i}}
+  
+ as the number of events and 
+  
+    
+      
+        
+          n
+          
+            i
+          
+        
+      
+    
+    {\displaystyle n_{i}}
+  
+ the total individuals at risk at time 
+  
+    
+      
+        
+          t
+          
+            i
+          
+        
+      
+    
+    {\displaystyle t_{i}}
+  
+, discrete hazard rate 
+  
+    
+      
+        
+          h
+          
+            i
+          
+        
+      
+    
+    {\displaystyle h_{i}}
+  
+ can be defined as the probability of an individual with an event at time 
+  
+    
+      
+        
+          t
+          
+            i
+          
+        
+      
+    
+    {\displaystyle t_{i}}
+  
+. Then survival rate can be defined as:
+
+  
+    
+      
+        S
+        (
+        t
+        )
+        =
+        
+          ∏
+          
+            i
+            :
+             
+            
+              t
+              
+                i
+              
+            
+            ≤
+            t
+          
+        
+        (
+        1
+        −
+        
+          h
+          
+            i
+          
+        
+        )
+      
+    
+    {\displaystyle S(t)=\prod \limits _{i:\ t_{i}\leq t}(1-h_{i})}
+  
+
+and the likelihood function for the hazard function up to time 
+  
+    
+      
+        
+          t
+          
+            i
+          
+        
+      
+    
+    {\displaystyle t_{i}}
+  
+ is:
+
+  
+    
+      
+        
+          
+            L
+          
+        
+        (
+        
+          h
+          
+            j
+            :
+            j
+            ≤
+            i
+          
+        
+        ∣
+        
+          d
+          
+            j
+            :
+            j
+            ≤
+            i
+          
+        
+        ,
+        
+          n
+          
+            j
+            :
+            j
+            ≤
+            i
+          
+        
+        )
+        =
+        
+          ∏
+          
+            j
+            =
+            1
+          
+          
+            i
+          
+        
+        
+          h
+          
+            j
+          
+          
+            
+              d
+              
+                j
+              
+            
+          
+        
+        (
+        1
+        −
+        
+          h
+          
+            j
+          
+        
+        
+          )
+          
+            
+              n
+              
+                j
+              
+            
+            −
+            
+              d
+              
+                j
+              
+            
+          
+        
+        
+          
+            
+              (
+            
+            
+              
+                n
+                
+                  j
+                
+              
+              
+                d
+                
+                  j
+                
+              
+            
+            
+              )
+            
+          
+        
+      
+    
+    {\displaystyle {\mathcal {L}}(h_{j:j\leq i}\mid d_{j:j\leq i},n_{j:j\leq i})=\prod _{j=1}^{i}h_{j}^{d_{j}}(1-h_{j})^{n_{j}-d_{j}}{n_{j} \choose d_{j}}}
+  
+
+therefore the log likelihood will be:
+
+  
+    
+      
+        log
+        ⁡
+        (
+        
+          
+            L
+          
+        
+        )
+        =
+        
+          ∑
+          
+            j
+            =
+            1
+          
+          
+            i
+          
+        
+        
+          (
+          
+            
+              d
+              
+                j
+              
+            
+            log
+            ⁡
+            (
+            
+              h
+              
+                j
+              
+            
+            )
+            +
+            (
+            
+              n
+              
+                j
+              
+            
+            −
+            
+              d
+              
+                j
+              
+            
+            )
+            log
+            ⁡
+            (
+            1
+            −
+            
+              h
+              
+                j
+              
+            
+            )
+            +
+            log
+            ⁡
+            
+              
+                
+                  (
+                
+                
+                  
+                    n
+                    
+                      j
+                    
+                  
+                  
+                    d
+                    
+                      j
+                    
+                  
+                
+                
+                  )
+                
+              
+            
+          
+          )
+        
+      
+    
+    {\displaystyle \log({\mathcal {L}})=\sum _{j=1}^{i}\left(d_{j}\log(h_{j})+(n_{j}-d_{j})\log(1-h_{j})+\log {n_{j} \choose d_{j}}\right)}
+  
+
+finding the maximum of log likelihood with respect to 
+  
+    
+      
+        
+          h
+          
+            i
+          
+        
+      
+    
+    {\displaystyle h_{i}}
+  
+ yields:
+
+  
+    
+      
+        
+          
+            
+              ∂
+              log
+              ⁡
+              (
+              
+                
+                  L
+                
+              
+              )
+            
+            
+              ∂
+              
+                h
+                
+                  i
+                
+              
+            
+          
+        
+        =
+        
+          
+            
+              d
+              
+                i
+              
+            
+            
+              
+                
+                  
+                    h
+                    ^
+                  
+                
+              
+              
+                i
+              
+            
+          
+        
+        −
+        
+          
+            
+              
+                n
+                
+                  i
+                
+              
+              −
+              
+                d
+                
+                  i
+                
+              
+            
+            
+              1
+              −
+              
+                
+                  
+                    
+                      h
+                      ^
+                    
+                  
+                
+                
+                  i
+                
+              
+            
+          
+        
+        =
+        0
+        ⇒
+        
+          
+            
+              
+                h
+                ^
+              
+            
+          
+          
+            i
+          
+        
+        =
+        
+          
+            
+              d
+              
+                i
+              
+            
+            
+              n
+              
+                i
+              
+            
+          
+        
+      
+    
+    {\displaystyle {\frac {\partial \log({\mathcal {L}})}{\partial h_{i}}}={\frac {d_{i}}{{\widehat {h}}_{i}}}-{\frac {n_{i}-d_{i}}{1-{\widehat {h}}_{i}}}=0\Rightarrow {\widehat {h}}_{i}={\frac {d_{i}}{n_{i}}}}
+  
+
+where hat is used to denote maximum likelihood estimation. Given this result, we can write:
+
+  
+    
+      
+        
+          
+            
+              S
+              ^
+            
+          
+        
+        (
+        t
+        )
+        =
+        
+          ∏
+          
+            i
+            :
+             
+            
+              t
+              
+                i
+              
+            
+            ≤
+            t
+          
+        
+        
+          (
+          
+            1
+            −
+            
+              
+                
+                  
+                    h
+                    ^
+                  
+                
+              
+              
+                i
+              
+            
+          
+          )
+        
+        =
+        
+          ∏
+          
+            i
+            :
+             
+            
+              t
+              
+                i
+              
+            
+            ≤
+            t
+          
+        
+        
+          (
+          
+            1
+            −
+            
+              
+                
+                  d
+                  
+                    i
+                  
+                
+                
+                  n
+                  
+                    i
+                  
+                
+              
+            
+          
+          )
+        
+      
+    
+    {\displaystyle {\widehat {S}}(t)=\prod \limits _{i:\ t_{i}\leq t}\left(1-{\widehat {h}}_{i}\right)=\prod \limits _{i:\ t_{i}\leq t}\left(1-{\frac {d_{i}}{n_{i}}}\right)}
+  
+
+More generally (for continuous as well as discrete survival distributions), the Kaplan-Meier estimator may be interpreted as a nonparametric maximum likelihood estimator.[9]
+
+Benefits and limitations
+[edit]
+The Kaplan–Meier estimator is one of the most frequently used methods of survival analysis. The estimate may be useful to examine recovery rates, the probability of death, and the effectiveness of treatment. It is limited in its ability to estimate survival adjusted for covariates; parametric survival models and the Cox proportional hazards model may be useful to estimate covariate-adjusted survival.
+
+The Kaplan-Meier estimator is directly related to the Nelson-Aalen estimator and both maximize the empirical likelihood.[10]
+
+Statistical considerations
+[edit]
+The Kaplan–Meier estimator is a statistic, and several estimators are used to approximate its variance.  One of the most common estimators is Greenwood's formula:[11]
+
+  
+    
+      
+        
+          
+            
+              Var
+              ^
+            
+          
+        
+        
+          (
+          
+            
+              
+                
+                  S
+                  ^
+                
+              
+            
+            (
+            t
+            )
+          
+          )
+        
+        =
+        
+          
+            
+              S
+              ^
+            
+          
+        
+        (
+        t
+        
+          )
+          
+            2
+          
+        
+        
+          ∑
+          
+            i
+            :
+             
+            
+              t
+              
+                i
+              
+            
+            ≤
+            t
+          
+        
+        
+          
+            
+              d
+              
+                i
+              
+            
+            
+              
+                n
+                
+                  i
+                
+              
+              (
+              
+                n
+                
+                  i
+                
+              
+              −
+              
+                d
+                
+                  i
+                
+              
+              )
+            
+          
+        
+        ,
+      
+    
+    {\displaystyle {\widehat {\operatorname {Var} }}\left({\widehat {S}}(t)\right)={\widehat {S}}(t)^{2}\sum _{i:\ t_{i}\leq t}{\frac {d_{i}}{n_{i}(n_{i}-d_{i})}},}
+  
+
+where 
+  
+    
+      
+        
+          d
+          
+            i
+          
+        
+      
+    
+    {\displaystyle d_{i}}
+  
+ is the number of cases and 
+  
+    
+      
+        
+          n
+          
+            i
+          
+        
+      
+    
+    {\displaystyle n_{i}}
+  
+ is the total number of observations, for 
+  
+    
+      
+        
+          t
+          
+            i
+          
+        
+        <
+        t
+      
+    
+    {\displaystyle t_{i}<t}
+  
+.
+
+For a 'sketch' of the mathematical derivation of the equation above, click on "show" to reveal
+Greenwood's formula is derived[12][self-published source?] by noting that probability of getting 
+  
+    
+      
+        
+          d
+          
+            i
+          
+        
+      
+    
+    {\displaystyle d_{i}}
+  
+ failures out of 
+  
+    
+      
+        
+          n
+          
+            i
+          
+        
+      
+    
+    {\displaystyle n_{i}}
+  
+ cases follows a binomial distribution with failure probability 
+  
+    
+      
+        
+          h
+          
+            i
+          
+        
+      
+    
+    {\displaystyle h_{i}}
+  
+. As a result for maximum likelihood hazard rate 
+  
+    
+      
+        
+          
+            
+              
+                h
+                ^
+              
+            
+          
+          
+            i
+          
+        
+        =
+        
+          d
+          
+            i
+          
+        
+        
+          /
+        
+        
+          n
+          
+            i
+          
+        
+      
+    
+    {\displaystyle {\widehat {h}}_{i}=d_{i}/n_{i}}
+  
+ we have 
+  
+    
+      
+        E
+        
+          (
+          
+            
+              
+                
+                  h
+                  ^
+                
+              
+            
+            
+              i
+            
+          
+          )
+        
+        =
+        
+          h
+          
+            i
+          
+        
+      
+    
+    {\displaystyle E\left({\widehat {h}}_{i}\right)=h_{i}}
+  
+ and 
+  
+    
+      
+        Var
+        ⁡
+        
+          (
+          
+            
+              
+                
+                  h
+                  ^
+                
+              
+            
+            
+              i
+            
+          
+          )
+        
+        =
+        
+          h
+          
+            i
+          
+        
+        (
+        1
+        −
+        
+          h
+          
+            i
+          
+        
+        )
+        
+          /
+        
+        
+          n
+          
+            i
+          
+        
+      
+    
+    {\displaystyle \operatorname {Var} \left({\widehat {h}}_{i}\right)=h_{i}(1-h_{i})/n_{i}}
+  
+. To avoid dealing with multiplicative probabilities we compute variance of logarithm of 
+  
+    
+      
+        
+          
+            
+              S
+              ^
+            
+          
+        
+        (
+        t
+        )
+      
+    
+    {\displaystyle {\widehat {S}}(t)}
+  
+ and will use the delta method to convert it back to the original variance:
+
+  
+    
+      
+        
+          
+            
+              
+                Var
+                ⁡
+                
+                  (
+                  
+                    log
+                    ⁡
+                    
+                      
+                        
+                          S
+                          ^
+                        
+                      
+                    
+                    (
+                    t
+                    )
+                  
+                  )
+                
+              
+              
+                
+                ∼
+                
+                  
+                    1
+                    
+                      
+                        
+                          
+                            
+                              S
+                              ^
+                            
+                          
+                        
+                        (
+                        t
+                        )
+                      
+                      
+                        2
+                      
+                    
+                  
+                
+                Var
+                ⁡
+                
+                  (
+                  
+                    
+                      
+                        
+                          S
+                          ^
+                        
+                      
+                    
+                    (
+                    t
+                    )
+                  
+                  )
+                
+                ⇒
+              
+            
+            
+              
+                Var
+                ⁡
+                
+                  (
+                  
+                    
+                      
+                        
+                          S
+                          ^
+                        
+                      
+                    
+                    (
+                    t
+                    )
+                  
+                  )
+                
+              
+              
+                
+                ∼
+                
+                  
+                    
+                      
+                        
+                          
+                            S
+                            ^
+                          
+                        
+                      
+                      (
+                      t
+                      )
+                    
+                    
+                      2
+                    
+                  
+                
+                Var
+                ⁡
+                
+                  (
+                  
+                    log
+                    ⁡
+                    
+                      
+                        
+                          S
+                          ^
+                        
+                      
+                    
+                    (
+                    t
+                    )
+                  
+                  )
+                
+              
+            
+          
+        
+      
+    
+    {\displaystyle {\begin{aligned}\operatorname {Var} \left(\log {\widehat {S}}(t)\right)&\sim {\frac {1}{{{\widehat {S}}(t)}^{2}}}\operatorname {Var} \left({\widehat {S}}(t)\right)\Rightarrow \\\operatorname {Var} \left({\widehat {S}}(t)\right)&\sim {{{\widehat {S}}(t)}^{2}}\operatorname {Var} \left(\log {\widehat {S}}(t)\right)\end{aligned}}}
+  
+
+using martingale central limit theorem, it can be shown that the variance of the sum in the following equation is equal to the sum of variances:[12]
+
+  
+    
+      
+        log
+        ⁡
+        
+          
+            
+              S
+              ^
+            
+          
+        
+        (
+        t
+        )
+        =
+        
+          ∑
+          
+            i
+            :
+             
+            
+              t
+              
+                i
+              
+            
+            ≤
+            t
+          
+        
+        log
+        ⁡
+        
+          (
+          
+            1
+            −
+            
+              
+                
+                  
+                    h
+                    ^
+                  
+                
+              
+              
+                i
+              
+            
+          
+          )
+        
+      
+    
+    {\displaystyle \log {\widehat {S}}(t)=\sum \limits _{i:\ t_{i}\leq t}\log \left(1-{\widehat {h}}_{i}\right)}
+  
+
+as a result we can write:
+
+  
+    
+      
+        
+          
+            
+              
+                Var
+                ⁡
+                (
+                
+                  
+                    
+                      S
+                      ^
+                    
+                  
+                
+                (
+                t
+                )
+                )
+              
+              
+                
+                ∼
+                
+                  
+                    
+                      
+                        
+                          
+                            S
+                            ^
+                          
+                        
+                      
+                      (
+                      t
+                      )
+                    
+                    
+                      2
+                    
+                  
+                
+                Var
+                ⁡
+                
+                  (
+                  
+                    
+                      ∑
+                      
+                        i
+                        :
+                         
+                        
+                          t
+                          
+                            i
+                          
+                        
+                        ≤
+                        t
+                      
+                    
+                    log
+                    ⁡
+                    
+                      (
+                      
+                        1
+                        −
+                        
+                          
+                            
+                              
+                                h
+                                ^
+                              
+                            
+                          
+                          
+                            i
+                          
+                        
+                      
+                      )
+                    
+                  
+                  )
+                
+              
+            
+            
+              
+              
+                
+                ∼
+                
+                  
+                    
+                      
+                        
+                          
+                            S
+                            ^
+                          
+                        
+                      
+                      (
+                      t
+                      )
+                    
+                    
+                      2
+                    
+                  
+                
+                
+                  ∑
+                  
+                    i
+                    :
+                     
+                    
+                      t
+                      
+                        i
+                      
+                    
+                    ≤
+                    t
+                  
+                
+                Var
+                ⁡
+                
+                  (
+                  
+                    log
+                    ⁡
+                    
+                      (
+                      
+                        1
+                        −
+                        
+                          
+                            
+                              
+                                h
+                                ^
+                              
+                            
+                          
+                          
+                            i
+                          
+                        
+                      
+                      )
+                    
+                  
+                  )
+                
+              
+            
+          
+        
+      
+    
+    {\displaystyle {\begin{aligned}\operatorname {Var} ({\widehat {S}}(t))&\sim {{{\widehat {S}}(t)}^{2}}\operatorname {Var} \left(\sum _{i:\ t_{i}\leq t}\log \left(1-{\widehat {h}}_{i}\right)\right)\\&\sim {{{\widehat {S}}(t)}^{2}}\sum \limits _{i:\ t_{i}\leq t}\operatorname {Var} \left(\log \left(1-{\widehat {h}}_{i}\right)\right)\end{aligned}}}
+  
+
+using the delta method once more:
+
+  
+    
+      
+        
+          
+            
+              
+                Var
+                ⁡
+                (
+                
+                  
+                    
+                      S
+                      ^
+                    
+                  
+                
+                (
+                t
+                )
+                )
+              
+              
+                
+                ∼
+                
+                  
+                    
+                      
+                        
+                          
+                            S
+                            ^
+                          
+                        
+                      
+                      (
+                      t
+                      )
+                    
+                    
+                      2
+                    
+                  
+                
+                
+                  ∑
+                  
+                    i
+                    :
+                     
+                    
+                      t
+                      
+                        i
+                      
+                    
+                    ≤
+                    t
+                  
+                
+                
+                  
+                    (
+                    
+                      
+                        
+                          ∂
+                          log
+                          ⁡
+                          
+                            (
+                            
+                              1
+                              −
+                              
+                                
+                                  
+                                    
+                                      h
+                                      ^
+                                    
+                                  
+                                
+                                
+                                  i
+                                
+                              
+                            
+                            )
+                          
+                        
+                        
+                          ∂
+                          
+                            
+                              
+                                
+                                  h
+                                  ^
+                                
+                              
+                            
+                            
+                              i
+                            
+                          
+                        
+                      
+                    
+                    )
+                  
+                  
+                    2
+                  
+                
+                Var
+                ⁡
+                
+                  (
+                  
+                    
+                      
+                        
+                          h
+                          ^
+                        
+                      
+                    
+                    
+                      i
+                    
+                  
+                  )
+                
+              
+            
+            
+              
+              
+                
+                =
+                
+                  
+                    
+                      
+                        
+                          
+                            S
+                            ^
+                          
+                        
+                      
+                      (
+                      t
+                      )
+                    
+                    
+                      2
+                    
+                  
+                
+                
+                  ∑
+                  
+                    i
+                    :
+                     
+                    
+                      t
+                      
+                        i
+                      
+                    
+                    ≤
+                    t
+                  
+                
+                
+                  
+                    (
+                    
+                      
+                        1
+                        
+                          1
+                          −
+                          
+                            
+                              
+                                
+                                  h
+                                  ^
+                                
+                              
+                            
+                            
+                              i
+                            
+                          
+                        
+                      
+                    
+                    )
+                  
+                  
+                    2
+                  
+                
+                
+                  
+                    
+                      
+                        
+                          
+                            
+                              h
+                              ^
+                            
+                          
+                        
+                        
+                          i
+                        
+                      
+                      
+                        (
+                        
+                          1
+                          −
+                          
+                            
+                              
+                                
+                                  h
+                                  ^
+                                
+                              
+                            
+                            
+                              i
+                            
+                          
+                        
+                        )
+                      
+                    
+                    
+                      n
+                      
+                        i
+                      
+                    
+                  
+                
+              
+            
+            
+              
+              
+                
+                =
+                
+                  
+                    
+                      
+                        
+                          
+                            S
+                            ^
+                          
+                        
+                      
+                      (
+                      t
+                      )
+                    
+                    
+                      2
+                    
+                  
+                
+                
+                  ∑
+                  
+                    i
+                    :
+                     
+                    
+                      t
+                      
+                        i
+                      
+                    
+                    ≤
+                    t
+                  
+                
+                
+                  
+                    
+                      
+                        
+                          
+                            h
+                            ^
+                          
+                        
+                      
+                      
+                        i
+                      
+                    
+                    
+                      
+                        n
+                        
+                          i
+                        
+                      
+                      
+                        (
+                        
+                          1
+                          −
+                          
+                            
+                              
+                                
+                                  h
+                                  ^
+                                
+                              
+                            
+                            
+                              i
+                            
+                          
+                        
+                        )
+                      
+                    
+                  
+                
+              
+            
+            
+              
+              
+                
+                =
+                
+                  
+                    
+                      
+                        
+                          
+                            S
+                            ^
+                          
+                        
+                      
+                      (
+                      t
+                      )
+                    
+                    
+                      2
+                    
+                  
+                
+                
+                  ∑
+                  
+                    i
+                    :
+                     
+                    
+                      t
+                      
+                        i
+                      
+                    
+                    ≤
+                    t
+                  
+                
+                
+                  
+                    
+                      d
+                      
+                        i
+                      
+                    
+                    
+                      
+                        n
+                        
+                          i
+                        
+                      
+                      (
+                      
+                        n
+                        
+                          i
+                        
+                      
+                      −
+                      
+                        d
+                        
+                          i
+                        
+                      
+                      )
+                    
+                  
+                
+              
+            
+          
+        
+      
+    
+    {\displaystyle {\begin{aligned}\operatorname {Var} ({\widehat {S}}(t))&\sim {{{\widehat {S}}(t)}^{2}}\sum _{i:\ t_{i}\leq t}\left({\frac {\partial \log \left(1-{\widehat {h}}_{i}\right)}{\partial {\widehat {h}}_{i}}}\right)^{2}\operatorname {Var} \left({\widehat {h}}_{i}\right)\\&={{{\widehat {S}}(t)}^{2}}\sum _{i:\ t_{i}\leq t}\left({\frac {1}{1-{\widehat {h}}_{i}}}\right)^{2}{\frac {{\widehat {h}}_{i}\left(1-{\widehat {h}}_{i}\right)}{n_{i}}}\\&={{{\widehat {S}}(t)}^{2}}\sum _{i:\ t_{i}\leq t}{\frac {{\widehat {h}}_{i}}{n_{i}\left(1-{\widehat {h}}_{i}\right)}}\\&={{{\widehat {S}}(t)}^{2}}\sum _{i:\ t_{i}\leq t}{\frac {d_{i}}{n_{i}(n_{i}-d_{i})}}\end{aligned}}}
+  
+
+as desired.
+
+In some cases, one may wish to compare different Kaplan–Meier curves. This can be done by the log rank test, and the Cox proportional hazards test.
+
+Other statistics that may be of use with this estimator are pointwise confidence intervals,[13] the Hall-Wellner band[14] and the equal-precision band.[15]
+
+Software
+[edit]
+Mathematica: the built-in function SurvivalModelFit creates survival models.[16]
+
+SAS: The Kaplan–Meier estimator is implemented in the proc lifetest procedure.[17]
+
+R: the Kaplan–Meier estimator is available as part of the survival package.[18][19][20]
+
+Stata: the command sts returns the Kaplan–Meier estimator.[21][22]
+
+Python: the lifelines and scikit-survival packages each include the Kaplan–Meier estimator.[23][24]
+
+MATLAB: the ecdf function with the 'function','survivor' arguments can calculate or plot the Kaplan–Meier estimator.[25]
+
+StatsDirect: The Kaplan–Meier estimator is implemented in the Survival Analysis menu.[26]
+
+SPSS: The Kaplan–Meier estimator is implemented in the Analyze > Survival > Kaplan-Meier... menu.[27]
+
+Julia: the Survival.jl package includes the Kaplan–Meier estimator.[28]
+
+Epi Info: Kaplan–Meier estimator survival curves and results for the log rank test are obtained with the KMSURVIVAL command.[29]
+
+See also
+[edit]
+Survival analysis
+
+Frequency of exceedance
+
+Median lethal dose
+
+Nelson–Aalen estimator
+
+References
+[edit]
+↑ Kaplan, E. L.; Meier, P. (1958). "Nonparametric estimation from incomplete observations". J. Amer. Statist. Assoc. 53 (282): 457–481. doi:10.2307/2281868. JSTOR 2281868.
+
+↑ Kaplan, E.L. in a retrospective on the seminal paper in "This week's citation classic". Current Contents 24, 14 (1983). Available from UPenn as PDF. Archived April 12, 2016, at the Wayback Machine
+
+↑ Meyer, Bruce D. (1990). "Unemployment Insurance and Unemployment Spells" (PDF). Econometrica. 58 (4): 757–782. doi:10.2307/2938349. JSTOR 2938349. S2CID 154632727.
+
+↑ Stalpers, Lukas J A; Kaplan, Edward L (May 4, 2018). "Edward L. Kaplan and the Kaplan-Meier Survival Curve". BSHM Bulletin: Journal of the British Society for the History of Mathematics. 33 (2): 109–135. doi:10.1080/17498430.2018.1450055. S2CID 125941631.
+
+↑ Kaplan, E. L.; Meier, Paul (1958). "Nonparametric Estimation from Incomplete Observations". Journal of the American Statistical Association. 53 (282): 457–481. doi:10.1080/01621459.1958.10501452. Retrieved February 27, 2023.
+
+↑ "Paul Meier, 1924–2011". Chicago Tribune. August 18, 2011. Archived from the original on September 13, 2017.
+
+↑ Rich, Jason T.; Neely, J. Gail; Paniello, Randal C.; Voelker, Courtney C. J.; Nussenbaum, Brian; Wang, Eric W. (September 2010). "A practical guide to understanding Kaplan-Meier curves". Otolaryngology–Head and Neck Surgery. 143 (3): 331–336. doi:10.1016/j.otohns.2010.05.007. PMC 3932959. PMID 20723767.
+
+↑ Tian, Lu (January 13, 2014). "STAT331 Unit 3, Kaplan-Meier (KM) Estimator" (PDF). Stanford University. Retrieved May 12, 2023.
+
+↑ Andersen, Per Kragh; Borgan, Ornulf; Gill, Richard D.; Keiding, Niels (1993). Statistical models based on counting processes. New York: Springer-Verlag. ISBN 0-387-97872-0.
+
+↑ Zhou, M. (2015). Empirical Likelihood Method in Survival Analysis (1st ed.). Chapman and Hall/CRC. https://doi.org/10.1201/b18598, https://books.google.com/books?id=9-b5CQAAQBAJ&dq=Does+the+Nelson%E2%80%93Aalen+estimator+construct+an+empirical+likelihood%3F&pg=PA7
+
+↑ Greenwood, Major (1926). A report on the natural duration of cancer. Issue 33 of Reports on public health and medical subjects. HMSO. OCLC 14713088.
+
+1 2 "The Greenwood and Exponential Greenwood Confidence Intervals in Survival Analysis" (PDF). Retrieved May 12, 2023.
+
+↑ Fay, Michael P.; Brittain, Erica H.; Proschan, Michael A. (September 1, 2013). "Pointwise confidence intervals for a survival distribution with small samples or heavy censoring". Biostatistics. 14 (4): 723–736. doi:10.1093/biostatistics/kxt016. PMC 3769999. PMID 23632624.
+
+↑ Hall, W. J.; Wellner, Jon A. (1980). "Confidence bands for a survival curve from censored data". Biometrika. 67 (1): 133–143. doi:10.1093/biomet/67.1.133.
+
+↑ Nair, Vijayan N. (August 1984). "Confidence Bands for Survival Functions With Censored Data: A Comparative Study". Technometrics. 26 (3): 265–275. doi:10.1080/00401706.1984.10487964.
+
+↑ "Survival Analysis – Mathematica SurvivalModelFit". wolfram.com. Retrieved August 14, 2017.
+
+↑ "SAS/STAT(R) 14.1 User's Guide". support.sas.com. Retrieved May 12, 2023.
+
+↑ Therneau, Terry M. (August 9, 2022). "survival: Survival Analysis". The Comprehensive R Archive Network. Retrieved November 30, 2022.
+
+↑ Willekens, Frans (2014). "Statistical Packages for Multistate Life History Analysis". Multistate Analysis of Life Histories with R. Use R!. Springer. pp. 135–153. doi:10.1007/978-3-319-08383-4_6. ISBN 978-3-319-08383-4.
+
+↑ Chen, Ding-Geng; Peace, Karl E. (2014). Clinical Trial Data Analysis Using R. CRC Press. pp. 99–108. ISBN 9781439840214.
+
+↑ "sts — Generate, graph, list, and test the survivor and cumulative hazard functions" (PDF). Stata Manual.
+
+↑ Cleves, Mario (2008). An Introduction to Survival Analysis Using Stata (Second ed.). College Station: Stata Press. pp. 93–107. ISBN 978-1-59718-041-2.
+
+↑ "lifelines — lifelines 0.27.7 documentation". lifelines.readthedocs.io. Retrieved May 12, 2023.
+
+↑ "sksurv.nonparametric.kaplan_meier_estimator — scikit-survival 0.20.0". scikit-survival.readthedocs.io. Retrieved May 12, 2023.
+
+↑ "Empirical cumulative distribution function – MATLAB ecdf". mathworks.com. Retrieved June 16, 2016.
+
+↑ "Kaplan-Meier Survival Estimates". statsdirect.co.uk. Retrieved May 12, 2023.
+
+↑ "Kaplan-Meier method in SPSS Statistics | Laerd Statistics".
+
+↑ "Kaplan-Meier · Survival.jl".
+
+↑ "Epi Info™ User Guide - Command Reference - Analysis Commands: KMSURVIVAL". Retrieved October 30, 2023.
+
+Further reading
+[edit]
+Aalen, Odd; Borgan, Ornulf; Gjessing, Hakon (2008). Survival and Event History Analysis: A Process Point of View. Springer. pp. 90–104. ISBN 978-0-387-68560-1.
+
+Greene, William H. (2012). "Nonparametric and Semiparametric Approaches". Econometric Analysis (Seventh ed.). Prentice-Hall. pp. 909–912. ISBN 978-0-273-75356-8.
+
+Jones, Andrew M.; Rice, Nigel; D'Uva, Teresa Bago; Balia, Silvia (2013). "Duration Data". Applied Health Economics. London: Routledge. pp. 139–181. ISBN 978-0-415-67682-3.
+
+Singer, Judith B.; Willett, John B. (2003). Applied Longitudinal Data Analysis: Modeling Change and Event Occurrence. New York: Oxford University Press. pp. 483–487. ISBN 0-19-515296-4.
+
+External links
+[edit]
+Dunn, Steve (2002). "Survival Curves: Accrual and The Kaplan–Meier Estimate". Cancer Guide. Statistics.
+
+Three evolving Kaplan–Meier curves on YouTube
+
+v
+t
+e
+Statistics
+Outline
+
+Index
+
+Descriptive statisticsContinuous dataCenter
+Mean
+Arithmetic
+
+Arithmetic-Geometric
+
+Contraharmonic
+
+Cubic
+
+Generalized/power
+
+Geometric
+
+Harmonic
+
+Heronian
+
+Heinz
+
+Lehmer
+
+Median
+
+Mode
+
+Dispersion
+Average absolute deviation
+
+Coefficient of variation
+
+Interquartile range
+
+Percentile
+
+Range
+
+Standard deviation
+
+Variance
+
+Shape
+Central limit theorem
+
+Moments
+Kurtosis
+
+L-moments
+
+Skewness
+
+Count data
+Index of dispersion
+
+Summary tables
+Contingency table
+
+Frequency distribution
+
+Grouped data
+
+Dependence
+Partial correlation
+
+Pearson product-moment correlation
+
+Rank correlation
+Kendall's τ
+
+Spearman's ρ
+
+Scatter plot
+
+Graphics
+Bar chart
+
+Biplot
+
+Box plot
+
+Control chart
+
+Correlogram
+
+Fan chart
+
+Forest plot
+
+Histogram
+
+Pie chart
+
+Q–Q plot
+
+Radar chart
+
+Run chart
+
+Scatter plot
+
+Stem-and-leaf display
+
+Violin plot
+
+Heatmap
+
+Scatter Plot Matrix
+
+ ECDF plot
+
+Line chart
+
+Statistical data processingTransformations
+Data transformation
+
+Log transformation
+
+Power transform
+Box–Cox transformation
+
+Yeo–Johnson transformation
+
+Variance-stabilizing transformation
+
+Anscombe transform
+
+Fisher transformation
+
+Scaling and normalization
+Feature scaling
+
+Normalization
+
+Standardization (z-score)
+
+Min–max normalization
+
+Unit vector normalization
+
+Data cleaning
+Data cleaning
+
+Outlier
+
+Winsorizing
+
+Truncation
+
+Missing data
+
+Data reduction
+Dimensionality reduction
+
+Principal component analysis
+
+Factor analysis
+
+Time-series preprocessing
+Differencing
+
+Detrending
+
+Seasonal adjustment
+
+Stationarity transformation
+
+Data collectionStudy design
+Effect size
+
+Missing data
+
+Optimal design
+
+Population
+
+Replication
+
+Sample size determination
+
+Statistic
+
+Statistical power
+
+Survey methodology
+Sampling
+Cluster
+
+Stratified
+
+Opinion poll
+
+Questionnaire
+
+Standard error
+
+Controlled experiments
+Blocking
+
+Factorial experiment
+
+Interaction
+
+Random assignment
+
+Randomized controlled trial
+
+Randomized experiment
+
+Scientific control
+
+Adaptive designs
+Adaptive clinical trial
+
+Stochastic approximation
+
+Up-and-down designs
+
+Observational studies
+Cohort study
+
+Cross-sectional study
+
+Natural experiment
+
+Quasi-experiment
+
+Statistical inferenceStatistical theory
+Population
+
+Statistic
+
+Probability distribution
+
+Sampling distribution
+Order statistic
+
+Empirical distribution
+Density estimation
+
+Statistical model
+Model specification
+
+Lp space
+
+Parameter
+location
+
+scale
+
+shape
+
+Parametric family
+Likelihood (monotone)
+
+Location–scale family
+
+Exponential family
+
+Completeness
+
+Sufficiency
+
+Statistical functional
+Bootstrap
+
+U
+
+V
+
+Optimal decision
+loss function
+
+Efficiency
+
+Statistical distance
+divergence
+
+Asymptotics
+
+Robustness (Sensitivity analysis)
+
+Frequentist inferencePoint estimation
+Estimating equations
+Maximum likelihood
+
+Method of moments
+
+M-estimator
+
+Minimum distance
+
+Unbiased estimators
+Mean-unbiased minimum-variance
+Rao–Blackwellization
+
+Lehmann–Scheffé theorem
+
+Median unbiased
+
+Plug-in
+
+Interval estimation
+Confidence interval
+
+Pivot
+
+Likelihood interval
+
+Prediction interval
+
+Tolerance interval
+
+Resampling
+Bootstrap
+
+Jackknife
+
+Testing hypotheses
+1- & 2-tails
+
+Power
+Uniformly most powerful test
+
+Permutation test
+Randomization test
+
+Multiple comparisons
+
+Parametric tests
+Likelihood-ratio
+
+Score/Lagrange multiplier
+
+Wald
+
+Specific tests
+Z-test (normal)
+
+Student's t-test
+
+F-test
+
+Goodness of fit
+Chi-squared
+
+G-test
+
+Kolmogorov–Smirnov
+
+Anderson–Darling
+
+Lilliefors
+
+Jarque–Bera
+
+Normality (Shapiro–Wilk)
+
+Likelihood-ratio test
+
+Model selection
+Cross validation
+
+AIC
+
+BIC
+
+Rank statistics
+Sign
+Sample median
+
+Signed rank (Wilcoxon)
+Hodges–Lehmann estimator
+
+Rank sum (Mann–Whitney)
+
+Nonparametric anova
+1-way (Kruskal–Wallis)
+
+2-way (Friedman)
+
+Ordered alternative (Jonckheere–Terpstra)
+
+Van der Waerden test
+
+Bayesian inference
+Bayesian probability
+prior
+
+posterior
+
+Credible interval
+
+Bayes factor
+
+Bayesian estimator
+Maximum posterior estimator
+
+Correlation
+Regression analysis
+Correlation
+Pearson product-moment
+
+Partial correlation
+
+Confounding variable
+
+Coefficient of determination
+
+Regression analysis
+Errors and residuals
+
+Regression validation
+
+Mixed effects models
+
+Simultaneous equations models
+
+Multivariate adaptive regression splines (MARS)
+
+ Template:Least squares and regression analysis
+
+Linear regression
+Simple linear regression
+
+Ordinary least squares
+
+General linear model
+
+Bayesian regression
+
+Non-standard predictors
+Nonlinear regression
+
+Nonparametric
+
+Semiparametric
+
+Isotonic
+
+Robust
+
+Homoscedasticity and Heteroscedasticity
+
+Generalized linear model
+Exponential families
+
+Logistic (Bernoulli) / Binomial / Poisson regressions
+
+Partition of variance
+Analysis of variance (ANOVA, anova)
+
+Analysis of covariance
+
+Multivariate ANOVA
+
+Degrees of freedom
+
+Categorical / multivariate / time-series / survival analysisCategorical
+Cohen's kappa
+
+Contingency table
+
+Graphical model
+
+Log-linear model
+
+McNemar's test
+
+Cochran–Mantel–Haenszel statistics
+
+Multivariate
+Regression
+
+Manova
+
+Principal components
+
+Canonical correlation
+
+Discriminant analysis
+
+Cluster analysis
+
+Classification
+
+Structural equation model 
+Factor analysis
+
+Multivariate distributions 
+Elliptical distributions
+Normal
+
+Time-seriesGeneral
+Decomposition
+
+Trend
+
+Stationarity
+
+Seasonal adjustment
+
+Exponential smoothing
+
+Cointegration
+
+Structural break
+
+Granger causality
+
+Specific tests
+Dickey–Fuller
+
+Johansen
+
+Q-statistic (Ljung–Box)
+
+Durbin–Watson
+
+Breusch–Godfrey
+
+Time domain
+Autocorrelation (ACF)
+partial (PACF)
+
+Cross-correlation (XCF)
+
+ARMA model
+
+ARIMA model (Box–Jenkins)
+
+Autoregressive conditional heteroskedasticity (ARCH)
+
+Vector autoregression (VAR) (Autoregressive model (AR))
+
+Frequency domain
+Spectral density estimation
+
+Fourier analysis
+
+Least-squares spectral analysis
+
+Wavelet
+
+Whittle likelihood
+
+SurvivalSurvival function
+Kaplan–Meier estimator (product limit)
+
+Proportional hazards models
+
+Accelerated failure time (AFT) model
+
+First hitting time
+
+Hazard function
+Nelson–Aalen estimator
+
+Test
+Log-rank test
+
+ApplicationsBiostatistics
+Bioinformatics
+
+Clinical trials / studies
+
+Epidemiology
+
+Medical statistics
+
+Engineering statistics
+Chemometrics
+
+Methods engineering
+
+Probabilistic design
+
+Process / quality control
+
+Reliability
+
+System identification
+
+Social statistics
+Actuarial science
+
+Census
+
+Crime statistics
+
+Demography
+
+Econometrics
+
+Jurimetrics
+
+National accounts
+
+Official statistics
+
+Population statistics
+
+Psychometrics
+
+Spatial statistics
+Cartography
+
+Environmental statistics
+
+Geographic information system
+
+Geostatistics
+
+Kriging
+
+Category
+
+ Mathematics portal
+
+Commons
+
+ WikiProject
+
+Retrieved from "https://en.wikipedia.org/w/index.php?title=Kaplan–Meier_estimator&oldid=1298262528"
+					Categories: Estimator
+Actuarial science
+Survival analysis
+Reliability engineering
+Hidden categories: Articles with short description
+Short description matches Wikidata
+Use mdy dates from August 2022
+Webarchive template wayback links
+All articles with self-published sources
+Articles with self-published sources from November 2021
+
+				
+			
+			
+		
+		
+			
+				
+	 This page was last edited on 1 July 2025, at 12:14 (UTC).
+
+	Page was rendered with Parsoid.
+
+	Text is available under the Creative Commons Attribution-ShareAlike 4.0 License;
+additional terms may apply. By using this site, you agree to the Terms of Use and Privacy Policy. Wikipedia® is a registered trademark of the Wikimedia Foundation, Inc., a non-profit organization.
+
+				
+	Privacy policy
+
+	About Wikipedia
+
+	Disclaimers
+
+	Contact Wikipedia
+
+	Legal & safety contacts
+
+	Code of Conduct
+
+	Developers
+
+	Statistics
+
+	Cookie statement
+
+	Mobile view
+
+				
+	
+
+	
+
+			
+		
+	 
+ 
+
+	
+		
+			
+				
+
+Search
+			
+		
+			
+		
+			
+				
+					
+						
+							
+								
+								
+							
+							
+						
+						Search
+					
+				
+			
+		
+		
+				
+						
+					
+						
+						
+
+Toggle the table of contents
+						
+						
+					
+						
+						
+					
+						
+					
+			
+				Kaplan–Meier estimator
+			
+		
+		
+			
+				
+
+			
+			
+
+			
+			
+
+			
+			
+
+			
+			
+
+			
+			
+
+			
+			
+
+			
+		
+			
+				
+
+12 languages
+			
+			
+
+Add topic
+			
+		
+			
+				
+				
+			
+		
+	
+
+	
+		
+	
+

@@ -1,0 +1,1952 @@
+S CORPIO: Serving the Right Requests at the Right
+Time for Heterogeneous SLOs in LLM Inference
+Yinghao Tang† , Tingfeng Lan§ , Xiuqi Huang† , Hui Lu¶ , Wei Chen†
+
+arXiv:2505.23022v1 [cs.LG] 29 May 2025
+
+†
+
+State Key Lab of CAD&CG, Zhejiang University, § University of Virginia,
+¶
+The University of Texas at Arlington,
+†
+{yinghaotang, huangxiuqi, chenvis}@zju.edu.cn,
+§
+erc8gx@virginia.edu, ¶ hui.lu@uta.edu
+
+Abstract
+Existing Large Language Model (LLM) serving systems prioritize maximum
+throughput. They often neglect Service Level Objectives (SLOs) such as Time to
+First Token (TTFT) and Time Per Output Token (TPOT), which leads to suboptimal
+SLO attainment. This paper introduces S CORPIO, an SLO-oriented LLM serving
+system designed to maximize system goodput and SLO attainment for workloads
+with heterogeneous SLOs. Our core insight is to exploit SLO heterogeneity for
+adaptive scheduling across admission control, queue management, and batch selection. S CORPIO features a TTFT Guard, which employs least-deadline-first
+reordering and rejects unattainable requests, and a TPOT Guard, which utilizes
+a VBS-based admission control and a novel credit-based batching mechanism.
+Both guards are supported by a predictive module. Evaluations demonstrate that
+S CORPIO improves system goodput by up to 14.4× and SLO adherence by up to
+46.5% compared to state-of-the-art baselines.
+
+1
+
+Introduction
+
+Large Language Models (LLMs) are increasingly integral to online applications, powering diverse
+functionalities such as programming assistance [1], enhanced deep search engines [2], and conversational agents [3]. In order to handle the substantial computational requirements of LLM inference,
+state-of-the-art serving systems such as vLLM [4] and SGLang [5] employ advanced techniques, including continuous batching [6], paged attention [4], chunked prefilling [7], etc. These optimizations
+markedly improve inference throughput and resource utilization.
+Despite these efficiency improvements, existing LLM serving systems [4, 6, 5, 8] predominantly
+prioritize maximum throughput, often neglecting the Service Level Objectives (SLOs), such as
+time-to-first-token (TTFT) and time-per-output-token (TPOT). Typically, these systems greedily
+admit and serve incoming requests [9], without deep visibility into the SLO requirements of requests.
+Simultaneously, SLO requirements across different applications are inherently heterogeneous [10].
+For instance, programming assistants often demand low latency for real-time response, whereas
+chatbots might tolerate slightly higher latency as long as the generation rate exceeds human reading
+speed [11]. However, existing LLM serving systems treat all requests equally in all scheduling stages.
+This undifferentiated handling leads to suboptimal SLO attainment. These problems necessitate a
+fine-grained and adaptive scheduling methodology to support heterogeneous SLOs.
+In this paper, we focus on designing an SLO-oriented LLM serving system that is tailored for
+heterogeneous SLOs, with the goal of maximizing both system goodput and SLO attainment. Our
+key insight is that the inherent heterogeneity of SLOs can be exploited to dynamically schedule the
+right requests across all scheduling stages (e.g., queue management, admission control, and batch
+Preprint. Under review.
+
+decode
+
+Burst of 5 requests
+1
+
+2 3 4 5
+
+Decode 0
+Decode 1
+Decode 2
+Decode 3
+Decode 4
+Decode 5
+
+SLO-Agnostic Batching
+FCFS
+Greedily serve all requests
+
+Inference Step
+
+existed req 
+
+(decode)
+
+Batch Token Budget
+
+Batch Token Budget
+
+prefill
+
+Throughput-Oriented Schedule
+
+skipped
+
+SLO adherence/ violation
+TTFT
+ Normed
+
+SLO: Req ID (step)
+ TPOT
+Burst of 5 requests
+1
+0,1,3,5 3
+Decode 0
+Decode 1
+2,4
+2
+5
+
+SLO-Oriented Schedule
+
+2 4 1
+
+3
+
+Decode 3
+Decode 2
+Decode 4
+
+LDF
+SLO-Aware Batching
+Reject the 5th request’s admission
+
+Inference Step
+
+SLO Violation Num: 0 Reject Num: 1  
+
+SLO Attainment: 83.6%
+
+TTFT Violation Num: 1 TPOT Violation Num: 4  
+
+SLO Attainment: 16.6%
+
+Figure 1: Comparison of throughput-oriented and SLO-oriented scheduling approaches. The
+throughput-oriented scheduler greedily admits and processes requests without considering perrequest SLOs. During the prefill phase, request 4 violates its SLO constraint (4 steps> 3 steps). The
+SLO-oriented scheduler prevents such violations through least-deadline-first prioritization. During
+the decode phase, we assume a normalized decode step time as 0.25× BatchSize. The throughputoriented scheduler batch all requests in each step (BatchSize=6), causing requests 0, 1, 3, and 5 to
+violate their TPOT constraints (each step consumes a time of 1.5). In contrast, the SLO-oriented
+scheduler rejects unattainable requests (e.g., request 5) and implements an adaptive fine-grained
+batching strategy (BatchSize=4). This strategy allows requests with looser TPOT SLOs (requests 2
+and 4) to skip certain iterations, ensuring all admitted requests satisfy their TPOT constraints.
+
+selection), thereby achieving system-level high SLO attainment. From the TTFT perspective, requests
+with looser SLO can be served a little later. From the TPOT perspective, requests with looser TPOT
+can skip some iterations of generation, leaving more resources for requests with tighter TPOT.
+Based on this insight, we design TPOT Guard and TTFT Guard to handle the heterogeneous TPOT
+and TTFT SLOs, respectively. For the TPOT Guard, we first define a core concept of TPOT-relative
+Proportionality (TRP), which quantifies the heterogeneity of TPOT SLOs. Utilizing TRP, we propose
+a novel VBS-based Admission Control mechanism and a Credit-based Batching mechanism. The
+former is to control the admission of requests to prevent mass TPOT violations due to overwhelming
+request ingress. The latter mechanism adaptively batches requests according to their per-request
+TPOT SLO, achieving system-level high TPOT SLO attainment. For the TTFT Guard, we implement
+a simple but effective least-deadline-first reordering strategy that prioritizes requests nearing their
+TTFT deadlines. Additionally, under heavy load, we reject the requests that are unattainable for their
+TTFT SLOs. To provide decision-making support for these two modules, we develop a predictor
+module consisting of a sequence length predictor and two analytical models. By orchestrating these
+complementary mechanisms in concert, S CORPIO enables robust support for diverse workloads.
+Our contributions are summarized as follows:
+• We identify the critical gap in existing LLM serving systems that prioritize throughput over SLO
+attainment and propose a scheduling methodology to serve requests with heterogeneous SLOs.
+• We propose a TPOT Guard, which consists of a VBS-based Admission Control mechanism and a
+Credit-based Batching mechanism to provide heterogeneous TPOT SLO guarantees.
+• We propose a TTFT Guard, which consists of a least-deadline-first reordering mechanism and an
+unattainable TTFT SLO reject mechanism to provide heterogeneous TTFT SLO guarantees.
+• We develop a predictive module, including a sequence length predictor and two analytical models,
+which supports the decision-making of the SLO guarantee modules.
+• Orchestrating these modules together, we implement S CORPIO. Compared to state-of-the-art
+baselines, our methods improve the system goodput by up to 14.4× and the SLO adherence rate by
+up to 46.5% under different scenarios.
+
+2
+
+Background and Problem Formulation
+
+A typical LLM generative inference task has two stages: i) the prefill stage, which takes a prompt
+sequence to generate the first output token; and ii) the decoding stage, which generates new tokens
+autoregressively. The quality of LLM service is typically evaluated by two key metrics: time to
+2
+
+0.04
+0.03
+0.02
+0.01
+
+Latency (s)
+
+Latency (s)
+
+2.0
+1.5
+1.0
+0.5
+0.0
+
+1000
+Input Length
+
+2000
+
+(a) Prefill Latency vs Input Length
+
+DeepSeek 1.3B
+
+Batch Size=32
+Batch Size=128
+Batch Size=32
+Batch Size=128
+
+Median Latency (s)
+
+Llama-3.1 8B
+Batch Size=8
+Batch Size=16
+Batch Size=8
+Batch Size=16
+
+0.03
+0.02
+
+Token Idx=512
+Token Idx=1024
+Token Idx=512
+Token Idx=1024
+
+0.01
+
+0
+
+1000
+Token Index
+
+2000
+
+(b) Decode Latency vs Token Index
+
+50
+100
+Batch Size
+
+(c) Decode Latency vs Batch Size
+
+Figure 2: Impact of input sequence length (a), batch size (b), and output token index (c) on prefill
+latency and inter-token latency (ITL).
+
+first token (TTFT) and time per output token (TPOT) [12]. TTFT captures latency for generating
+the first output token after a request is received, while TPOT sets an upper bound on the average
+latency for generating subsequent tokens. Meeting SLOs plays a key role in providing high-quality
+LLM service and has been fully researched in other fields like cloud computing [13, 14] and edge
+computing [15]. However, this problem has not been fully explored in LLM serving. Also, from the
+perspective of Model as a Service (MaaS) providers, different applications and users have different
+SLO requirements [10, 16]. This inspires us to explore the heterogeneous SLO attainment problem
+in LLM serving.
+We define the heterogeneous SLO attainment problem as follows: During a time interval T , there is a
+sequence of user requests R = {r1 , r2 , . . . , rN } arriving. An LLM inference system processes the
+requests with a scheduling policy π. A request ri ∈ R with its TTFT SLO threshold ST T (ri ) and
+TPOT SLO threshold ST P (ri ) is considered SLO-compliant if it satisfies both T T F T (ri ) ≤ ST T (ri )
+and T P OT (ri ) ≤ ST P (ri ). Let Rgood (π) ⊆ R be the subset of those requests that are SLOcompliant. Then the system goodput and SLO adherence rate can be defined as:
+|Rgood (π)|
+T
+|Rgood (π)|
+Adherence(π) =
+|R|
+Goodput(π) =
+
+The objective is to design an online scheduling policy π aiming to achieve:
+
+
+max
+lim E[Goodput(π, T )],
+lim E[Adherence(π, T )]
+π
+
+3
+
+Method
+
+3.1
+
+System Overview
+
+T →∞
+
+T →∞
+
+(1)
+(2)
+
+(3)
+
+S CORPIO is a system-algorithm co-design framework designed to maximize goodput and SLO
+adherence. As shown in Figure 3, S CORPIO consists of three key components: 1) predictor, 2)
+TTFT Guard, and 3) TPOT Guard. When a request arrives, the predictor first predicts the output
+sequence length, which is used by two analytic models to estimate the TPOT and TTFT. Given
+the estimated information, the TTFT and TPOT Guards make scheduling decisions accordingly.
+Specifically, the TTFT Guard first reorders the requests according to their TTFT SLO deadline (i.e.,
+Least Deadline First Reordering (§3.3)). Additionally, it uses the estimated TTFT to reject requests
+that are unattainable with respect to their TTFT SLOs. Given the new reordered requests, the TPOT
+Guard uses the estimated TPOT to decide whether to admit the requests into the running batch
+(i.e., VBS-based Admission Control Mechanism (§3.4)). Then, it employs a Credit-based Batching
+Mechanism to select which requests to batch in each processing iteration. Lastly, the selected requests
+are batched and processed in the execution engine.
+3
+
+SCORPIO
+Predictor
+
+TTFT Guard
+
+Request Queue
+
+Est.
+
+Reqs
+
+Arrival
+
+TTFT
+
+Seq Len
+
+
+Analytic
+
+
+LDF
+
+
+Predictor
+
+Models
+
+Reorder
+
+Est. TPOT
+
+TPOT Guard
+
+Credit-Based Batching
+
+Output
+
+Execution
+
+
+Unattainable
+
+Rejection
+New Req Queue
+
+Admission Control
+
+Batch
+
+Engine
+
+
+Credit
+
+
+Batch
+
+
+Credit  
+
+
+Check 
+
+
+Estimate
+
+
+Debit
+
+Selection
+
+Earning
+
+TPOT
+
+VBS
+
+Figure 3: The architecture of S CORPIO.
+3.2
+
+Predictor
+
+Sequence Length Predictor. We employ a lightweight predictor to predict output sequence length.
+Specifically, we bucketize the potential output length distribution into discrete bins and fine-tune an
+OPT-125M model [17] as a text classifier to predict the appropriate bin for each sequence.
+Unlike prior work [18, 19] that simply set number of bins = 10 and the bucket size of
+max context length
+to optimize prediction accuracy, we find this coarse-grained binning strategy
+number of bin
+inadequate for contemporary LLMs. First, it induces a significant class imbalance, resulting in
+deceptively elevated classification accuracy while demonstrating poor performance in minority length
+classes. Second, excessively wide bin intervals inherently limit the predictor’s resolution, which
+becomes increasingly problematic as maximum context lengths in modern models continue to grow.
+Based on a comprehensive analysis of bucketing strategies (§4.4), we find that a medium number of
+bins (e.g., 100) shows the best tradeoff across several metrics. Model training details can be found in
+Appendix A.1.
+TPOT Estimator. To estimate the TPOT of a request, we first observe that the inter-token latency
+(ITL) is positively correlated with GPU execution state (e.g., batch size and average sequence
+length) (§2). Therefore, given processing iteration t and the corresponding running requests set
+R(t) = {r1 , r2 , ..., rn }, we develop an analytical model to estimate the ITL:
+ITL{|R|, Lavg (R)} = α · |R| · Lavg (R) + β · |R| + γ · Lavg (R) + δ
+
+(4)
+
+where |R| represents the running batch size, Lavg (R) denotes the average sequence length (including
+the prompt and generated tokens) of the batch in iteration t, and α, β, γ, δ are model coefficients
+determined through empirical measurements. Experiments show that this estimator is highly accurate
+with an R2 score of over 0.9 (§A.3). Given that a new request r arrives and its predicted output length
+is P (r), if it is admitted to the running batch R(t), the new set of running requests becomes R′ (t),
+with average length Lavg (R′ ). The batch-level TPOT over the next P (r) steps can be derived as:
+EstimatedTPOT(|R′ |, Lavg (R′ ), P ) = ε × {(α · |R′ | + γ) · (Lavg (R′ ) +
+
+P (r)
+) + β · |R′ | + δ} (5)
+2
+
+Here, to avoid the computational complexity associated with tracking individual request completion
+times in the batch, we make a simplified conservative assumption: all requests currently in the batch
+(r1 , r2 , . . . , rn ) are assumed to continue processing for at least the next P (r) steps. Furthermore, we
+introduce an inefficiency coefficient ε (ε ≥ 1) to account for potential system overheads [10].
+TTFT Estimator. Given a waiting requests set W (t) = {w1 , w2 , ..., wn }, the TTFT of the request
+wi is greater than or equal to the sum of the predicted prefill time of requests in the queue. To estimate
+the TTFT of a sequence, we first formulate the prefill time of a sequence wi according to statistical
+observation (Figure 2a):
+
+PrefillTime(wi ) =
+
+φ,
+if LP (wi ) ≤ θ
+α ∗ LP (wi ) + β, otherwise
+4
+
+(6)
+
+where LP (wi ) is the prompt length of request wi , and φ is the constant prefill time for sequences
+with prompt length less than θ. Then, we can estimate the minimal estimated TTFT of a sequence wi
+with sorting index i in the waiting queue as:
+EstimatedTTFT(wi ) >=
+
+n
+X
+
+PrefillTime(wi )
+
+(7)
+
+i=1
+
+3.3
+
+Heterogeneous TTFT Guard
+
+Least Deadline First (LDF) Reordering. To handle heterogeneous TTFT SLOs, S CORPIO uses
+a simple but effective LDF reordering strategy. The deadline for a request ri is calculated as the
+time left to its TTFT deadline ST T (ri ). This strategy puts more urgent requests (with earlier TTFT
+deadline) at the front of the queue, achieving better system-level TTFT attainment.
+Unattainable SLO Rejection. When the system load is excessively high, some requests will
+inevitably violate their TTFT SLO and need special handling. In this paper, we tag these requests as
+unattainable SLO requests and reject them for simplicity. Other strategies, such as processing these
+requests with a lower priority or migrating them to a different node, are left as future work.
+3.4
+
+Heterogeneous TPOT Guard
+
+Key Insight. As shown in Figure 1, existing methods indiscriminately admit all incoming requests
+and process them equally in each step. This approach leads to two primary issues: 1) SLO violations
+for requests with strict TPOTs when contending with those having looser TPOT SLOs, and 2) when
+the system workload exceeds its processing capacity, greedily serving all requests causes a cascading
+effect where all requests fail to meet their SLOs. To address the first issue, we design a novel batching
+mechanism that provides differentiated batching opportunities based on a request’s TPOT SLO (i.e.,
+Credit-based Batching Mechanism). Requests with looser TPOT SLOs are offered fewer credits
+(opportunities) for batching, thereby skipping some execution iterations and leaving more resources
+for requests with tighter TPOT SLOs. For the latter issue, inspired by load control techniques in
+cloud computing [20, 21], we introduce a novel admission control mechanism that accounts for the
+heterogeneity of TPOT SLOs. On one hand, requests estimated to cause TPOT violations are rejected.
+On the other hand, since a request with looser TPOT SLOs is served intermittently, it can be regarded
+as a partial request when calculating the batch size (i.e., Virtual Batch Size) for TPOT estimation
+(§3.2). These two mechanisms together provide TPOT guarantees, as illustrated in Algorithm 1.
+Credit-based Batching offers requests of different TPOT SLOs with different credits (opportunities)
+for batching each iteration as mentioned above. To decide how many credits a request earns, we first
+introduce a concept called TPOT-relative Proportionality (TRP):
+Definition 1 (TPOT-relative Proportionality (TRP)). Let ST P (r) denote the TPOT SLO of request r.
+Given current processing iteration t and the running requests set R(t), the TPOT-relative Proportionality (TRP) of a request r ∈ R(t) is defined as:
+TRP(r) =
+
+minr∈R(t) ST P (r′ )
+ST P (r)
+
+The TRP quantifies the urgency of a request r to be batched compared to admitted requests with the
+strictest TPOT SLOs. Note that the TRP of a request adaptively responds to changing workloads.
+Therefore, each request earns credits at its TRP. Accumulating sufficient credit (≥ 1.0) grants a
+request to be batched in the next processing batch. Its credit is then decremented by 1.0, representing
+the consumption of one processing opportunity. Formally, in each batching step t, the following
+actions are taken:
+• Credit Earning: For every request r ∈ R(t), its credit is updated based on its TRP rate:
+Cr (t) ← Cr (t) + T RP (r)
+where Cr (t) is the credit of request r at step t, which is initialized as 0.
+5
+
+Algorithm 1: TPOT Guarantee Mechanism
+Input: LLM model M , Sequence Length Predictor P , LDF Sorted Waiting Queue W , Running
+Queue R
+Output: Batched requests set B
+1 while True do
+2
+B←∅
+3
+foreach w ∈ W do
+4
+R′ ← R ∪ {w}
+5
+if EstimateTPOT(V BS(R′ ), Lavg (R′ )) ≤ minr∈R′ ST P (r) then
+6
+B ← B ∪ {w}, W ← W \ {w} , R ← R′
+// Admission Control
+7
+end
+8
+end
+9
+foreach r ∈ R do
+10
+Cr (t) ← Cr (t) + T RP (r)
+// Credit Earning
+11
+if Cr (t) ≥ 1.0 then
+12
+B ← B ∪ {r}, Cr (t) ← Cr (t) − 1.0
+// Batch Selection and Credit Debit
+13
+end
+14
+end
+15 end
+
+• Batch Selection: The batch B(t) is formed by including all requests whose credit, after accumulation, is greater than or equal to the threshold:
+B(t) = {r ∈ R(t) | Cr (t) ≥ 1.0}
+• Credit Debit: For every request r included in B(t), its credit is decremented by 1.0:
+If r ∈ B(t), then Cr (t) ← Cr (t) − 1.0
+This mechanism ensures that over many steps, the frequency of a request r being batched will
+converge towards its TRP rate.
+VBS-based Admission Control. When a new request r arrives, to guarantee TPOT SLOs, an intuitive
+approach is to admit requests into the running batch if admitting it will neither violate its own TPOT
+SLO nor cause other running requests to violate their TPOT SLOs. However, since credit-based
+batching causes some requests to skip some execution iterations as mentioned above, directly using
+the number of running requests as batch size overestimates the actual system load. Since the request
+r can earn a T RP (r) opportunity to be batched in each iteration if admitted, it can be regarded as a
+virtual T RP (r) request. Let R(t)′ = R(t) ∪ {r}, we can project the actual load of the system as the
+sum of the TRP of all requests, which we denote as virtual batch size (VBS):
+VBS(R′ ) =
+
+X
+
+T RP (r)
+
+(8)
+
+r∈R′
+
+The request r is admitted to the Running Queue at step t if adding it would not cause the estimated
+TPOT to exceed the minimum TPOT SLO of the running requests set R′ :
+EstimatedTPOT(V BS(R′ ), Lavg (R′ )) ≤ ′min ST P (r′ )
+r ∈R(t)
+
+The mechanism guarantees that the admitted requests obey their TPOT SLOs.
+
+4
+
+Experiments
+
+In this section, we evaluate our proposed method against the baselines and the effectiveness of each
+component. We show that our proposed method can achieve state-of-the-art performance in terms of
+goodput and SLO attainment rate under different scenarios.
+6
+
+4.1
+
+Experimental Setup
+
+Testbed. We conduct our experiments on a server with 4 NVIDIA A100 GPUs, each with 80GB of
+memory. The GPUs are interconnected with NVLink between pairs (GPU0-GPU1 and GPU2-GPU3),
+while communication between pairs utilizes the PCIe fabric and the system’s NUMA interconnect.
+Serving Models. We use Meta Llama-3.1 8B [22] and Google Gemma-2 27b [23] as serving models.
+All experiments use FP16/BF16 precision, which is the most common setting in LLM deployment.
+The 8B model runs on a single GPU, and the 27B model runs on 4 GPUs with tensor parallelism [24].
+Workloads. We evaluate using the ShareGPT [25] and LMSYS-Chat-1M [26] datasets, which are
+the widely used datasets collected from real-world conversations. For each dataset and model pair,
+we use the same prompt set to train the predictor for consistency. Regarding the SLO setting, to fully
+explore the serving heterogeneous requests, we consider requests with 6 categories, as summarized
+in Table 1. Category 1 represents requests with both tight TTFT and TPOT constraints (e.g., code
+generation [11]). Categories 2 and 3 represent requests with tight TPOT and relatively loose TTFT
+constraints (e.g., tool call response). Categories 4 and 5 represent requests with loose TPOT and tight
+TTFT constraints (e.g., reading-speed responses of chatbot [11]). Category 6 represents requests with
+both loose TPOT and TTFT constraints (e.g., Summarization [12]). Note that for the 27B model, we
+loosen the SLO constraints to account for the increased model size.
+Table 1: SLO categories for different model sizes.
+Model
+Llama-3.1 8B
+Gemma-2 27B
+
+Metric
+TTFT (s)
+TPOT (ms)
+TTFT (s)
+TPOT (ms)
+
+1
+
+2
+
+Category
+3
+4
+
+5
+
+6
+
+0.5
+30
+1.0
+60
+
+2
+30
+4
+60
+
+3
+30
+6
+60
+
+1
+50
+2
+100
+
+7.5
+50
+15
+100
+
+0.5
+50
+1.0
+100
+
+Baselines. We compare our method with the following baselines:
+• vLLM [4]: A state-of-the-art LLM serving system that uses a throughput-oriented scheduling
+strategy. The vLLM scheduler prioritizes prefills.
+• S3 [18]: An LLM inference system that predicts the output sequence length and employs the shortest
+job first scheduling. Since S3 is implemented on basic LLM inference without techniques like
+PagedAttention, we re-implement its core scheduling strategy within vLLM for a fair comparison.
+• Mooncake [27]: A production-grade LLM serving platform that employs an early-rejection-based
+admission control for SLO guarantees. We integrate this mechanism into vLLM.
+4.2
+
+QPS-Scaling SLO Attainment
+
+We compare S CORPIO’s goodput and SLO attainment rate against baselines on ShareGPT and
+LMSYS-Chat-1M with heterogeneous SLOs, under varying request arrival rates [11, 12]. As shown
+in Figure 4, S CORPIO achieves higher goodput and SLO adherence rate compared with the baselines,
+especially at high QPS. For example, at a QPS of 15, it yields up to 8.8-14.4× higher goodput and
+40.7-46.5% higher SLO adherence than baselines, demonstrating robust burst handling through its
+SLO-oriented scheduling. In contrast, vLLM’s greedy admission leads to severe TPOT violations.
+S3’s output-length ranking and Mooncake’s strict rejection both exhibit suboptimal SLO adherence.
+Note that at lower QPS, baselines occasionally show better performance than S CORPIO. For example,
+when serving Gemma2-27b on ShareGPT at a QPS of 5, vLLM achieves a 1.08× goodput and a 1.5%
+higher SLO adherence rate. One contributing factor is resource contention between the sequence
+length predictor and the LLM server when co-located on the same GPUs. This can be mitigated by
+deploying the predictor on a separate low-cost GPU, as studied in Appendix A.5. Alternatively, even
+without an extra GPU, this could be addressed by detecting low-load conditions and dynamically
+switching to a simpler, lower-overhead scheduling strategy, which is left as future work.
+7
+
+Scorpio(Ours)
+
+vLLM
+
+Mooncake
+
+S3
+
+4
+
+5
+4
+
+2
+
+20
+
+5
+
+10
+QPS
+
+0.50
+
+0.6
+10
+
+15
+QPS
+
+20
+
+5
+
+(a) Llama3-8B
+LMSYS
+
+15
+QPS
+
+10
+QPS
+
+0.4
+
+15
+
+(b) Llama3-8B
+ShareGPT
+
+05
+
+20
+
+1.00
+
+10
+QPS
+
+15
+
+10
+QPS
+
+15
+
+0.75
+0.50
+
+0.6
+
+0.25
+
+0.4
+
+10
+0.8
+
+0.75
+
+0.8
+
+1
+
+SLO Adherence
+
+15
+
+SLO Adherence
+
+1.00
+
+SLO Adherence
+
+1.0
+
+15
+QPS
+
+2
+
+3
+
+4
+10
+
+Goodput
+
+6
+
+3
+
+Goodput
+
+Goodput
+
+Goodput
+
+4
+
+SLO Adherence
+
+8
+
+0.25
+
+10
+
+15
+QPS
+
+0.00 5
+
+20
+
+(c) Gemma-27B
+LMSYS
+
+(d) Gemma-27B
+ShareGPT
+
+Figure 4: Impact of different scheduling strategies on goodput and SLO adherence vs QPS.
+
+0
+
+10
+20
+Timeline (min)
+
+0
+
+(a) Llama3-8B
+LMSYS
+
+1k
+
+1k
+
+0
+
+10
+20
+Timeline (min)
+
+(b) Llama3-8B
+ShareGPT
+
+0
+
+S3
+2k
+
+2k
+
+1k
+
+1k
+
+Mooncake
+
+3k
+
+Cum. # SLO Met
+
+Cum. # SLO Met
+
+Cum. # SLO Met
+
+2k
+
+2k
+
+0
+
+vLLM
+
+Cum. # SLO Met
+
+Scorpio(Ours)
+3k
+
+0
+
+10
+20
+Timeline (min)
+
+(c) Gemma-27B
+LMSYS
+
+0
+
+0
+
+10
+20
+Timeline (min)
+
+(d) Gemma-27B
+ShareGPT
+
+Figure 5: Cumulative number of SLO-met requests over time on the LMSYS and ShareGPT dataset.
+4.3
+
+Real-World Trace Serving
+
+We further evaluate S CORPIO using 20-minute real-world traces [28], which exhibit periods of
+both bursty and light load (§A.2). Figure 5 reports the cumulative number of SLO-met requests for
+Llama3-8B and Gemma2-27B models across both datasets. Across all settings, S CORPIO achieves the
+highest cumulative SLO-met counts. For example, S CORPIOachieves a 1.25, 2.01, and 2.11× higher
+SLO-met requests compared with Mooncake, vLLM, and S3, respectively. Throughput-oriented
+baselines like vLLM exhibit noticeable slowdowns during traffic spikes (e.g., minutes 3-5 and 911), caused by uniform batching and greedy admission, leading to widespread TPOT violations.
+Mooncake (Figure 5b,d) alleviates some pressure via early rejections, but its SLO gains taper off with
+a too strict admission control mechanism and lack of consideration for the heterogeneous SLOs. S3’s
+length ranking also exhibits suboptimal SLO attainment. In contrast, S CORPIO steadily maintains
+a lead in cumulative SLO-met requests. By combining TTFT Guard and TPOT Guard, S CORPIO
+effectively handles the heterogeneous SLOs.
+4.4
+
+Effectiveness Analysis
+
+Ablation Study. For this evaluation, we evaluate the core components of S CORPIO. As shown
+in Figure 6, we add the proposed components incrementally and assess the performance. For
+simplicity, we only present results at a QPS of 14. We find that 1) without any component, S CORPIO’s
+goodput is significantly reduced. 2) Including only the TTFT Guard effectively reduces TTFT
+8
+
+6
+5
+
+100
+
+4
+0 vLLM +TPOT +TTFT Scorpio
+Guard Guard
+
+(a) Llama3-8B
+LMSYS
+
+4
+300
+3
+200
+2
+100
+1
+0 vLLM +TPOT +TTFT Scorpio
+Guard Guard
+
+(b) Llama3-8B
+ShareGPT
+
+300
+
+2
+
+200
+
+Goodput
+
+4
+
+Goodput
+# of
+Violation
+
+200
+
+Goodput
+
+Goodput
+# of
+Violation
+
+7
+
+TPOT Violation
+
+# ofGoodput
+Violation
+
+# of Violation
+
+TTFT Violation
+400
+
+200
+
+3
+
+100
+
+100
+
+0 vLLM +TPOT +TTFT Scorpio
+Guard Guard
+
+(c) Gemma-27B
+LMSYS
+
+1
+
+0 vLLM +TPOT +TTFT Scorpio
+Guard Guard
+
+(d) Gemma-27B
+ShareGPT
+
+Figure 6: Ablation study on the impact of different scheduling strategies.
+Table 2: Overhead of SCORPIO’s scheduling
+Model
+
+Dataset
+
+Llama-3-8B
+Llama-3-8B
+Gemma-27B
+Gemma-27B
+
+ShareGPT
+LMSYS-Chat-1M
+ShareGPT
+LMSYS-Chat-1M
+
+Overall Time (s)
+
+Schedule Time (s)
+
+Scorpio (s)
+
+Overhead (%)
+
+58.1
+58.4
+81.2
+84.9
+
+1.83
+2.04
+2.26
+2.08
+
+0.073
+0.102
+0.126
+0.097
+
+0.12%
+0.17%
+0.16%
+0.11%
+
+violations as intended, but results in severe TPOT violations, and vice versa. These results show the
+interdependence of the components, highlighting their importance for the overall performance.
+Overhead of SCORPIO’s Scheduling. We illustrate the overhead of SCORPIO’s scheduling in
+responding to 512 requests, shown in Table 2. The S CORPIO’s overhead is measured by summing the
+time taken by all scheduling sub-components, including the TTFT Guard and TPOT Guard. We find
+that the overhead is negligible, less than 1% in all settings. We do not account the time of predictor
+since it is shown to be negligible in previous works [18, 29].
+
+5
+
+Related Work
+
+In recent years, LLM serving systems have been widely studied. Orca [6] and vLLM [4] introduce
+continuous batching and paged attention for efficient GPU VRAM utilization, which have been
+adopted as ad-hoc strategies for LLM serving [30]. Building on this, subsequent research further
+optimizes GPU utilization. Sarathi-Serve [7] proposes a piggyback strategy to schedule prefill and
+decode together. SplitWise [31] and DistServe [12] propose to split the prefill and decode into
+different instances, preventing interference between batch-like prefill jobs and latency-critical decode
+tasks. Beyond raw performance, [32] and [33] propose fairness-aware scheduling mechanisms to
+ensure equitable service among requests. Prediction of request characteristics (e.g., output length) is
+another significant direction, enabling scheduling policies such as SSJF [18, 34, 19, 29] and SRTF
+[35]. Recently, adhering to SLOs has gained more focus. Mooncake [27] proposes an early-rejection
+strategy to handle the overload scenario. QM [10] proposes a queue management framework to
+improve TTFT SLO adherence. Concurrent work [11, 16] adjusts the allocation of tokens on the
+fly with speculative decoding [36] to achieve customized SLO serving. In this work, we explore
+scenarios with heterogeneous SLOs. We propose a fine-grained scheduling strategy that exploits the
+heterogeneity of SLOs to maximize goodput and SLO adherence.
+
+6
+
+Conclusion
+
+In this paper, we present S CORPIO, a novel SLO-oriented LLM serving system designed to maximize
+system goodput and SLO adherence for requests with heterogeneous SLOs. By exploiting SLO
+heterogeneity, we employ specialized mechanisms working in concert: a TPOT Guard and a TTFT
+Guard, supported by an accurate predictor. Evaluations demonstrate that S CORPIO significantly
+outperforms state-of-the-art throughput-oriented systems, improving system goodput by up to 14.4×
+and SLO adherence rate by up to 46.5% across various scenarios.
+9
+
+References
+[1] Nhan Nguyen and Sarah Nadi. An empirical evaluation of github copilot’s code suggestions.
+In Proceedings of the 19th International Conference on Mining Software Repositories, pages
+1–5, 2022.
+[2] xAI. Grok-3, 2025.
+[3] Manus Team. Manus, 2025.
+[4] Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying Sheng, Lianmin Zheng, Cody Hao Yu,
+Joseph E. Gonzalez, Hao Zhang, and Ion Stoica. Efficient Memory Management for Large
+Language Model Serving with PagedAttention, September 2023.
+[5] Lianmin Zheng, Liangsheng Yin, Zhiqiang Xie, Chuyue Sun, Jeff Huang, Cody Hao Yu, Shiyi
+Cao, Christos Kozyrakis, Ion Stoica, Joseph E. Gonzalez, Clark Barrett, and Ying Sheng.
+SGLang: Efficient execution of structured language model programs. In The Thirty-eighth
+Annual Conference on Neural Information Processing Systems, 2024.
+[6] Gyeong-In Yu, Joo Seong Jeong, Geon-Woo Kim, and Byung-Gon Chun. Orca: A Distributed
+Serving System for Transformer-Based Generative Models.
+[7] Amey Agrawal, Ashish Panwar, Jayashree Mohan, Nipun Kwatra, Bhargav S. Gulavani, and
+Ramachandran Ramjee. Sarathi: Efficient llm inference by piggybacking decodes with chunked
+prefills, 2023.
+[8] NVIDIA. Tensorrt-llm. https://github.com/NVIDIA/TensorRT-LLM, 2024. Accessed:
+2024.
+[9] Xupeng Miao, Gabriele Oliaro, Zhihao Zhang, Xinhao Cheng, Hongyi Jin, Tianqi Chen, and
+Zhihao Jia. Towards efficient generative large language model serving: A survey from algorithms
+to systems, 2023.
+[10] Archit Patke, Dhemath Reddy, Saurabh Jha, Haoran Qiu, Christian Pinto, Chandra
+Narayanaswami, Zbigniew Kalbarczyk, and Ravishankar Iyer. Queue management for slooriented large language model serving, February 2025.
+[11] Zikun Li, Zhuofu Chen, Remi Delacourt, Gabriele Oliaro, Zeyu Wang, Qinghan Chen, Shuhuai
+Lin, April Yang, Zhihao Zhang, Zhuoming Chen, Sean Lai, Xupeng Miao, and Zhihao Jia.
+AdaServe: SLO-Customized LLM Serving with Fine-Grained Speculative Decoding, January
+2025.
+[12] Yinmin Zhong, Shengyu Liu, Junda Chen, Jianbo Hu, Yibo Zhu, Xuanzhe Liu, Xin Jin, and Hao
+Zhang. Distserve: Disaggregating prefill and decoding for goodput-optimized large language
+model serving, 2024.
+[13] Guoxin Liu, Haiying Shen, and Haoyu Wang. An economical and slo-guaranteed cloud storage
+service across multiple cloud service providers. IEEE Transactions on Parallel and Distributed
+Systems, 28(9):2440–2453, 2017.
+[14] Chengliang Zhang, Minchen Yu, Wei Wang, and Feng Yan. {MArk}: Exploiting cloud services
+for {Cost-Effective},{SLO-Aware} machine learning inference serving. In 2019 USENIX
+Annual Technical Conference (USENIX ATC 19), pages 1049–1062, 2019.
+[15] Wonik Seo, Sanghoon Cha, Yeonjae Kim, Jaehyuk Huh, and Jongse Park. Slo-aware inference
+scheduler for heterogeneous processors in edge platforms. ACM Transactions on Architecture
+and Code Optimization (TACO), 18(4):1–26, 2021.
+[16] Siyuan Chen, Zhipeng Jia, Samira Khan, Arvind Krishnamurthy, and Phillip B. Gibbons.
+SLOs-Serve: Optimized Serving of Multi-SLO LLMs, April 2025.
+[17] Susan Zhang, Stephen Roller, Naman Goyal, Mikel Artetxe, Moya Chen, Shuohui Chen,
+Christopher Dewan, Mona Diab, Xian Li, Xi Victoria Lin, Todor Mihaylov, Myle Ott, Sam
+Shleifer, Kurt Shuster, Daniel Simig, Punit Singh Koura, Anjali Sridhar, Tianlu Wang, and Luke
+Zettlemoyer. Opt: Open pre-trained transformer language models, 2022.
+10
+
+[18] Yunho Jin, Chun-Feng Wu, David Brooks, and Gu-Yeon Wei. S$^{3}$: Increasing GPU
+Utilization during Generative Inference for Higher Throughput, June 2023.
+[19] Haoran Qiu, Weichao Mao, Archit Patke, Shengkun Cui, Saurabh Jha, Chen Wang, Hubertus
+Franke, Zbigniew T. Kalbarczyk, Tamer Başar, and Ravishankar K. Iyer. Efficient Interactive
+LLM Serving with Proxy Model-based Sequence Length Prediction, November 2024.
+[20] Qinlong Wang, Tingfeng Lan, Yinghao Tang, Ziling Huang, Yiheng Du, Haitao Zhang, Jian
+Sha, Hui Lu, Yuanchun Zhou, Ke Zhang, and Mingjie Tang. Dlrover-rm: Resource optimization
+for deep recommendation models training in the cloud, 2024.
+[21] Rainer Gawlick. Admission control and routing: Theory and practice. 1995.
+[22] Aaron Grattafiori, Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian,
+Ahmad Al-Dahle, Aiesha Letman, and et al. The llama 3 herd of models, 2024.
+[23] Gemma Team. Gemma 2: Improving open language models at a practical size, 2024.
+[24] Mohammad Shoeybi, Mostofa Patwary, Raul Puri, Patrick LeGresley, Jared Casper, and Bryan
+Catanzaro. Megatron-lm: Training multi-billion parameter language models using model
+parallelism, 2020.
+[25] ShareGPT Team. Sharegpt, 2023.
+[26] Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Tianle Li, Siyuan Zhuang, Zhanghao Wu,
+Yonghao Zhuang, Zhuohan Li, Zi Lin, Eric P. Xing, Joseph E. Gonzalez, Ion Stoica, and Hao
+Zhang. Lmsys-chat-1m: A large-scale real-world llm conversation dataset, 2024.
+[27] Ruoyu Qin, Zheming Li, Weiran He, Mingxing Zhang, Yongwei Wu, Weimin Zheng, and
+Xinran Xu. Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving, July
+2024.
+[28] Microsoft Azure. Azuretrace. https://github.com/Azure/AzurePublicDataset, 2023.
+Accessed: 2023.
+[29] Yichao Fu, Siqi Zhu, Runlong Su, Aurick Qiao, Ion Stoica, and Hao Zhang. Efficient LLM
+Scheduling by Learning to Rank, August 2024.
+[30] Baolin Li, Yankai Jiang, Vijay Gadepally, and Devesh Tiwari. LLM Inference Serving: Survey
+of Recent Advances and Opportunities, July 2024.
+[31] Pratyush Patel, Esha Choukse, Chaojie Zhang, Aashaka Shah, Íñigo Goiri, Saeed Maleki, and
+Ricardo Bianchini. Splitwise: Efficient generative llm inference using phase splitting, 2024.
+[32] Ying Sheng, Shiyi Cao, Dacheng Li, Banghua Zhu, Zhuohan Li, Danyang Zhuo, Joseph E
+Gonzalez, and Ion Stoica. Fairness in serving large language models. In 18th USENIX
+Symposium on Operating Systems Design and Implementation (OSDI 24), pages 965–988,
+2024.
+[33] Ao Shen, Zhiyao Li, and Mingyu Gao. Fastswitch: Optimizing context switching efficiency in
+fairness-aware large language model serving. arXiv preprint arXiv:2411.18424, 2024.
+[34] Ke Cheng, Wen Hu, Zhi Wang, Peng Du, Jianguo Li, and Sheng Zhang. Enabling efficient
+batch serving for lmaas via generation length prediction, 2024.
+[35] Rana Shahout, Eran Malach, Chunwei Liu, Weifan Jiang, Minlan Yu, and Michael Mitzenmacher.
+Don’t stop me now: Embedding based scheduling for llms, 2024.
+[36] Yaniv Leviathan, Matan Kalman, and Yossi Matias. Fast inference from transformers via
+speculative decoding, 2023.
+
+11
+
+A
+
+Appendix
+
+A.1
+
+Implementation Details
+
+Our codebase contains the complete codebase for S CORPIO, including all experimental harnesses
+and visualization scripts described in this paper. It is built upon a fork of the vLLM project, which
+we extended with our scheduling system. We open-source our code at https://github.com/
+MisterBrookT/Scorpio.
+For the sequence length predictor, we augment the original OPT architecture with a simple linear
+projection layer that maps the hidden state of the final token to the predicted output length bin. We
+collect 20K samples from ShareGPT and LMSYS-Chat-1M datasets. We split the dataset into the
+training set, validation set, and test set with a ratio of 6:2:2. We train the model on the training set
+using a batch size of 64 for 8 epochs. Following [29], we truncate input prompts to a maximum
+of 2048 tokens to accommodate OPT’s context window constraints. The training data example is
+shown in Listing 1. Recognizing that traditional accuracy metrics can be misleading with imbalanced
+class distributions, we introduce multiple evaluation metrics, including off-by-n accuracy (predictions
+within n bin of the ground truth), Kendall’s Tau correlation coefficient and root mean squared error
+of length prediction for comprehensive assessment (§A.4). Note that we deploy the sequence length
+predictor in the same GPU with the LLM inference server for resource efficiency. We also study the
+impact of the interference of the sequence length predictor on the serving system (§A.5). For the
+analytic models, we profile the step time of the inference of the same training set that is used for the
+sequence length predictor, ensuring consistency.
+Listing 1: Training data example.
+{
+" prompt " : " Translate the following English text to French : ’ Hello ,
+world ! ’ " ,
+" output_length " : 128 ,
+" label " : 1
+}
+
+Table 3: Hyperparameters when training the sequence output length predictor
+Hyperparameter Value
+Optimizer
+Learning Rate
+β1
+β2
+Batch Size
+Epochs
+A.2
+
+Adam
+2e-5 (constant)
+0.9
+0.999
+64
+8
+
+Dataset Distribution and Trace Pattern
+
+For Meta Llama3.1-8b, we directly use the dataset provided by [29]. For Gemma2-27b, we randomly
+sample 20k samples and collect the prompt-response pairs. We show the dataset distribution as in
+Figure 7. For the input length, we compute the input length by appending the chat template onto the
+prompts. On average, the Gemma-27B has a slightly shorter input length of about 150 tokens and
+an output length of around 130 tokens. For the trace pattern used in our Real-World Trace Serving
+experiment 4.3, we select the first 20 minutes of the Azure Inference Trace [28]. As shown in Figure
+8, the trace exhibits periods of both bursty and light load, with the QPS reaching a peak of over 60
+requests per second at around 14 minutes from the start of the trace.
+A.3
+
+Analytic Model Accuracy
+
+We report the statistics metrics of the analytic model (including TTFT estimater and TPOT estimater
+§3.1) for different metrics in Table 4. The results demonstrate excellent model accuracy across
+all metrics. For example, when using Meta Llama3.1-8b and ShareGPT dataset, the R2 values
+12
+
+LLaMA-8B LMSYS
+
+Input (mean: 85)
+Output (mean: 292)
+
+0.030
+0.025
+0.015
+0.010
+0.005
+0.000 0
+0.030
+
+500 1000 1500 2000 2500 3000 3500
+# Tokens
+Gemma-27B LMSYS
+Input (mean: 85)
+Output (mean: 272)
+
+0.025
+
+Input (mean: 238)
+Output (mean: 417)
+
+0.014
+
+1000 2000 3000 4000 5000 6000
+# Tokens
+Gemma-27B ShareGPT
+
+Input (mean: 246)
+Output (mean: 408)
+
+0.012
+0.010
+
+0.020
+
+Density
+
+Density
+
+0.008
+
+0.015
+
+0.006
+
+0.010
+
+0.004
+
+0.005
+0.000 0
+
+LLaMA-8B ShareGPT
+
+Density
+
+Density
+
+0.020
+
+0.014
+0.012
+0.010
+0.008
+0.006
+0.004
+0.002
+0.000 0
+
+0.002
+200
+
+400
+600
+# Tokens
+
+800
+
+0.000 0
+
+1000
+
+200
+
+400
+600
+# Tokens
+
+800
+
+1000
+
+Figure 7: Dataset distribution of different models on ShareGPT and LMSYS.
+
+60
+RPS
+
+40
+20
+0
+
+0.0
+
+2.5
+
+5.0
+
+7.5 10.0 12.5 15.0 17.5 20.0
+Timeline (min)
+
+Figure 8: Requests per second over time of first 20 minutes of Azure Inference Trace [28].
+
+approaching 1.0 (0.994 for Prefill Time Estimater and 0.987 for Inter-Token Time Estimater) indicate
+that our analytic models explain over 98% of the variance in the data, showing strong predictive
+power. The low RMSE values (2.07ms for Prefill Time Estimater and 0.871ms for Inter-Token Time
+Estimater) suggest minimal prediction errors in absolute terms. Additionally, the MAPE values
+(4.812% for Prefill Time Estimater and 2.3% for Inter-Token Time Estimater) indicate that our
+predictions are within 5% of the actual values on average, demonstrating high relative accuracy.
+These results are consistent across both the ShareGPT and LMSYS datasets, showing the robustness
+of our analytic models.
+A.4
+
+Complete Results of Bucketing Strategy Analysis
+
+In this part, we comprehensively evaluate the bucketing strategies for the sequence length predictor.
+As shown in Table 5, we designed bucket numbers ranging from 10 to 1000 based on two strategies:
+1) equal-width and 2) equal-frequency. In the former, we evenly divide the sequence length range
+into equal-width buckets, while in the latter, we evenly divide the sequence length based on the
+output length distribution of the datasets. Different from previous works [18, 19] that only report
+the classification accuracy, we also evaluate the off-by-n accuracy (predictions within n bin of the
+ground truth), Kendall’s tau coefficient to measure the relative order accuracy and root mean square
+error (RMSE).
+13
+
+Model
+Llama3.1-8B
+
+Gemma2-27b
+
+Table 4: Accuracy of the analytic model for different metrics
+Dataset
+Analytic model
+R2 (↑) RMSE (ms) (↓) MAPE (%) (↓)
+Prefill Latency
+0.994
+2.070
+4.812
+ShareGPT
+Inter-Token Latency 0.987
+0.871
+2.300
+Prefill Latency
+0.983
+1.281
+4.664
+LMSYS
+Inter-Token Latency 0.979
+0.643
+2.224
+Prefill Latency
+0.988
+3.158
+5.922
+ShareGPT
+Inter-Token Latency 0.953
+3.534
+7.859
+Prefill Latency
+0.957
+3.436
+8.311
+LMSYS
+Inter-Token Latency 0.905
+3.041
+7.444
+
+Our analysis revealed several key insights. For equal-width bucketing, we find that using a moderate
+number of bins (e.g., 100) provides the best balance between multiple performance metrics. For
+example, when serving Llama3-8B on ShareGPT, using a number of 100 bins achieves 0.54 in
+Kendall’s tau and 195.8 in RMSE. Also, note that even if the exact accuracy is low, the off-n accuracy
+remains relatively high. This suggests the model effectively places predictions close to the true bucket.
+In contrast, using too few buckets, which are commonly used in previous works, shows very low tau
+and high RMSE despite misleading high accuracy. This discrepancy stems from the highly skewed
+data distribution, where over 93% of samples concentrate in the first bucket. Too many buckets also
+degrade the prediction performance. For equal-frequency bucketing, all binning configurations show
+high RMSE, indicating unsuitability for absolute length prediction. This is because with imbalanced
+data, equal-frequency bucketing leads to initial bins being narrow and later bins excessively wide,
+making precise classification difficult. Based on the analysis, we adopt equal-width bucketing and set
+the number of buckets to 100 for sequence length predictor in all experiments (§4).
+
+Table 5: Performance comparison of Equal-width and Equal-frequency bucketing with different
+bucket numbers on ShareGPT and LMSYS datasets using Llama3-8B and Gemma-27B.
+ShareGPT
+Acc. (%)
+
+Off-1
+Acc. (%)
+
+Off-2
+Acc. (%)
+
+RMSE (↓)
+
+Tau (↑)
+
+Acc. (%)
+
+Off-1
+Acc. (%)
+
+Off-2
+Acc. (%)
+
+RMSE (↓)
+
+Equal-width
+
+10
+20
+50
+100
+200
+500
+1000
+
+0.25
+0.45
+0.54
+0.54
+0.51
+0.51
+0.49
+
+88.7
+70.0
+43.2
+27.0
+15.4
+7.6
+5.0
+
+99.9
+97.6
+84.0
+61.3
+37.2
+17.8
+11.2
+
+100.0
+99.6
+95.0
+79.7
+54.5
+27.3
+16.4
+
+301.4
+247.1
+202.4
+195.8
+199.4
+201.3
+207.9
+
+0.25
+0.50
+0.60
+0.61
+0.62
+0.62
+0.61
+
+95.8
+79.4
+56.3
+41.2
+29.7
+18.9
+13.6
+
+100.0
+99.0
+85.4
+67.1
+49.9
+33.7
+24.0
+
+100.0
+99.9
+94.0
+81.0
+61.6
+42.0
+30.4
+
+304.9
+222.3
+201.5
+196.2
+197.5
+193.2
+196.7
+
+Equal-frequency
+
+LMSYS
+
+Tau (↑)
+
+10
+20
+50
+100
+200
+500
+1000
+
+0.54
+0.53
+0.52
+0.51
+0.48
+0.44
+0.42
+
+28.1
+16.2
+8.4
+5.0
+2.7
+2.0
+1.6
+
+59.8
+37.7
+19.2
+11.4
+5.8
+3.2
+1.9
+
+78.1
+53.8
+28.6
+17.0
+8.9
+4.3
+3.0
+
+1088.7
+1042.7
+689.9
+652.4
+474.4
+994.5
+277.0
+
+0.65
+0.64
+0.63
+0.62
+0.60
+0.57
+0.52
+
+38.1
+25.7
+14.5
+10.4
+8.8
+7.7
+7.6
+
+72.4
+50.6
+28.6
+17.4
+12.2
+8.7
+7.8
+
+86.8
+66.8
+39.6
+24.1
+16.1
+10.1
+8.1
+
+1171.4
+837.9
+361.3
+287.5
+418.1
+263.3
+237.2
+
+Equal-width
+
+# Buckets
+
+10
+20
+50
+100
+200
+500
+1000
+
+0.21
+0.52
+0.62
+0.61
+0.60
+0.59
+0.57
+
+94.0
+74.9
+52.0
+34.8
+21.2
+11.5
+6.8
+
+100.0
+99.6
+88.8
+68.2
+48.5
+26.6
+15.8
+
+100.0
+100.0
+97.8
+83.9
+63.4
+38.4
+23.0
+
+249.5
+195.3
+157.2
+156.5
+154.2
+156.9
+161.6
+
+0.22
+0.47
+0.63
+0.65
+0.64
+0.64
+0.63
+
+96.9
+79.4
+57.6
+43.6
+31.4
+18.3
+14.5
+
+100.0
+98.7
+86.3
+69.6
+53.0
+34.2
+25.0
+
+100.0
+100.0
+95.9
+81.8
+65.0
+44.3
+32.6
+
+288.8
+221.9
+177.7
+176.6
+169.6
+170.9
+171.4
+
+Equal-frequency
+
+Gemma-27B
+
+Llama3-8B
+
+Model Strategy
+
+10
+20
+50
+100
+200
+500
+1000
+
+0.62
+0.61
+0.60
+0.59
+0.56
+0.52
+0.51
+
+36.7
+22.3
+11.5
+5.7
+3.2
+2.0
+1.5
+
+68.6
+48.2
+25.8
+14.5
+8.0
+4.2
+1.8
+
+83.6
+63.0
+37.8
+21.9
+12.6
+5.8
+2.8
+
+1253.8
+914.6
+489.9
+476.9
+250.4
+343.0
+192.7
+
+0.67
+0.66
+0.64
+0.64
+0.61
+0.57
+0.56
+
+38.2
+26.6
+14.5
+9.8
+7.4
+6.6
+6.2
+
+71.0
+51.8
+29.4
+18.6
+11.3
+8.1
+6.6
+
+86.2
+66.3
+39.8
+25.4
+15.9
+9.7
+7.2
+
+949.2
+865.2
+503.2
+552.9
+235.0
+268.2
+221.2
+
+14
+
+LLaMA-8B ShareGPT
+
+Normed Adherence
+
+Normed Goodput
+
+1.2
+
+w/ Interference
+w/o Interference
+
+1.2
+
+1.1
+
+1.0
+
+0.9
+
+0.9
+
+8.0
+
+0.8 6.0
+
+10.0 12.0 14.0
+
+QPS
+LLaMA-8B LMSYS
+
+Normed Adherence
+
+0.8 6.0
+
+Normed Goodput
+
+w/ Interference
+w/o Interference
+
+1.1
+
+1.0
+
+1.2
+
+LLaMA-8B ShareGPT
+
+w/ Interference
+w/o Interference
+
+1.2
+
+1.1
+
+8.0
+
+10.0 12.0 14.0
+
+QPS
+LLaMA-8B LMSYS
+
+w/ Interference
+w/o Interference
+
+1.1
+
+1.0
+
+1.0
+
+0.9
+
+0.9
+
+0.8 10.0 12.0 14.0 16.0 18.0
+
+0.8 10.0 12.0 14.0 16.0 18.0
+
+QPS
+
+QPS
+
+Figure 9: Interference of the sequence length predictor on the serving system.
+A.5
+
+Interference of the Sequence Length Predictor on the Scheduling System
+
+Since simply deploying the sequence length predictor and LLM server on the same GPUs may lead
+to resource contention, we study the interference of the sequence length predictor on the serving
+system in this part. As shown in Figure 9, we compare the goodput and slo adherence of the system
+with and without the interference of the sequence length predictor. For w/ interference, we deploy the
+predictor and the LLM server on the same A800 GPUs. For w/o interference, we deploy the predictor
+on a separate GTX 3090 GPU with 24GB memory. On average, we find that the interference of
+the sequence length predictor leads to a 5% - 20% performance degradation on goodput and slo
+adherence on average.
+A.6
+
+Limitations
+
+The proposed scheduler currently works with standard LLM serving techniques such as continuous
+batching and paged attention. How to integrate the scheduler with the latest optimizations, such as
+prefill-decode disaggregation [12], is an interesting direction for future work. Also, as we mentioned
+in the §4.2, the scheduler shows a bit of performance degradation at low QPS. This is because while
+S CORPIO’s complexity is advantageous under heavy load, the intervention of such control degrades
+performance at low QPS. This calls for a more flexible and adaptive scheduling strategy that could
+switch to a simpler, lower-overhead scheduling method. We leave these as future work.
+
+15
+
+

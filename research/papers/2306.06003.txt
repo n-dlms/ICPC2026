@@ -1,0 +1,841 @@
+Semi-online Scheduling with Lookahead ⋆
+Debasis Dwibedy and Rakesh Mohanty
+
+arXiv:2306.06003v1 [cs.DS] 9 Jun 2023
+
+Veer Surendra Sai University of Technology, Burla, Odisha 768018, INDIA
+(debasis.dwibedy, rakesh.iitmphd)@gmail.com
+
+Abstract. The knowledge of future partial information in the form of a
+lookahead to design efficient online algorithms is a theoretically-efficient
+and realistic approach to solving computational problems. Design and
+analysis of semi-online algorithms with extra-piece-of-information (EPI)
+as a new input parameter has gained the attention of the theoretical
+computer science community in the last couple of decades. Though competitive analysis is a pessimistic worst-case performance measure to analyze online algorithms, it has immense theoretical value in developing
+the foundation and advancing the state-of-the-art contributions in online and semi-online scheduling. In this paper, we study and explore the
+impact of lookahead as an EPI in the context of online scheduling in
+identical machine frameworks. We introduce a k-lookahead model and
+design improved competitive semi-online algorithms. For a 2-identical
+machine setting, we prove a lower bound of 43 and design an optimal algorithm with a matching upper bound of 34 on the competitive ratio. For
+and design a
+a 3-identical machine setting, we show a lower bound of 15
+11
+16
+-competitive
+improved
+semi-online
+algorithm.
+11
+
+Keywords: Identical Machines, Lookahead, Makespan, Online, Semi-online,
+Scheduling.
+
+1
+
+Introduction
+
+The m-machine scheduling is a well-studied NP-Complete problem with immense
+practical significance in diversified areas of computing, such as multiprocessor
+scheduling, network routing, transportation, task delegation, project management, and manufacturing, to name a few [30], [24]. In this problem, we have
+to schedule the processing of a list of n jobs on a set of m machines with welldefined constraints and objectives, where n > m. Several practically-significant
+variants of the m-machine scheduling problem have been defined and studied
+in the literature based on machine models, availability of jobs, constraints, and
+objective functions. Offline and online scheduling are well-known variants of the
+m-machine scheduling problem.
+Offline and Online Scheduling. In offline scheduling, the whole list of jobs
+⋆
+
+Supported by Veer Surendra Sai University of Technology, Burla, Odisha, 768018
+INDIA.
+
+is available at the outset, while in online scheduling, jobs are given one by one
+in order [18], [12]. Each received one must be scheduled immediately and irrevocably without knowledge of successive jobs with an objective to minimize the
+completion time of the job schedule, i.e., makespan.
+Lookahead Model and its Significance. Lookahead is an impactful realistic concept that helps improve the performance of online scheduling algorithms.
+When we make a scheduling decision without the knowledge of future inputs,
+foreseeing a part of the future can help us to make better decisions with additional information. Lookahead can be considered as an extra piece of information
+(EPI) and constitutes a practically-significant model for defining semi-online
+scheduling problems.
+Semi-online Scheduling. In practice, neither all jobs are available in advance
+as in the offline case, nor do they appear in an online fashion. The occurrence
+of jobs follows an intermediate framework known as semi-online [26],[23]. Semionline scheduling is a variant of online scheduling, where in addition to the current job, some EPI about the future ones is given. Semi-online scheduling has
+practical significance in resource allocation [26], network bandwidth utilization
+[14] packet routing [5], distributed data management [3], client request processing [17], manufacturing and production planning [34]. In online settings, when
+some information about future inputs is given before allocating the resources,
+the semi-online models and algorithms are of considerable interest.
+Competitive Analysis. The competitive analysis provides a mathematical
+framework to measure the performance of online and semi-online scheduling
+algorithms [32]. Let σ be a job sequence, CALG (σ) be the makespan obtained by
+the semi-online algorithm ALG for σ, and COP T (σ) be the optimum makespan
+for σ. The algorithm ALG is c-competitive, if there exists a positive number
+c and a non-negative constant b such that CALG (σ) ≤ c · COP T (σ) + b for all
+σ. Here, c is the upper bound (UB) on the competitive ratio (CR) and c ≥ 1.
+The smaller value of c indicates a better performance of ALG. The lower bound
+(LB) on the CR for a semi-online scheduling problem specifies an instance of the
+problem for which no semi-online algorithm obtains a better CR than the LB. If
+g is the LB of a semi-online scheduling problem, then there must be an instance
+σ such that no semi-online algorithm achieves a CR less than g. The common
+practice is to maximize the lower bound and minimize the upper bound on the
+CR. A semi-online algorithm is optimal if it achieves a CR matching the LB of
+the problem.
+Related Work. The semi-online scheduling problem has been extensively investigated in the literature [11], [15], [6]. In semi-online scheduling, the objective
+is to improve the best-known bounds on the CR for a specific semi-online setting or to explore practically-significant new EPI to define innovative semi-online
+models. Here, we highlight only the most relevant semi-online settings and wellknown competitive analysis results. Kellerer et al. [23] introduced the buffer
+concept into semi-online scheduling. A buffer is a storage structure that allows
+an online algorithm to defer the scheduling decision on the current job by storing
+the incoming jobs until there is a space in the buffer. When the buffer is full, and
+
+a job arrives, an algorithm selects a job from the available ones and schedules it
+on a machine. Different ways of selecting and assigning jobs lead to various semionline algorithms. A buffer capable of storing k jobs allows an online algorithm
+to see k + 1 jobs before making a scheduling decision. By considering a buffer of
+size k(≥ 1) Kellerer et al. [23] proposed an optimal algorithm H1 and achieved a
+CR of 43 . Zhang [35] proved a upper bound of 43 on the CR by considering k = 1.
+The recent works on deterministic non-preemptive semi-online scheduling with
+a buffer are [13], [25], [31], [10].
+Several online problems have been investigated in the literature by considering
+lookahead as a parameter. In particular, the influence of lookahead on the competitiveness of online algorithms has been captured in well-known problems such
+as paging [1], [33], [7], k-server [4], bin packing [20], graphs [21], [22] dynamic
+location [8], and list update [2].
+Semi-online Scheduling with lookahead. The semi-online scheduling with
+k-lookahead model enables an online algorithm to foresee the processing times
+of k future jobs on receiving an incoming one, where k ≥ 1. The model does not
+require an explicit structure like a buffer to store and access future jobs. The
+additional information provided by the lookahead model on future jobs helps
+an online algorithm minimize the makespan of the job schedule. On the other
+hand, the unbounded size of the lookahead increases the execution time of an
+algorithm due to the overheads of extra lookups. We can carefully reduce the
+time by specifying a bound on the lookahead size.
+Practical Significance. In a dynamic project scheduling scenario, relevant
+jobs arrive on the fly. A project manager allocates resources to each incoming
+job without knowledge of the future ones. However, a manager often foresees and
+estimates the processing times of future incoming jobs based on intuition, experience, or good connections with the concerned client to meet the requirements.
+Nevertheless, efficient resource allocation is a non-trivial challenge in such a scenario, which motivates our study on semi-online scheduling with a lookahead.
+Research Motivation. The best-known CR for non-preemptive online scheduling with 2 and 3 identical machines settings is 32 and 53 respectively [18]. Faigle
+et al. [16] proved that no online algorithm achieves a better CR than the bestknown ones. An important research challenge is: how much improvement in the
+CR can be achieved if an online algorithm foresees some portion of future jobs.
+Several semi-online scheduling models and algorithms answer the above question
+by considering various new EPI. However, less attention has been paid to online
+scheduling with lookahead [28], [29], [9]. According to our knowledge, a maiden
+work [36] has been reported in the literature about semi-online scheduling with
+lookahead in identical parallel machine settings for the makespan minimization
+objective. Here, the authors considered that an online algorithm
+Pk knows the total processing time of first k jobs a priori. By considering i=1 pi ≥ αδ, the
+α+2
+authors achieved a UB of α+1
+on the CR, where pi is the processing time of a
+job Ji , α ≥ 2, and δ is the largest processing time. In this paper, we introduce
+a new realistic lookahead model and address the following non-trivial research
+challenge: how much lookahead is sufficient for a semi-online algorithm to beat
+
+the best-known CR in 2 and 3 identical machine settings?
+Our Contribution. First, we define the k-lookahead model in the context of
+semi-online scheduling with a schematic illustration. In addition, we prove a
+lower bound of 43 on the CR for a 2-identical machine setting with k ≥ 1. Subsequently, we design an optimal deterministic semi-online algorithm named 2-LA1
+and achieve a matching UB on the CR with k = 1. Furthermore, we highlight
+interesting remarks and critical observations on the 1-lookahead in the context
+of semi-online scheduling on a 2-identical machine setting. Next, we consider the
+3-identical machine setup and design a 16
+11 -competitive deterministic semi-online
+algorithm named 3-LA1 . We conclude by exploring several research challenges
+for prospective future work.
+
+2
+
+Preliminaries
+
+In this paper, we use the standard terminologies and notations defined in a recent
+survey article on semi-online scheduling [11]. To denote a semi-online scheduling
+problem setting, we follow the 3-field (α|β|γ) notation framework of Graham et
+al. [19].
+2.1
+
+m-machine Scheduling Problem (Pm | Cmax )
+
+We define the m-machine offline scheduling problem as follows.
+Given a set M = {M1 , M2 , . . . , Mm } of m(≥ 2) identical parallel machines
+and a list J = ⟨J1 , J2 , . . . , Jn−1 , Jn ⟩ of n independent jobs, where each job Ji
+is characterized by its processing time pi . We have to schedule n jobs on m machines such that the makespan Cmax , or the maximum load on any machine is
+minimized, where load lj of a machine Mj is the total sum of processing times
+of the jobs assigned to the machine Mj . We denote the problem as Pm | Cmax .
+Optimal Offline Algorithm assigns a given list of n jobs on m machines
+such that max{lj | 1 ≤ j ≤ m} is the minimal.
+In the context of the m-machine scheduling problem, it is an open problem to
+formally define the generic behavior of the optimal offline algorithm. However,
+the following lower bounds of the optimal makespan COP T have been used in
+the literature while computing the CR of online and semi-online scheduling algorithms.
+Lemma 1. [18]. Let pmax = max{pi | 1 ≤ i ≤ n}. The optimal makespan COP T
+for the problem Pm | Cmax is such that
+
+
+pmaxP
+n
+1
+COP T ≥ m
+· i=1 pi
+
+
+
+1
+Corollary
+1.1. For any instance σ of Pm | Cmax , we have COP T ≥ max{pmax , m
+·
+Pn
+p
+}.
+i
+i=1
+
+Corollary 1.2. Let lj be the load of machine Mj and CALG (σ) be the makespan
+incurred by any algorithm ALG for an instance σ. Then CALG (σ) = max{lj | 1 ≤
+j ≤ m}.
+Next, we will formally define the lookahead model in the context of semi-online
+scheduling by considering the definition of Pm | Cmax .
+2.2
+
+Our Proposed Semi-online Scheduling Model with k-lookahead
+
+A semi-online algorithm receives n independent jobs one by one over a list. Upon
+receiving a job Ji , the algorithm in addition to pi knows pi+1 , pi+2 , . . . , pi+k ,
+where 1 ≤ k < n and pi > 0, ∀i. The received one must be scheduled nonpreemptively and irrevocably without a further clue about pi+(k+1) , pi+(k+2) , . . . , pn .
+The objective is to minimize the makespan, denoted by Cmax .
+Illustration of the model with 1-lookahead (LA1 ). Given 2 identical parallel machines. Let us consider an instance σ with a list of three jobs arriving one
+by one, where σ = ⟨J1 , J2 , J3 ⟩, and p1 = 1, p2 = 1, and p3 = 2. A semi-online
+algorithm ALG receives job J1 and schedules J1 irrevocably with knowledge of
+p1 and p2 . Immediately after the scheduling of J1 , the job J2 arrives, and ALG
+schedules J2 with knowledge of p2 and p3 . Finally, the last job J3 arrives, and
+ALG assigns J3 with prior knowledge of p3 . We capture the timing diagram of
+the scheduling of σ in Figure 1. The schedule generated by Graham’s LS algorithm without lookahead is shown in Figure 1(a), and the schedule generated
+by the optimal load balancing approach with 1-lookahead is presented in Figure
+1(b). It can be observed that an online algorithm with 1-lookahead can achieve
+a better makespan than its optimal online counterpart. The extra knowledge of
+pi+1 while scheduling job Ji substantiates minimizing the makespan.
+
+Fig. 1. Timing Diagram (a) Algorithm LS without Lookahead
+Balancing with 1-Lookahead
+
+(b) Optimal Load
+
+3
+
+Our Competitive Analysis Results on 2 Identical
+Machines with k-Lookahead (P2 | LAk | Cmax )
+
+3.1
+
+Lower Bound Result
+
+Theorem 1. Let ALG be a deterministic semi-online algorithm for the problem
+CALG (σ)
+P2 | LAk | Cmax . Then there exists an instance σ such that C
+≥ 34 .
+OP T (σ)
+Proof. We construct an instance σ = ⟨J1 , J2 , . . . , Jn ⟩, where pi = x for 1 ≤ i ≤
+n − k − 1, pi = 1, for n − k ≤ i ≤ n − 1, and pn = y.
+Given the instance σ, we compute COP T (σ) and CALG (σ). When the (n − k)th
+job arrives, the jobs J1 , J2 , . . . , Jn−k−1 have been scheduled, and the processing
+time pn−k , pn−k+1 , . . . , pn−1 , pn are known. At this time, let the loads of machines M1 and M2 be l1 and l2 . We consider the follwing two cases by assuming
+l1 ≥ l2 .
+Case 1: l1 ≥ 2l2 . Consider pn = y = k. We have CALG (σ) ≥ l1 , while
+. Implies,
+COP T (σ) = l1 +l22 +2k ≤ l1 +(l12/2)+k ≤ 3l1 +4k
+4
+CALG (σ)
+4l1
+4
+COP T (σ) ≥ 3l1 +4k → 3 , for large n.
+
+Case 2: l1 < 2l2 . Consider pn = y = 2l1 − l2 . We have CALG (σ) ≥
+l2 + pn = 2l1 , while
+1 −l2
+COP T (σ) = l1 +l2 +k+2l
+≤ 3l12+k . Implies,
+2
+CALG (σ)
+4l1
+4
+COP T (σ) ≥ 3l1 +k → 3 , for large n.
+
+□
+
+Research Question: How much lookahead is sufficient to achieve a upper bound
+of 43 on the CR for P2 | LAk | Cmax ?
+In the following section, we will address the above research question.
+3.2
+
+An Optimal Semi-online Algorithm with 1-lookahead : 2-LA1
+
+We design a deterministic semi-online algorithm named 2-LA1 for 2 identical
+parallel machines setting by considering a lookahead of size 1. We prove that
+algorithm 2-LA1 is optimal for the problem P2 | LA1 | Cmax and has a upper
+bound of 34 on the CR. We present algorithm 2-LA1 in Algorithm 1.
+Algorithm 2-LA1 considers the EPI pi+1 for efficient scheduling of each incoming
+job Ji . The objective is to show that k = 1 is sufficient to achieve an improved
+CR over the best-known upper bound of 23 on the CR. Algorithm 2-LA1 imbalances the current total load between machines M1 and M2 such that l1 ≤ 2 · l2
+
+Algorithm 1 2-LA1
+Initially, l1 = l2 = 0
+When a new job Ji arrives, pi and pi+1 are known.
+FOR i = 1 to n − 1
+BEGIN
+IF (l1 + pi ) ≤ 32 · (l1 + l2 + pi + pi+1 )
+THEN assign job Ji to machine M1
+UPDATE l1 = l1 + pi
+ELSE
+Assign job Ji to machine M2
+UPDATE l2 = l2 + pi
+END
+lmin ← {l1 , l2 }
+Assign job Jn to machine Mj for which lj = lmin , where j = {1, 2}
+UPDATE lj = lj + pi
+UPDATE l1 , l2
+Return
+C2−LA1 = max{l1 , l2 }
+
+Pn
+and the final maximum load of any machine is not more than 23 · i=1 pi , or
+pmax .
+In Theorem 2, we prove that algorithm 2-LA1 has a CR of at least 43 for
+P2 | LA1 | Cmax .
+Theorem 2. There exists an instance σ of the problem P2 | LA1 | Cmax such
+C
+(σ)
+1
+that C2−LA
+≥ 43 .
+OP T (σ)
+Proof. Consider an instance σ with a sequence of n independent jobs, where
+pi = 1, for 1 ≤ i ≤ n − 3, pn−2 = n, pn−1 = 2n + 3, and pn = 2n.
+Initially, the load l1 = l2 = 0. In σ, jobs are given one by one in order, and each
+job Ji from i = 1 to n − 1 satisfies the condition l1 + pi ≤ 23 · (l1 + l2 + pi + pi+1 ).
+Therefore, algorithm 2-LA1 schedules each incoming job Ji to machine M1 ,
+where 1 ≤ i ≤ n − 1.
+We now have l1 = 4n and l2 = 0. Algorithm 2-LA1 assigns the last job Jn to the
+current least loaded machine M2 . Hence, C2−LA1 (σ) ≥ 4n, while COP T = 3n.
+C
+(σ)
+1
+Therefore, C2−LA
+≥ 43 .
+□
+OP T (σ)
+3.3
+
+Upper Bound Result
+
+Before proving the upper bound on the CR of algorithm 2-LA1 , we consider
+some practically-significant problem instances. We show by following lemmas
+that algorithm 2-LA1 is at most 34 -competitive for the considered instances of
+P2 | LA1 | Cmax .
+Lemma 2. Let σ1 be an instance of P2 | LA1 | COP T , where pi = x, ∀Ji , and
+C
+(σ1 )
+1
+x ≥ 1. Algorithm 2-LA1 is such that C2−LA
+≤ 43 .
+max (σ1 )
+
+Pn
+Proof. Let us consider n jobs in σ1 . Given that
+i=1 pi = n · x as pi = x,
+∀Ji . Irrespective of n is even or odd, algorithm 2-LA1 assigns ⌊ 2n
+3 ⌋ jobs to machine M1 and ⌈ n3 ⌉ jobs to machine M2 . Therefore, C2−LA1 (σ1 ) ≤ 2n
+3 · x. If n
+is even, algorithm OP T schedules n2 jobs to each of the machines, and incurs
+COP T (σ1 ) = n2 · x. Therefore,
+
+C2−LA1 (σ1 )
+4
+COP T (σ1 ) ≤ 3 .
+
+If n is odd, algorithm OP T assigns ⌈ n2 ⌉ jobs to one machine and the remaining
+jobs to the other, incurring COP T (σ1 ) = ⌈ n2 ⌉ · x, while C2−LA1 (σ1 ) ≤ 2n
+3 · x.
+Therefore,
+
+C2−LA1 (σ1 )
+4
+COP T (σ1 ) ≤ 3 .
+
+□
+
+Corollary 2.1. Let σ1 consists of n jobs, where n = 6x, x ≥ 1, and pi = 1, ∀i.
+C
+(σ1 )
+1
+≤ 43 .
+Then C2−LA
+OP T (σ1 )
+Remark 1: No algorithm can outperform Graham’s LS strategy for scheduling a sequence of equal length jobs in 2-identical machine setting. Therefore, LS
+algorithm is optimal for σ1 .
+
+Theorem 3. Let σ be an instance of P2 | LA1 | Cmax . Algorithm 2-LA1 is such
+C
+(σ)
+1
+≤ 43 for all σ.
+that C2−LA
+OP T (σ)
+Proof. We use the method of contradiction to prove the theorem.
+Assume that there exists an instance σ with minimum number of jobs, which
+contradicts the theorem, where σ = ⟨J1 , J2 , . . . , Jt ⟩. Implies,
+C2−LA1 (σ)
+4
+COP T (σ) > 3 .
+
+Suppose, in the schedule generated by algorithm 2-LA1 for σ, job Jx is the
+last job that completes its execution and x < t. Therefore, the instance σ1 =
+⟨J1 , J2 , . . . , Jx ⟩ makes C2−LA1 (σ1 ) = C2−LA1 (σ), while COP T (σ1 ) < COP T (σ).
+Implies,
+
+C2−LA1 (σ)
+C2−LA1 (σ1 )
+4
+COP T (σ1 ) > COP T (σ) > 3 .
+
+This conveys, σ1 is the smallest counterexample with minimum number of jobs,
+which contradicts our assumption on minimality of σ with t jobs. Hence, job
+Jx does not exist and the instance σ is the smallest counterexample in terms of
+C
+(σ)
+1
+number of jobs such that C2−LA
+> 43 .
+OP T (σ)
+′
+
+′
+
+Therefore, for all other instances σ with t − 1 jobs,
+
+C2−LA1 (σ )
+≤ 34 .
+COP T (σ ′ )
+
+Algorithm 2-LA1 imbalances the total load on machines M1 and M2 such that
+′
+Pt−1
+C
+(σ )
+l1 ≥ l2 and l1 ≤ 23 · i=1 pi . Therefore, we have C2−LA1(σ′ ) ≤ 43 . Clearly, the
+OP T
+
+inclusion and scheduling of job Jt makes
+
+C2−LA1 (σ)
+4
+COP T (σ) > 3 .
+
+Prior to scheduling Jt , we have lmax = 23 ·
+
+Pt−1
+
+1
+i=1 pi and lmin = 3 ·
+
+Pt−1
+
+i=1 pi .
+
+Algorithm 2-LA1 schedules Jt on Mj with lj = lmin . Implies,
+
+=⇒
+
+Pt
+lmin + pt > 23 · i=1 pi
+Pt−1
+Pt−1
+1
+2
+2
+i=1 pi + pt > 3 ·
+i=1 pi + 3 · pt
+3 ·
+
+Without loss of generality, we assume that l2 < l1 , implies, l2 + pt > l1 + 23 · pt
+=⇒ l2 + pt > 2 · l2 + 23 · pt
+Pt−1
+=⇒ pt > l1 + l2 , implies, pt > i=1 pi .
+In such a case algorithm 2-LA1 schedules each incoming job Ji from i = 1 to
+t − 1 on machine M1 and assigns job Jt to machine M2 to incur C2−LA1 (σ) = pt ,
+C
+(σ)
+1
+while COP T (σ) = pt . Implies, C2−LA
+= 1 ≤ 34 , which is a contradiction on
+OP T (σ)
+our assumption on σ.
+Therefore, there does not exist a counterexample to the theorem. We can now
+conclude that the theorem holds for all instances.
+□
+Observations
+– Increasing the value of lookahead from 1 to any k would not lead to a better
+CR than 43 .
+– The proposed 1-lookahead model and algorithm consider the arrival and
+scheduling of one job at a time with knowledge of non-zero positive processing time of the current and the next job. The model can not achieve a better
+CR than 23 if it considers pi = 0 for any Ji , and scheduling of Ji+1 without
+knowledge of pi+2 . For example, consider an instance σ = ⟨J1 , J2 , J3 ⟩ with
+p1 = p2 = 1, and p3 = y. Let ALG be a semi-online algorithm. If ALG
+assigns J1 and J2 to the same machine, then consider p3 = y = 0. Implies,
+CALG (σ) = 2, while COP T (σ) = 1.
+If ALG schedules J1 and J2 on different machines, then consider p3 = y = 2.
+CALG (σ)
+Implies, CALG (σ) = 3, while COP T (σ) = 2. Therefore, C
+≥ 23 .
+OP T (σ)
+Hence, our model has significance over the traditional lookahead models concerning performance improvement.
+
+4
+
+Our Competitive Analysis Results on 3 Identical
+Machines with 1-Lookahead (P3 | LA1 | Cmax )
+
+Graham [18] explored the following multiprocessing timing anomaly. An increase
+in the number of machines does not necessarily guarantee the minimization of
+makespan. Graham proved that the LS algorithm is the optimal one with CR of
+5
+3 ≈ 1.66 for 3-identical machine setting. In this section, we study the problem
+P3 | LA1 | Cmax and achieve an improved CR of 16
+11 ≈ 1.45.
+
+4.1
+
+Lower Bound Result
+
+Theorem 4. Let ALG be a deterministic semi-online algorithm for the problem
+CALG (σ)
+P3 | LA1 | Cmax . Then there exists an instance σ such that C
+≥ 15
+11 .
+OP T (σ)
+Proof. We consider the adverserial instances of the problem to prove the lower
+bound. Let us assume that the adversary knows the nature of ALG and dynamCALG (σ)
+ically generates an instance σ such that C
+≥ 15
+11 . We examine through
+OP T (σ)
+the following cases, various strategies of scheduling σ that ALG could employ. We use the notation Ji /pi to denote a job Ji and its corresponding processing time pi . Without loss of generality, let us consider an instance σ =
+{J1 /7, J2 /4, J3 /p3 , . . . , Jn /pn }, where n ≥ 3. Intially, the loads l1 = l2 = l3 = 0.
+Case 1: If ALG assigns J1 , J2 and J3 to three different machines (say M1 ,
+M2 and M3 respectively), or to the same machine. Consider p3 = 4, p4 = 7 and
+CALG (σ)
+15
+≥ 11
+.
+p5 = 11. We have CALG (σ) ≥ 15, while COP T (σ) = 11. Therefore, C
+OP T (σ)
+Case 2: If ALG assigns J1 , J2 to the same machine (say M1 ) and J3 to a
+different machine (say M2 ). Consider p3 = 4, now l1 = 11, l2 = 4 and l3 = 0.
+Sub-case 2.1: If J4 is assigned to M3 . Consider p4 = 7 and p5 = 11.
+CALG (σ)
+We have CALG (σ) ≥ 15, while COP T (σ) = 11. Therefore, C
+≥ 15
+11 .
+OP T (σ)
+Sub-case 2.2: If J4 is assigned to M2 . Consider p4 = 11 and p5 = 7.
+CALG (σ)
+15
+≥ 11
+.
+Implies, CALG (σ) ≥ 15, while COP T (σ) = 11. Therefore, C
+OP T (σ)
+Sub-case 2.3: If J4 is assigned to M1 . Consider p4 = 4 and p5 = 11.
+CALG (σ)
+Clearly, CALG (σ) ≥ 15, while COP T (σ) = 11. Therefore, C
+≥ 15
+11 .
+OP T (σ)
+Case 3: If ALG assigns J1 , J2 to different machines (say M1 and M2 respectively).
+Sub-case 3(a): Job J3 is assigned to M1 . Consider p3 = 4, now l1 = 11,
+l2 = 4 and l3 = 0.
+Sub-case 3(a).1: If J4 is assigned to M3 . Consider p4 = 7 and p5 = 11.
+CALG (σ)
+15
+We have CALG (σ) ≥ 15, while COP T (σ) = 11. Therefore, C
+≥ 11
+.
+OP T (σ)
+Sub-case 3(a).2: If J4 is assigned to M1 . Consider p4 = 4 and p5 = 11.
+CALG (σ)
+15
+Clearly, CALG (σ) ≥ 15, while COP T (σ) = 11. Therefore, C
+≥ 11
+.
+OP T (σ)
+Sub-case 3(a).3: If J4 is assigned to M2 . Consider p4 = 11 and p5 = 7.
+CALG (σ)
+15
+Implies, CALG (σ) ≥ 15, while COP T (σ) = 11. Therefore, C
+≥ 11
+.
+OP T (σ)
+Sub-case 3(b): Job J3 is assigned to M2 . Consider p3 = 4, now l1 = 7,
+l2 = 8 and l3 = 0.
+Sub-case 3(b).1: If J4 is assigned to M2 or M3 . Consider p4 = 7 and
+p5 = 8. We have CALG (σ) ≥ 15, while COP T (σ) = 11.
+Sub-case 3(b).2: If J4 is assigned to M1 . Consider p4 = 8 and p5 = 7.
+CALG (σ)
+15
+Implies, CALG (σ) ≥ 15, while COP T (σ) = 11. Therefore, C
+≥ 11
+.
+OP T (σ)
+
+Therefore, we conclude that there exists an instance σ of the problem P3 | LA1 | Cmax
+CALG (σ)
+such that C
+≥ 15
+□
+11 .
+OP T (σ)
+4.2
+
+An Improved Semi-online Algorithm with 1-lookahead : 3-LA1
+
+We design a deterministic semi-online algorithm named 3-LA1 for 3 identical
+parallel machines setting by considering a lookahead of size 1. We prove that
+16
+≈ 1.45. We present algorithm 3-LA1
+algorithm 3-LA1 has a CR of at most 11
+in Algorithm 2.
+
+Algorithm 2 3-LA1
+Initially, l1 = l2 = l3 = 0
+When a new job Ji arrives, pi and pi+1 are known.
+FOR i = 1 to n − 1
+BEGIN
+16
+· (l1 + l2 + l3 + pi + pi+1 )
+IF (l1 + pi ) ≤ 33
+THEN assign job Ji to machine M1
+UPDATE l1 = l1 + pi
+15
+ELSE IF (l2 + pi ) ≤ 33
+· (l1 + l2 + l3 + pi + pi+1 )
+Assign job Ji to machine M2
+UPDATE l2 = l2 + pi
+ELSE
+Assign job Ji to machine M3
+END
+lmin ← min{l1 , l2 , l3 }
+Assign job Jn to machine Mj for which lj = lmin , where j = {1, 2, 3}
+UPDATE lj = lj + pi
+UPDATE l1 , l2 , l3
+Return
+C3−LA1 = max{l1 , l2 , l3 }
+
+Algorithm 3-LA1 considers the EPI pi+1 for efficient scheduling of each incoming
+job Ji . Our goal is to show that k = 1 is sufficient to achieve an improved CR over
+the best-known upper bound of 35 ≈ 1.66 on the CR. The objective of algorithm
+3-LA1 is to keep an imbalance
+of machines M1 , M2 and M3 such
+Pn in the loads
+P
+n
+15
+16
+that the final loads l1 ≤ 33
+· Pi=1 pi , l2 ≤ 33
+· i=1 pi and
+Pnl3 ≤ COP T . Our goal is
+n
+16
+to show that C3−LA1 ≤ 33 · i=1 pi , while COP T ≥ 13 · i=1 pi , or COP T ≥ pmax
+C
+1
+such that C3−LA
+≤ 16
+11 ≈ 1.45 for all instances of P3 | LA1 | Cmax .
+OP T
+4.3
+
+Upper Bound Result
+
+We prove the competitiveness of algorithm 3-LA1 by considering several critical
+cases as Lemmas to establish the upper bound on the CR.
+Theorem 5. Let σ be an instance of P3 | LA1 | Cmax . Algorithm 3-LA1 is such
+C
+(σ)
+1
+≤ 15
+that C3−LA
+11 for all σ.
+OP T (σ)
+Proof. We prove Theorem 5 by Lemma 3-6 as follows.
+
+Pn
+Lemma 3. Let T = i=1 pi for any instance σ of the problem P3 | LA1 | Cmax .
+C
+(σ)
+2
+16
+1
+If the final load of machine M3 is such that l3 ≤ 33
+· T , then C3−LA
+≤ 11
+.
+OP T (σ)
+Proof. This is the obvious case, no matter the order of arrival of jobs in σ
+16
+· T , while
+and their processing times, we have C3−LA1 (σ) = lmax = l1 ≤ 33
+COP T (σ) ≥ 31 · T . Therefore,
+
+C3−LA1 (σ)
+16
+COP T (σ) ≤ 11 .
+
+□
+
+The following lemma put some insights into the maximum value of pmax and its
+impact on the performance of algorithm 3-LA1 .
+16
+· T , then C3−LA1 = COP T = pmax .
+Lemma 4. If pmax ≥ 33
+P
+Proof. If pmax ≥ 16
+pi ≤ 17
+33 ·T , then
+33 ·T for the rest n−1 jobs. As we consider
+n ≥ 3, w.o.l.g, let us normalize the processing times of the jobs such that T = 33.
+31
+Clearly, pmax ≤ 33
+·T . Consider the sequence σ = ⟨J1 /16, J2 /16, J3 /1⟩ with least
+number of jobs. We have, 3 − LA1 (σ) = COP T (σ) = pmax .
+□
+P
+Lemma 5. If pmax = p1 or pn , and pmax ≥
+i pi for rest n − 1 jobs, then
+C3−LA1 = COP T = pmax .
+
+Proof. Following the proof of the previous lemma, let us consider the sequences
+σ2 = ⟨J1 /17, J2 /14, J3 /1, J2 /1⟩ and σ3 = ⟨J1 /1, J2 /1, J3 /14, J2 /17⟩, where pmax =
+17. For both sequences, we have, 3 − LA1 (σ) = COP T (σ) = pmax .
+□
+Lemma 6. Let σ be an instance with n jobs, where pi = 1, ∀Ji , then
+16
+11 .
+
+C3−LA1 (σ)
+COP T (σ) ≤
+
+Proof. We explore and consider a worst job sequence σ to establish our claim. Let
+n = 33x, where x ≥ 1. Here, T = n. Consider an instance σ, where x = 1, implies
+C
+(σ)
+1
+T = 33. We have C3−LA1 ≤ 16, while COP T (σ) = 11. Therefore, C3−LA
+≤ 16
+11 .
+OP T (σ)
+□
+
+5
+
+Concluding Remarks
+
+In this paper, we introduced the k-lookahead model in non-preemptive online
+scheduling for makespan minimization to beat the best-known tight bounds of
+5
+3
+2 and 3 on the competitive ratio in the m-identical machine settings, where
+m = 2, 3 respectively. For a 2-identical machine case, we proved that increasing
+the lookahead size from 1 to any k would not lead to a better tight bound than
+4
+3 on the CR. In a 3-identical machine setting with 1-lookahead, we obtained an
+15
+improved upper bound of 16
+11 and a lower bound of 11 on the competitive ratio.
+Our objective in this paper was to systematically disseminate the influence of
+lookahead as a realistic new EPI in the performance improvement of the bestknown online scheduling algorithms in the considered settings. The following
+
+interesting non-trivial research challenges will further inspire future studies on
+semi-online scheduling with a lookahead.
+Research Challenges
+16
+– Can the gap between our achieved UB of 11
+and LB of 15
+11 on the CR for the
+problem P3 | LA1 | Cmax be minimized?
+– How much lookahead is sufficient to achieve a tight bound on the CR for the
+3-identical machine setup?
+– How much effective is the k-lookahead model for semi-online scheduling on
+a m-identical machine setting, where m > 3?
+– Can the k-lookahead model be further characterized for special job sequences
+based on real-world applications?
+
+References
+1. Albers S. The influence of lookahead in competitive paging algorithms. In Proc.
+1st Annual European Symposium on Algorithms, LNCS, Springer, 1993, 726:1–12.
+2. Albers S. A competitive analysis of the list update problem with lookahead. Theoretical Computer Science, 1998, 197(1-2): 95–109.
+3. Azar Y, Regev O. Online bin-stretching. Theoretical Computer Science, 2001,
+268:17–41.
+4. Ben-David S, Borodin A. A new measure for the study of online algorithms. Algorithmica, 1994, 11(1): 73–91.
+5. Bohm M, Chrobak M, Jez L, Li F, Sgall J, Vesely P. Online packet scheduling
+with bounded delay and lookahead. In Proc. 27th International Symposium on
+Algorithms and Computations, 2016, 21:1–13.
+6. Boyar J, Favrholdt L M, Kudahl C, Larsen K S, Mikkelsen J W. Online algorithms
+with advice: A survey. ACM Computing Surveys, 2017, 50(2):1–34.
+7. Braslauer D. On the competitive online paging with lookahead. In Proc. 13th
+Annual Symposium on Theoretical Aspects of Computer Science, 1996, LNCS,
+Springer, 1046: 593–603.
+8. Chung F K, Graham R L, Saks M E. A dynamic location problem for graphs.
+Combinatorica, 1989, 9(2): 111-131.
+9. Coleman B J. Lookahead scheduling in a real-time context: Models, algorithms,
+and analysis. Dissertations, Theses, and Masters Projects, W & M ScholarWorks.
+Paper 1539623445.
+10. Ding N, Lan Y, Chen X, Dosa G, Guo H, Han X. Online minimum makespan
+scheduling with a buffer. International Journal of Foundations of Computer Science, 2014, 25(5):525–536.
+11. Dwibedy D, Mohanty R. Semi-online scheduling: A survey. Computers & Operations Research, 2022, 139:105646.
+12. Dwibedy D, Mohanty R. Online List Scheduling for Makespan Minimization : A
+Review of the State-of-the-art Results, Research Challenges, and Open Problems.
+SIGACT News, ACM, 2022, 53(2):84-105.
+13. Englert M, Ozmen D, Westermann M. The power of re-ordering for online minimum
+makespan scheduling. In Proc. of the 49th Annual IEEE symposium on Foundations of Computer Science, 2008.
+
+14. Epstein L. Tight bounds for online bandwidth allocation on two links. Discrete
+Applied Mathematics, 2005, 148:181–188.
+15. Epstein L. A survey on makespan minimization in semi-online environments. Journal of Scheduling, 2018, 21(3):269–284.
+16. Faigle U, Kern W, Turan G. On the performance of online algorithms for partition
+problems. Acta Cybernetica, 1989, 9(2):107–119.
+17. Feder T, Motwani R, Panigrahy R, Seiden S, Stee R V, Zhu A. Combining request
+scheduling with web caching. Theoretical Computer Science, 2004, 324(23):201–
+218.
+18. Graham R L. Bounds for certain multiprocessor anomalies. Bell System Technical
+Journal, 1966, 45(1):1563–1581.
+19. Graham R L, Lawer E L, Lenstra J K, Rinnooy kan A H. Optimization and approximation in deterministic sequencing and scheduling: A survey. Annals of Discrete
+Mathematics, 1979, 5(1):287–326.
+20. Grove E F. Online bin packing with lookahead. In Proc. 6th Annual ACM-SIAM
+Symposium on Discrete Algorithms, 1995, 430–436.
+21. Haldorsson M M, Szegedy M. Lower bounds for online graph coloring. In Proc. 3rd
+Annual ACM-SIAM Symposium on Discrete Algorithms, 1992, 211–216.
+22. Irani S. Coloring inductive graphs online. In Proc. 31st Annual IEEE Symposium
+on Foundations of Computer Science, 1990, 470–479.
+23. Kellerer H, Kotov V, Speranza M G, Tuza T. Semi-online algorithms for the partition problem. Operations Research Letters, 1997, 21:235-242.
+24. Kress D, Meiswinkel S, Pesch E. Mechanism design for machine scheduling problems: classification, and literature review. OR Spectrum, 2018, 40(3):583-611.
+25. Lan Y, Chen X, Ding N, Dosa G, Han X. Online makespan scheduling with a buffer.
+Frontiers in Algorithms and Aspects in Information and Management, 2012, 161–
+171.
+26. Liu W P, Sidney J B, Vliet A. Ordinal algorithms for parallel machine scheduling.
+Operations Research Letters, 1996, 18:223–232.
+27. Ma R, Guo S, Miao C. A semi-online algorithm and its competitive analysis for parallel machine scheduling problem with rejection. Applied Mathematics and Computation, 2021, 392:125670.
+28. Mao W, Kincaid R K. A lookahead heuristic for scheduling jobs with release dates
+on a single machine. Computers & Operations Research, 1994, 10:1041–1050.
+29. Motwani R, Saraswat V, Torng E. Online scheduling with lookahead: Multipass
+assembly lines. INFORMS Journal on Computing, 1998, 10(3): 331–340.
+30. Pinedo M L. Scheduling, Theory, Algorithms, and Systems. 5th Edition, Springer
+Cham, 2016. https://doi.org/10.1007/978-3-319-26580-3.
+31. Sun H, Fan R. Improved semi-online makespan scheduling with a reordering buffer.
+Information Processing Letters, 2013, 113(12):434–439.
+32. Tarjan R E, Sleator D D. Amortized computational complexity. SIAM Journal on
+Algebraic and Discrete Methods, 1985, 6(2):306-318.
+33. Torng E. A unified analysis of paging and caching. In Proc. 36th Annual IEEE
+Symposium on Foundations of Computer Science, 1995, 194–203.
+34. Yong H. Semi-online scheduling problems for maximizing the minimum machine
+completion time. Acta Mathematicae Applicate sinica, 2001, 17(1):107–113.
+35. Zhang G. A simple semi-online algorithm for P2 //Cmax with a buffer. Information
+Processing Letters, 1997, 61:145–148.
+36. Zheng F, Chen Y, Liu M, Xu Y. Semi-online scheduling on two identical parallel
+machines with initial lookahead information. Asia Pacific Journal of Operational
+Research, January, 2023. https://doi.org/10.1142/S0217595923500033.
+
+

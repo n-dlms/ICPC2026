@@ -1,0 +1,1763 @@
+Greedy Minimization of the Number of Late Jobs:
+Deadline Trees, Optimal Prefixes, and Tier Matroids
+
+arXiv:2607.16347v4 [cs.DS] 30 Jul 2026
+
+Dean Matthew Menezes
+University of Texas at Austin
+dean.menezes@utexas.edu
+
+C. Gregory Plaxton
+University of Texas at Austin
+plaxton@cs.utexas.edu
+
+Abstract
+P
+We revisit the single-machine problem 1 ||
+Uj through Moore’s shortest-processing-time
+insertion rule: scan jobs from shortest to longest and accept a job whenever the accepted set
+remains feasible. A direct implementation checks every affected deadline prefix and can take
+quadratic time.
+For a job set Y , let Slack(Y ) be its least deadline-prefix gap when viewed in isolation. If the
+accepted set is X, then a candidate of processing time p and deadline d can be added exactly
+when
+Proc(X<d ) + p ≤ min{d, Slack(X≥d )}.
+An augmented balanced search tree stores only the total work and intrinsic slack of each subtree.
+These two-number summaries compose under an associative ordered-block product. A read-only
+feasibility query follows one root-to-leaf path: right turns accumulate work due before the
+candidate’s deadline, while left turns certify the current deadline and a skipped suffix. With q
+stored deadlines, a query or point update takes O(log(q + 2)) worst-case time. After sorting,
+the scan takes O(n log(k + 2)) time, where k is the number of distinct deadlines in its output,
+and O(n log n) time overall. Matching algebraic computation-tree lower bounds show that the
+overall O(n log n) bound is optimal; the global bound persists when all processing times are one
+and an SPT order is supplied. After arbitrary preprocessing of a fixed q-key state, one feasibility
+query can still require Ω(log q) time.
+For every attainable cardinality, the acceptance prefixes over all tie orders are exactly the
+minimum-work feasible sets and have a componentwise-minimum sorted processing-time vector.
+Equal-processing-time choices form canonical chain-presented laminar matroids; their direct
+sum describes all complete greedy outputs, and their ordered sum describes all optimal prefixes.
+Finally, a compact flow network defines a scheduling polymatroid rank whose contracted, scaled
+increments recover the complete rank functions of the tier matroids.
+
+1
+
+Introduction
+
+Consider a finite set S of jobs available at time zero on one nonpreëmptive machine. Job α has
+P
+processing time α.p > 0 and deadline α.d > 0. The objective in the classical problem 1 ||
+Uj
+is to complete as many jobs on time as possible. A set X ⊆ S is feasible if and only if its
+earliest-deadline-first schedule is feasible, equivalently if
+X
+α.p ≤ d
+(1.1)
+α∈X: α.d≤d
+
+at every job deadline [15, 14, 20]. Thus the problem is governed by a nested family of deadline-prefix
+capacities.
+1
+
+Moore’s 1968 paper gives two greedy views of these capacities [18]. The familiar Moore–Hodgson
+algorithm scans jobs by deadline and deletes a longest job whenever a prefix becomes late. Moore’s
+original shortest-processing-time (SPT) procedure instead scans jobs from shortest to longest and
+keeps the next job if the retained set remains feasible. The insertion rule never revokes an acceptance,
+and only jobs of equal processing time require a choice. Its direct implementation, however, may
+test every later deadline prefix for every candidate and therefore takes quadratic time.
+Lin and Wang analyze the insertion rule as a dual greedy algorithm and state an O(n log n)
+bound, but they do not specify the dynamic representation needed to maintain the feasibility
+test within that bound [17, Sec. 3]. An earlier dynamic-programming account of Moore–Hodgson
+keeps, for every EDD prefix and every attainable cardinality, one feasible set of minimum total
+processing time [22]. Hoogeveen and T’kindt use the direct quadratic insertion test in a related
+variable-start-time problem and ask whether it can be improved [13]. Zhao and Yuan subsequently
+obtain O(n log n) algorithms for that setting and for the insertion rule itself [23, 24]. Their latter
+implementation maintains a preëmptive DD-schedule as occupied intervals separated by idle gaps. A
+candidate may cross several interval records, after which the schedule representation is restored; the
+logarithmic bound is amortized over the complete scan.
+The deadline tree developed here has the same total asymptotic bound, but it stores neither a
+schedule nor an interval decomposition. At each accepted deadline it stores one processing mass, and
+every subtree stores only two summary fields: total work and least intrinsic slack. These summaries
+compose associatively along the deadline order. A candidate follows one root-to-leaf path. A right
+turn accumulates work known to precede the candidate’s deadline; a left turn certifies the current
+deadline and an entire skipped right subtree. A rejected candidate changes no state. Thus each
+decision and each accepted point update takes O(log(q + 2)) worst-case time with q stored deadlines.
+Once an SPT order is given, the scan takes O(n log(k + 2)) time, where k is the number of distinct
+deadlines in its output; including sorting, it takes O(n log n) time. A proportional family with
+α.d = 32 α.p gives a matching Ω(n log n) algebraic computation-tree lower bound. A paired-deadline
+family gives the same bound when every processing time is one and an SPT order is supplied, so
+the logarithm is not merely the cost of finding the processing-time order. A separate fixed-state
+construction shows that, even after arbitrary preprocessing, a single feasibility query on q stored
+deadlines can require Ω(log q) time.
+The same deadline-prefix capacities also determine the structure of every tie order. Our main
+contributions are as follows.
+1. We isolate the exact suffix-slack margin for one insertion and derive the deadline tree from
+an associative ordered-block summary. We also give a coördinate-compressed segment-tree
+specialization and compare the representation with Zhao and Yuan’s DD-schedule data structure.
+The resulting implementation has a worst-case logarithmic bound for every candidate. In the
+algebraic computation-tree model, a proportional family proves the total O(n log n) bound
+optimal, a paired-deadline family preserves that lower bound for unit jobs with a supplied
+SPT order, and a fixed-state construction proves the O(log(q + 2)) query bound optimal after
+arbitrary preprocessing.
+2. For every attainable cardinality i, the first i accepted jobs, over all SPT tie orders, are exactly
+the feasible i-sets of minimum total processing time. Conversely, every such set is realized
+by a tie order. These sets simultaneously maximize the number of selected jobs below every
+processing-time threshold, so their sorted processing-time vectors are componentwise minimum.
+3. After the shorter processing-time tiers have been fixed, the feasible choices from the next
+2
+
+tier form a canonical nested matroid. The complete greedy outputs are the bases of the
+direct sum of these tier matroids, and ordering a tie class by a secondary weight is precisely
+the Rado–Edmonds greedy algorithm. Across all cardinalities, the optimal prefixes form the
+ordered sum of the tier matroids, a local poset greedoid; every fixed-cardinality layer is the
+basis family of an explicit matroid.
+4. A compact flow network packages all deadline prefixes into a normalized, monotone, submodular
+rank function. Feasibility is the condition that every job contributes its full processing mass.
+After contracting the shorter accepted jobs, dividing residual rank by the current processing
+time and taking the floor recovers the entire rank function of the corresponding tier matroid.
+The common object behind these results is residual deadline-prefix capacity. The insertion margin
+records its least value in an affected suffix; the tree maintains that value dynamically; the tier matroids
+quantize it within one processing-time class; and the flow construction packages all thresholds into
+one polymatroid rank. Earlier work already supplies the insertion rule, final-cardinality lexicographic
+optimality, one nested minimum-work list for a fixed tie order, and an O(n log n) implementation
+[22, 17, 24]. The scheduling-specific contributions here are the two-number deadline summary, the
+exact description of all optimal prefixes and tie orders, the canonical tier capacities, and their
+recovery from contracted flow.
+All sets are finite, all release times are zero, and processing times and deadlines are positive
+real numbers. Running times use the comparison-based RAM model with unit-cost arithmetic and
+comparisons on input values; the lower bound is stated separately in the algebraic computation-tree
+model.
+Organization. Section 2 fixes the notation and proves the insertion criterion. Section 3 states
+the SPT rule and relates it to Moore’s original procedure. Section 4 develops the deadline tree,
+its offline specialization, the lower bounds, and the comparison with Zhao and Yuan. Sections 5
+and 6 establish the optimal-prefix and tier-matroid structure. Section 7 gives the flow-polymatroid
+interpretation and the contracted-rank formula.
+
+2
+
+Model and notation
+
+Let S be a finite set of n distinct jobs. A job α has processing time α.p > 0 and deadline α.d > 0;
+distinct jobs may have identical data. For X ⊆ S, let
+D(X) = {α.d : α ∈ X}
+be its set of deadlines. For d > 0, deadline subscripts denote the corresponding slices:
+X<d = {α ∈ X : α.d < d}, X≤d = {α ∈ X : α.d ≤ d},
+X=d = {α ∈ X : α.d = d}, X≥d = {α ∈ X : α.d ≥ d}.
+Define
+Proc(X) =
+
+X
+
+α.p,
+
+α∈X
+
+and call Proc(X) the work of X. Thus the work due by d is Proc(X≤d ). We also write X+α = X∪{α}
+when α ∈
+/ X, and X − α = X \ {α} when α ∈ X.
+
+3
+
+A schedule is an ordering of a job set. An earliest-deadline-first (EDF) schedule, also called
+an earliest-due-date (EDD) schedule, orders jobs by nondecreasing deadline; an SPT schedule
+orders them by nondecreasing processing time. Let SPT(S) be the family of SPT schedules of S.
+Juxtaposition concatenates schedules on disjoint sets, so σα appends α to σ.
+A schedule is feasible when every job completes by its deadline. A set is feasible when it admits
+a feasible schedule. Let F(S) be the family of feasible subsets of S. This family is hereditary: every
+subset of a feasible set is feasible.
+Lemma 2.1 (Deadline-prefix criterion). A set X is feasible if and only if
+Proc(X≤d ) ≤ d
+for every d > 0. It is enough to test the deadlines in D(X).
+Proof. In EDF order, every job due by d completes no later than time Proc(X≤d ). Thus the
+inequalities at job deadlines make the EDF schedule feasible. Conversely, if Proc(X≤d ) > d, the jobs
+due by d require more than d units of machine time in every schedule.
+Define the maximum feasible cardinality
+κ(S) = max{|X| : X ∈ F(S)}.
+Because feasibility is hereditary, a feasible set exists at every cardinality 0, 1, . . . , κ(S). For such an
+i, define
+Oi (S) = arg min{Proc(X) : X ∈ F (S), |X| = i}.
+Thus, O(S) = Oκ(S) (S) is the family of maximum-cardinality feasible sets with minimum total
+processing time.
+For p > 0, put
+S ≤p = {α ∈ S : α.p ≤ p};
+the notation S =p and S <p has the analogous meaning. Write X ≡p Y when X and Y contain the
+same number of jobs in every processing-time tier; equivalently, their multisets of processing times
+are equal.
+For a job set Y , define its intrinsic slack by
+
++∞,
+Y = ∅,
+
+Slack(Y ) =
+(2.1)
+ min δ − Proc(Y≤δ ) , Y ̸= ∅.
+δ∈D(Y )
+
+This is the least deadline-prefix gap when Y is viewed in isolation. If q units of work precede the
+entire block Y , every one of its gaps is shifted by −q, so its actual least gap is Slack(Y ) − q. By
+Lemma 2.1, Y is feasible exactly when Slack(Y ) ≥ 0.
+For a set X and a query deadline d > 0, define the suffix slack
+SlackX (d) = min{d, Slack(X≥d )} − Proc(X<d ).
+
+(2.2)
+
+The first term accounts for a new checkpoint at d when no accepted job has that deadline; the second
+accounts for the existing deadline checkpoints at or after d. Equivalently,
+
+
+SlackX (d) = min {d − Proc(X≤d )} ∪ {δ − Proc(X≤δ ) : δ ∈ D(X), δ > d} .
+Hence SlackX (d) is exactly the least prefix gap affected by adding work at deadline d. It is defined
+for every X, feasible or not, and may be negative.
+4
+
+Lemma 2.2 (One-job insertion criterion). Let X be feasible and let α ∈
+/ X. Then X + α is feasible
+if and only if
+SlackX (α.d) ≥ α.p.
+Proof. The insertion does not change any prefix before α.d and subtracts α.p from every later prefix
+gap. The least affected gap is SlackX (α.d); every unaffected gap is nonnegative. The prefix criterion
+proves the claim.
+Figure 1 summarizes the insertion test. Every affected checkpoint loses the same amount α.p, so
+feasibility is determined by the least gap in the suffix.
+prefix gap
+before insertion
+
+after insertion
+α.p
+SlackX (α.d)
+
+t0
+
+α.d
+
+δ1
+
+δ2
+
+δ3
+
+t
+
+Figure 1: Schematic effect of inserting a job due at α.d. The gap at every checkpoint at or after
+α.d decreases by α.p; earlier gaps do not change. The insertion is feasible exactly when the lowest
+affected gap remains nonnegative.
+
+3
+
+The SPT insertion rule and Moore’s algorithm
+
+Let σ = (α1 , . . . , αq ) be a sequence in nondecreasing processing time. Starting with X = ∅, scan σ
+from left to right and accept αi exactly when X + αi is feasible. Accepted jobs are never removed.
+Write G(σ) for the returned set. For a full instance S, define
+G(S) = {G(σ) : σ ∈ SPT(S)},
+where only the order within an equal-processing-time tier may vary.
+Algorithm 1 The SPT insertion rule
+1: procedure SPT-Greedy(S)
+2:
+choose σ = (α1 , . . . , αn ) ∈ SPT(S)
+3:
+X←∅
+4:
+for i ← 1 to n do
+5:
+if X + αi ∈ F(S) then
+6:
+X ← X + αi
+7:
+end if
+8:
+end for
+9:
+return X
+10: end procedure
+After iteration i, X is the feasible set accepted from α1 , . . . , αi . This invariant follows immediately
+from the rule. Lemma 2.2 supplies the scalar test used by the implementations below.
+5
+
+3.1
+
+Relation to Moore’s original procedure
+
+Moore starts with an SPT order. He finds the first late job, puts the prefix ending there into EDF
+order, and keeps the candidate exactly when that reordered prefix is feasible [18, pp. 103–105]. The
+deadline-ordered deletion rule attributed to Hodgson is a different algorithm, although both solve
+the same problem [21, 10, 5].
+Theorem 3.1 (Equivalence with Moore’s SPT algorithm). Fix an order within every equal-processingtime tier. Moore’s SPT algorithm and Algorithm 1 retain the same jobs.
+Proof. We induct over Moore’s iterations. At the start of an iteration, let R be the jobs already
+retained. The current sequence consists of a feasible EDF order of R, followed by the unexamined
+jobs in the fixed SPT order. This invariant holds initially with R = ∅.
+In searching the current sequence for its first late job, Moore may pass an initial block P of the
+unexamined suffix. For every prefix P ′ of P , the current sequence schedules R ∪ P ′ on time. Hence
+R ∪ P ′ is feasible, and Algorithm 1 accepts the jobs of P one by one. If Moore finds no late job,
+then P is the entire remaining suffix and both algorithms terminate with the same set.
+Otherwise, let α be the first late job. Immediately before α is considered by Algorithm 1, its
+accepted set is R ∪ P . Moore now orders R ∪ P ∪ {α} by deadline. By Lemma 2.1, this EDF order is
+feasible exactly when R ∪ P ∪ {α} is feasible, which is exactly the condition under which Algorithm 1
+accepts α. Thus both procedures make the same decision.
+If α is retained, Moore’s reordered prefix is a feasible EDF order of the new retained set. If α
+is rejected, the remaining set is R ∪ P , which was already shown feasible; after removing α, the
+reordered prefix is an EDF order of that set and is therefore feasible by Lemma 2.1. In either case the
+unexamined SPT suffix is untouched, so the invariant is restored. Induction proves the theorem.
+The distinction is algorithmic, not merely terminological: the insertion rule never revokes an
+accepted job. Moore–Hodgson scans by deadline and may delete a job accepted earlier.
+
+4
+
+Fast implementation
+
+4.1
+
+The deadline tree
+
+Algorithm 1 is stated in terms of feasibility. Conceptually, one may implement one iteration by
+tentatively adding the candidate and undoing the addition if the new set is infeasible:
+X ← X + α;
+
+if Slack(X) < 0 then X ← X − α.
+
+This formulation is a useful specification, but it changes the state even when the candidate is
+rejected. We can instead answer the same question read-only by first evaluating CanAdd(d, p); only
+a successful query is followed by a point update.
+At every deadline d, the tree stores only the accepted processing mass
+mX (d) = Proc(X=d ).
+No schedule is stored. The data structure supports CanAdd(d, p), for p ≥ 0, and a signed point
+update Add(d, ∆), subject to mX (d) + ∆ ≥ 0. Its state is therefore a nonnegative deadline–mass
+profile. When that profile comes from a job set, a client using a negative update must change the
+represented job collection consistently. The SPT scan uses only positive updates.
+
+6
+
+4.1.1
+
+Ordered subtree summaries
+
+There is one search-tree node for every deadline carrying positive mass. For a subtree T ′ , let
+keys(T ′ ) = {v.d | v ∈ T ′ }.
+For a node u, let Tu be the subtree rooted at u, and let u.ℓ and u.r be its left and right children.
+The jobs represented in that subtree are
+Xu = {α ∈ X | α.d ∈ keys(Tu )}.
+Every missing child points to a sentinel nil, representing the empty ordered block. We set
+keys(nil) = ∅,
+
+Xnil = ∅,
+
+(nil.x, nil.y) = (0, +∞).
+
+The tree invariant is
+keys(T ) = D(X),
+u.p = Proc(X=u.d ),
+
+u.x = Proc(Xu ),
+
+u.y = Slack(Xu ) (u ∈ T ).
+
+(4.1)
+
+Thus u.p belongs to one deadline, whereas u.x and u.y summarize an entire inorder block.
+For an ordered job block Y , write
+
+Φ(Y ) = Proc(Y ), Slack(Y ) .
+If every deadline in A is smaller than every deadline in B, then
+Φ(A ∪ B) = Φ(A) ⊙ Φ(B),
+
+
+(P, S) ⊙ (P ′ , S ′ ) = P + P ′ , min{S, S ′ − P } .
+
+(4.2)
+
+Indeed, the gaps in A are unchanged, whereas each gap in B is reduced by the P = Proc(A) units
+of work that precede it. The product is associative: either parenthesization of three factors gives
+
+P1 + P2 + P3 , min{S1 , S2 − P1 , S3 − P1 − P2 } .
+Its identity is (0, +∞), the summary carried by nil.
+The inorder block of Tu is the left subtree, the mass at u.d, and the right subtree. Hence
+(u.x, u.y) = Φ(Xu.ℓ ) ⊙ (u.p, u.d − u.p) ⊙ Φ(Xu.r ).
+Expanding the product gives the maintained fields:
+u.x = u.ℓ.x + u.p + u.r.x,
+u.y = min{u.ℓ.y, u.d − u.ℓ.x − u.p, u.r.y − u.ℓ.x − u.p}.
+
+(4.3)
+
+The three terms in u.y are the least gap in the left block, the gap at u.d, and the least gap in the
+right block after its preceding work has been included. A point update or rotation therefore requires
+only constant-time recomputation at each affected node. At the root r, r.y = Slack(X); thus the
+represented set is feasible exactly when r.y ≥ 0.
+
+7
+
+4.1.2
+
+A one-path feasibility query
+
+A conventional search can split the inorder sequence at d, returning the work before d and the
+summary at or after d. Introducing accumulators turns this split query into a tail-recursive procedure,
+in the style of the recursive-program transformations of Burstall and Darlington [4]. Since the caller
+needs only a Boolean answer, the accumulated suffix summary can then be fused into the traversal.
+The parameter a is an accumulated load. In the public call it is initialized to the proposed mass
+p; after a right turn it also contains all work newly known to precede d. At a node u, put
+work = a + u.ℓ.x + u.p.
+If u.d < d, this work lies before the new deadline and is passed to the right child. If u.d ≥ d, the
+current key and every key in the right subtree are safe exactly when
+work ≤ min{u.d, u.r.y}.
+After that test, only the left subtree remains.
+Algorithm 2 The deadline-tree feasibility query
+1: function CanAdd(u, d, a)
+2:
+if u = nil then
+3:
+return a ≤ d
+4:
+end if
+5:
+work ← a + u.ℓ.x + u.p
+6:
+if u.d < d then
+7:
+return CanAdd(u.r, d, work )
+8:
+else if work > min{u.d, u.r.y} then
+9:
+return false
+10:
+else
+11:
+return CanAdd(u.ℓ, d, a)
+12:
+end if
+13: end function
+The public operation T.CanAdd(d, p) calls CanAdd(T.root, d, p).
+Lemma 4.1 (Correctness of CanAdd). Suppose that T satisfies (4.1) for a feasible set X. For
+p ≥ 0, Algorithm 2 returns true if and only if adding p units of work at deadline d preserves feasibility.
+Proof. Let p0 be the proposed mass. Since X is feasible, the addition can violate only the new
+checkpoint at d and the existing checkpoints at or after d. It is therefore feasible exactly when
+p0 + Proc(X<d ) ≤ d,
+p0 + Proc(X≤t ) ≤ t
+
+for every t ∈ D(X) with t ≥ d.
+
+(4.4)
+
+Fix d. For a subtree Tu and an accumulated load a, let A(u, a) denote the two conditions
+a + Proc((Xu )<d ) ≤ d,
+a + Proc((Xu )≤t ) ≤ t
+
+for every t ∈ keys(Tu ) with t ≥ d.
+
+(4.5)
+
+At the root, A(T.root, p0 ) is precisely (4.4). We prove by induction on Tu that the recursive call
+CanAdd(u, d, a) returns true exactly when A(u, a) holds.
+8
+
+For u = nil, the second condition is vacuous and the first is a ≤ d, which is the base case. Now
+let u ̸= nil, and write
+w = a + u.ℓ.x + u.p.
+If u.d < d, the left subtree and the mass at u contribute only to the work before d, and every key of
+Tu at least d lies in the right subtree. Hence
+A(u, a)
+
+⇐⇒
+
+A(u.r, w).
+
+This is the first recursive branch.
+Suppose instead that u.d ≥ d. The constraint at u.d is w ≤ u.d. All w units precede the right
+subtree, whose intrinsic least gap is u.r.y; its constraints are therefore equivalent to w ≤ u.r.y. Once
+the current key and the right subtree have been certified, the remaining conditions are exactly
+A(u.ℓ, a). Thus
+A(u, a) ⇐⇒ w ≤ min{u.d, u.r.y} and A(u.ℓ, a).
+The last two branches implement this equivalence. Structural induction proves the claim, and the
+root case gives (4.4).
+
+d=5
+p=2
+x = 4, y = 2
+
+3 < 4:
+recurse with a = c + 1
+
+5 > 4:
+work = c + 3; require
+work ≤ min{5, 7} = 5
+
+d=3
+p=1
+
+d=8
+p=1
+
+x = 1, y = 2
+
+x = 1, y = 7
+
+nil
+
+return c + 1 ≤ 4
+
+Figure 2: The root’s left turn certifies the deadline constraints at 5 and 8; the subsequent right turn
+accumulates the work at deadline 3. Hence CanAdd accepts the candidate of processing time c
+exactly when c ≤ 2.
+4.1.3
+
+Operations and the SPT scan
+
+Theorem 4.2 (Deadline-tree operations). Suppose that the tree represents a feasible set X. With
+q stored deadlines, an augmented red–black tree implements CanAdd and Add in O(log(q + 2))
+worst-case time and uses O(q) stored space. Under tail-call elimination, CanAdd uses O(1) auxiliary
+space.
+Proof. Correctness of the query is Lemma 4.1. Its recursive calls follow one root-to-leaf path, and
+every call is in tail position.
+For Add(d, ∆), let a = mX (d), taking a = 0 when the key is absent. The precondition is
+a + ∆ ≥ 0. If a + ∆ > 0, update the node or insert it; if a + ∆ = 0, delete the key. Recompute (4.3)
+on the affected search path and after every rotation. Each recomputation takes constant time, and
+a red–black-tree search or update touches O(log(q + 2)) nodes [6, Ch. 14]. One node is stored per
+positive-mass deadline.
+9
+
+To implement Algorithm 1, maintain a deadline tree beside its accepted set X. When the next
+job is α, accept it precisely when
+T.CanAdd(α.d, α.p)
+returns true; on acceptance, execute T.Add(α.d, α.p). No state-changing operation is performed on
+rejection.
+Theorem 4.3 (Fast implementation). For any chosen SPT order σ, the deadline-tree implementation
+returns G(σ). Once the order is known, the scan takes O(n log(k + 2)) time, where k is the number
+of distinct deadlines in its output. Including the sort, the running time is O(n log n).
+Proof. After every iteration, the tree represents exactly the accepted set X, and X is feasible. By
+Theorem 4.2, the query for α succeeds exactly when X + α is feasible. Thus the tree makes precisely
+the decisions of Algorithm 1.
+Let qi be the number of keys present when the ith job is tested. The iteration performs one
+O(log(qi + 2)) query and, only on acceptance, one update of the same order. Accepted jobs are never
+removed, so qi ≤ k. The scan therefore takes O(n log(k + 2)) time; comparison sorting by processing
+time takes O(n log n).
+Once the jobs are supplied in SPT order, the scan is online with respect to that stream: no
+decision uses a later job. The tree needs neither advance knowledge of the deadline universe nor
+coördinate compression. An implementation may repeat the key search after a successful query and
+keep the query’s auxiliary space constant, or retain the O(log(k + 2))-length search path and reuse
+it for the update.
+4.1.4
+
+Offline segment-tree specialization
+
+When all deadlines are known in advance, the same test has a shorter coördinate-compressed
+implementation. Let
+d1 < · · · < dm
+be the distinct input deadlines. At any stage of the SPT scan, let wj be the accepted work having
+deadline dj , and define the prefix slack
+zj = dj −
+
+j
+X
+
+(1 ≤ j ≤ m).
+
+wh
+
+h=1
+
+Every candidate deadline is one of the dj . Adding a job α with α.d = dj leaves z1 , . . . , zj−1 unchanged
+and subtracts α.p from every zh with h ≥ j. Hence
+CanAdd(α.d, α.p)
+
+⇐⇒
+
+min zh ≥ α.p.
+h≥j
+
+A candidate therefore requires one suffix-minimum query, followed on acceptance by one suffix-add
+update.
+Corollary 4.4 (Offline implementation). After coördinate compression, a lazy segment tree implements the SPT scan in O(n log(m + 2)) time and O(m) space.
+Proof. Initialize leaf j to dj , so initially zj = dj . Each internal node stores the minimum of its
+interval, and each lazy tag stores a pending additive update. A suffix-minimum query and a suffix-add
+update each take O(log(m + 2)) worst-case time. Every candidate causes one query, and only an
+accepted candidate causes an update.
+10
+
+The segment tree is the simpler offline representation. The deadline tree stores only deadlines
+carrying accepted work, needs no advance knowledge of the deadline universe, and gives the outputsensitive bound of Theorem 4.3.
+4.1.5
+
+Algebraic lower bounds
+
+The preceding algorithms take O(n log n) time overall and O(log(q + 2)) time per deadline-tree query.
+We use Ben-Or’s standard algebraic computation-tree model, in which arithmetic and root-extraction
+nodes form new real quantities from the inputs, previously computed quantities, and real constants,
+while branch nodes test signs [1]. The next three results show that both logarithms are unavoidable
+in this model. The proportional family gives the shortest overall proof. The paired-deadline family
+removes the cost of finding an SPT order. The final construction fixes the stored state in advance
+and varies only one candidate.
+Theorem 4.5 (Overall lower bound). In the algebraic computation-tree model, deciding whether
+an n-job set is feasible requires Ω(n log n) time in the worst case. The bound already holds for the
+maximum running time over feasible inputs. The same lower bound holds for computing κ(S), for
+computing the final accepted set of Moore’s SPT insertion rule, or for deciding whether that rule
+accepts every job. The hard family satisfies
+3
+α.d = α.p
+2
+
+(α ∈ S),
+
+so processing-time and deadline orders coïncide.
+Proof. Given z = (z1 , . . . , zn ) ∈ Rn , reject in O(n) time if some coördinate is nonpositive. Otherwise
+form one job αi for each coördinate, with
+αi .p = 2zi ,
+
+αi .d = 3zi .
+
+(4.6)
+
+Let Wn be the set of source points for which the resulting job set is feasible. Fix a permutation π
+and suppose zπ(1) < · · · < zπ(n) . At deadline 3zπ(t) , the prefix criterion becomes
+X
+2
+zπ(s) ≤ 3zπ(t) ,
+s≤t
+
+or equivalently
+zπ(t) ≥ 2
+
+X
+
+zπ(s)
+
+(1 ≤ t ≤ n).
+
+(4.7)
+
+s<t
+
+These linear inequalities define a convex cone and imply the displayed strict order. The cone is
+nonempty: one may take zπ(t) = 3t−1 .
+No feasible point has two equal coördinates. Indeed, if zi = zj = v > 0, then two jobs of total
+processing time 4v are due by time 3v. Hence a connected subset of Wn cannot cross from one
+permutation chamber to another. Conversely, (4.7) gives one nonempty connected feasible cone in
+every chamber. Thus Wn has exactly n! connected components.
+The reduction (4.6) uses O(n) arithmetic operations. Ben-Or’s connected-component theorem
+therefore gives a depth lower bound
+c1 log(n!) − c2 n = Ω(n log n)
+for recognizing Wn , for absolute constants c1 , c2 > 0 [1]. For the one-sided assertion, suppose that
+every feasible input were handled within h(n) steps. Truncate the algorithm after h(n) steps and
+11
+
+reject every unfinished computation. The truncated tree still recognizes Wn , so the same argument
+gives h(n) = Ω(n log n).
+Finally, the full job set is feasible exactly when κ(S) = n, and exactly when Moore’s insertion
+rule accepts every job. Each of the stated output problems therefore decides the same recognition
+problem.
+Theorem 4.6 (Common-processing-time lower bound). In the algebraic computation-tree model,
+deciding whether an N -job set is feasible requires Ω(N log N ) time even when every job has processing
+time 1 and an SPT order is supplied with the input. The bound already holds for the maximum
+running time over feasible inputs. The same lower bound holds for computing κ(S), for computing
+the final accepted set of Moore’s insertion rule, or for deciding whether that rule accepts every job.
+On every hard feasible input, every job is accepted.
+Proof. First let N = 2m. Given y = (y1 , . . . , ym ) ∈ Rm , reject in O(m) time unless
+1 ≤ yi ≤ m +
+
+1
+2
+
+(1 ≤ i ≤ m).
+
+Put C = 2m + 23 . For each i, form two unit-processing-time jobs αi and βi with
+βi .d = C − yi .
+
+αi .d = yi ,
+
+(4.8)
+
+Let y(1) ≤ · · · ≤ y(m) be the order statistics. Every α-deadline is at most m + 12 , whereas every
+β-deadline is at least m + 1. At deadline y(k) , at least k of the α-jobs are due, so feasibility implies
+k ≤ y(k) . At deadline C − y(k) , all m α-jobs and at least m − k + 1 of the β-jobs are due. Hence
+2m − k + 1 ≤ C − y(k) ,
+or y(k) ≤ k + 12 . Thus feasibility requires
+k ≤ y(k) ≤ k +
+
+1
+2
+
+(1 ≤ k ≤ m).
+
+(4.9)
+
+Conversely, the intervals [k, k + 12 ] are pairwise disjoint. Under (4.9), the deadlines occur in the
+order
+y(1) , . . . , y(m) , C − y(m) , . . . , C − y(1) .
+The prefix ending at y(k) has load k, and the prefix ending at C − y(k) has load 2m − k + 1. The
+two inequalities in (4.9) verify these respective prefixes, so they also suffice for feasibility.
+For each permutation π ∈ Sm , define
+
+
+1
+m
+Pπ = y ∈ R : k ≤ yπ(k) ≤ k + for 1 ≤ k ≤ m .
+2
+Each Pπ is a nonempty convex box. The boxes are pairwise disjoint, and (4.9) shows that their
+union is exactly the accepted source set. It therefore has m! connected components. The reduction
+(4.8) uses O(m) arithmetic operations, so Ben-Or’s theorem gives
+c1 log(m!) − c2 m = Ω(m log m) = Ω(N log N )
+for absolute constants c1 , c2 > 0 [1]. The truncation argument in the proof of Theorem 4.5 gives the
+same lower bound for the maximum running time over feasible inputs.
+12
+
+If N = 2m + 1, append one fixed unit job of deadline N . Every original deadline is at most
+2m + 12 < N , and the final prefix has load N ; hence the augmented instance is feasible exactly when
+the original one is. Finally, all processing times are equal, so any supplied order is an SPT order. On
+a feasible full set, every intermediate accepted set is a subset of a feasible set and is therefore feasible;
+Moore’s insertion rule accepts every job. Conversely, if the rule accepts every job, its final set is the
+full set and is feasible. The same output reductions used in Theorem 4.5 therefore apply.
+Theorem 4.7 (One-query lower bound). Let q ≥ 3. After arbitrary preprocessing of a fixed feasible
+state with q distinct deadline keys, some successful CanAdd query and some rejected CanAdd
+query each require Ω(log q) time in the algebraic computation-tree model. The fixed state may consist
+of unit jobs, and every candidate may be the next job in an SPT order.
+Proof. Fix the feasible state
+Xq = {β1 , . . . , βq },
+
+βj .p = 1,
+
+βj .d = 2j.
+
+For a source value x ∈ (2, 2q), query a candidate αx with
+αx .d = x,
+
+αx .p =
+
+x 1
++ .
+2 4
+
+Since αx .p > 1, the candidate follows every job of Xq in SPT order. If 2j < x < 2j + 2, where
+1 ≤ j < q, then Proc((Xq )<x ) = j and Slack((Xq )≥x ) = 2j + 1. Hence (2.2) gives
+SlackXq (x) = min{x − j, j + 1}.
+
+(4.10)
+
+The query succeeds precisely when
+x 1
++ ≤ min{x − j, j + 1},
+2 4
+that is, precisely when
+2j +
+
+1
+3
+≤ x ≤ 2j + .
+2
+2
+
+(4.11)
+
+At a stored deadline x = 2j, the insertion margin is j, whereas αx .p = j + 14 , so the query is
+rejected. The successful source set is therefore the union of q − 1 pairwise disjoint intervals, while its
+complement in (2, 2q) has q connected components.
+The fixed state and any preprocessing of it may be hard-wired into the computation tree.
+Precompose the query algorithm with the algebraic map x 7→ (αx .d, αx .p). If every successful query
+took at most h steps, truncate at depth h and reject unfinished computations. The resulting tree
+recognizes the successful source set, so Ben-Or’s theorem and its q − 1 components give h = Ω(log q).
+Interchanging the two Boolean outputs and applying the same truncation argument to the q rejected
+components proves the rejected-query bound.
+Remark 4.8 (What the bounds isolate). Theorem 4.5 gives the shortest proof of the overall Ω(n log n)
+bound. Theorem 4.6 makes SPT sorting vacuous and has no rejected candidates on its hard feasible
+inputs, so its logarithm comes from the deadline constraints themselves. Finally, Theorem 4.7 keeps
+the stored state fixed and permits arbitrary preprocessing, so its logarithm cannot be attributed
+to sorting, rebuilding, or successful updates. All three results assume arbitrary real input and the
+algebraic computation-tree model; they do not exclude faster bounds for bounded integer data in
+models with floor, radix operations, hashing, or direct addressing.
+13
+
+4.2
+
+Overview of the Zhao–Yuan data structure
+
+The purpose of the present section is to highlight the main ideas underlying the Zhao–Yuan data
+structure. Our overview is not intended to be comprehensive; see [24] for full details. Our goal is to
+allow the reader to appreciate the relative simplicity of the augmented BST data structure presented
+in Section 4.1.
+At a high level, the Zhao–Yuan data structure is based on three main ideas. The first idea is to
+exploit the fact that a job set admits a feasible non-preëmptive schedule if and only if it admits a
+feasible preëmptive schedule. In other words, the Zhao–Yuan data structure determines whether
+X + α is feasible by determining whether there is a feasible preëmptive schedule for X + α.
+The second idea is to observe that, in order to construct a feasible preëmptive schedule for a
+given feasible job set, we can schedule each successive job α as late as possible; that is, we allocate
+unused intervals working backwards from the deadline of α until the processing time of α has been
+fulfilled.
+The above two ideas are sufficient to provide the basis for a correct data structure. We can store
+the maximal contiguous allocated intervals associated with the current schedule in a BST ordered by
+the interval start times. To check whether we can add a job α with deadline d and processing time
+p, we first search the BST to identify the rightmost allocated interval with start time at most d. We
+then move left through the interval records while maintaining a running sum of the unused time
+available before d, until either (1) the sum reaches p, so α can be added while preserving feasibility,
+or (2) time zero is reached and the sum remains less than p, so α cannot be added while preserving
+feasibility.
+A single test may encounter many interval records. If each movement between records is
+implemented by an ordered-dictionary operation, the immediate bound is O(k log n), where k is
+the number of records encountered before one of the two terminating conditions is reached. When
+condition (1) is reached, however, inserting α as late as possible transforms the portion of the
+schedule encountered by the search. The restoration procedures consolidate that portion, so all but
+a constant number of the records crossed by the search disappear as separate records. Thus the
+work spent crossing those records can be charged against the resulting decrease in the size of the
+representation. This gives the desired amortized logarithmic bound for successful tests. The same
+conclusion does not yet follow for a test ending in condition (2), because a rejected job need not
+alter the representation. The third idea removes this difficulty.
+The third main idea is to observe that if a job α with deadline d and processing time p cannot be
+added to the current feasible set X, then no job β that is processed by the SPT insertion rule after
+α and that has deadline at most d will ever be accepted. Indeed, suppose that β were accepted later,
+when the accepted set had grown to X ′ ⊇ X. Then β.p ≥ p and β.d ≤ d. Replacing β by α in a
+feasible schedule of X ′ + β preserves feasibility, so its subset X + α would be feasible, a contradiction.
+We may therefore modify the preëmptive schedule on the prefix relevant to deadline d: rather than
+continuing to execute the jobs represented there as late as possible, we schedule them from time
+zero as early as possible, in EDF order. The affected interval records can then be consolidated into a
+single initial occupied interval. Consequently, a rejected test also pays for the records encountered
+by its search, and the same amortized analysis applies to both outcomes.
+The invariant produced by these operations is called a DD-schedule. An initial portion of the
+accepted work is packed from time zero in EDF order; the remaining work is scheduled strictly after
+this initial portion and as late as possible. Equivalently, the first occupied interval begins at time zero,
+while each later occupied interval is anchored at a deadline (that is, its right endpoint is a deadline),
+with idle gaps separating successive occupied intervals. The ordered family of maximal occupied
+
+14
+
+intervals, and hence the idle gaps determined by their endpoints, is the associated DD-interval family.
+The implementation need not retain the full assignment of job pieces to time intervals: it is enough
+to maintain this interval family and the information needed to perform the backward search and
+restore DD form.
+Thus a candidate may cross several records, and either outcome may transform the portion
+crossed by the search. Zhao and Yuan bound the total number of ordered-dictionary operations over
+the complete scan by a potential argument, obtaining O(log n) amortized time per candidate and
+O(n log n) total time; see [24, Lem. 2.4 and Theorem 2.1].
+The Zhao–Yuan structure and our augmented BST implement the same accept-if-feasible rule
+and have the same overall asymptotic running time. The difference lies in the representation and the
+analysis. The Zhao–Yuan structure maintains a preëmptive schedule through occupied intervals and
+idle gaps, and its time bound is amortized over the resulting interval transformations. Our structure
+maintains no schedule: it stores one processing mass at each accepted deadline and two intrinsic
+summary fields in each subtree. Each feasibility query follows one read-only search path; a rejected
+candidate therefore causes no state change, and every test has a worst-case logarithmic bound.
+Table 1: Comparison of the Zhao–Yuan DD-schedule representation and the deadline tree.
+Persistent state
+
+Candidate test
+
+Accepted job
+
+Rejected job
+Correctness proof
+
+Time proof
+
+Zhao–Yuan
+
+Deadline tree
+
+A preëmptive DD-schedule: one
+left-packed initial interval and later
+intervals anchored at deadlines
+Search left through idle gaps and
+occupied intervals, then restore DD
+form
+Transform the affected schedule;
+several interval records may merge or
+disappear
+Consolidate the searched part of the
+schedule
+Preserve the DD-schedule invariant
+through the search and restoration
+procedures
+Amortized over the scan; one
+candidate may cross many intervals
+
+A map from accepted deadlines to
+processing mass, with a two-number
+summary at every node
+Follow one search path, accumulating
+prefix work and certifying skipped right
+subtrees
+Perform one point update at the
+candidate deadline
+Make no state change
+Compose intrinsic subtree summaries
+and certify each affected deadline on
+one path
+Worst-case O(log(q + 2)) per candidate
+
+Both implementations realize the same accept-if-feasible rule and have the same overall asymptotic
+bound. The advantage claimed here is therefore not a faster asymptotic running time, but a smaller
+persistent state, a read-only rejection path, an output-sensitive bound, and a correctness proof
+directly from the deadline-prefix inequalities.
+
+5
+
+Optimal acceptance prefixes
+
+The SPT rule makes a local feasibility decision at each job, but its acceptance prefixes satisfy a
+global optimality property. The exchange lemma below is the only scheduling-specific ingredient. It
+says that a job already chosen by a greedy prefix can be inserted into any larger minimum-work
+solution by removing a job of the same processing time.
+
+15
+
+Lemma 5.1 (Greedy-prefix exchange). Let σ ∈ SPT(S), let σ ′ be a prefix of σ, and put X = G(σ ′ ).
+Suppose that Y ∈ Oi (S) and i ≥ |X|. If X ⊈ Y , then there are jobs α∗ ∈ X \ Y and β ∗ ∈ Y \ X
+such that
+α∗ .p = β ∗ .p and Y + α∗ − β ∗ ∈ Oi (S).
+Proof. Let α∗ be the first job of σ ′ in X △ Y . We first show that α∗ ∈ X \ Y . Otherwise α∗ ∈ Y \ X.
+Immediately before α∗ is examined, every accepted job precedes α∗ and belongs to X; by the choice
+of α∗ , every such job also belongs to Y . The current accepted set together with α∗ is therefore a
+subset of the feasible set Y , so the greedy rule would accept α∗ , a contradiction.
+Since |Y | ≥ |X| and X ⊈ Y , the set Y \ X is nonempty. Choose β ∗ ∈ Y \ X with minimum
+deadline. It cannot precede α∗ in σ: if it did, it would lie in σ ′ and would be an earlier member of
+X △ Y . Since σ is an SPT schedule,
+α∗ .p ≤ β ∗ .p.
+Put Y ′ = Y + α∗ − β ∗ . If d ≥ β ∗ .d, then
+′
+Proc(Y≤d
+) ≤ Proc(Y≤d ) − β ∗ .p + α∗ .p ≤ d.
+
+If d < β ∗ .d, the choice of β ∗ implies that every job of Y \ X has deadline at least β ∗ .d. Hence every
+′ ) ≤ d. Lemma 2.1 shows that
+job of Y ′ due by d belongs to the feasible set X, and again Proc(Y≤d
+′
+Y is feasible.
+Both Y and Y ′ have i jobs. The optimality of Y and the inequality α∗ .p ≤ β ∗ .p give
+Proc(Y ) ≤ Proc(Y ′ ) = Proc(Y ) + α∗ .p − β ∗ .p ≤ Proc(Y ).
+Equality holds throughout. Thus α∗ .p = β ∗ .p and Y ′ ∈ Oi (S).
+Corollary 5.2 (Prefix containment). Under the hypotheses of Lemma 5.1, every Y ∈ Oi (S) can be
+replaced by a set Y ′ ∈ Oi (S) such that
+X ⊆Y′
+
+and
+
+Y ′ ≡p Y.
+
+Proof. Apply Lemma 5.1 until X ⊆ Y . Every exchange adds one missing member of X, preserves
+optimality, and preserves the processing-time multiset. Thus |X \ Y | decreases at each step.
+The full greedy output is now an immediate consequence. This final-cardinality assertion is the
+form closest to the earlier critical-set optimality result of Lin and Wang [17].
+Corollary 5.3 (Final optimality). Every set in G(S) belongs to O(S).
+Proof. Take X ∈ G(S) and Y ∈ O(S). Since |Y | = κ(S) ≥ |X|, Corollary 5.2 gives Y ′ ∈ O(S) with
+X ⊆ Y ′.
+The greedy output X is inclusion-maximal among feasible subsets of S. Indeed, if X + α were
+feasible for a rejected job α, then the accepted set present when α was examined, together with
+α, would be a subset of the feasible set X + α. The greedy rule would have accepted α. Thus no
+rejected job can extend X feasibly, and the containment X ⊆ Y ′ forces X = Y ′ .
+For 0 ≤ i ≤ κ(S), let Gi (σ) be the set of the first i jobs accepted while scanning σ, and define
+Gi (S) = {Gi (σ) : σ ∈ SPT(S)}.
+Corollary 5.3 shows that every full SPT run has exactly κ(S) acceptances, so this notation is well
+defined.
+16
+
+Zhao and Yuan show that one fixed SPT order, with EDF tie-breaking, produces a minimum-work
+feasible set at every attainable cardinality [24]. The next theorem removes the fixed tie order and
+proves the converse realization statement.
+Theorem 5.4 (Prefix optimality and realization). For every 0 ≤ i ≤ κ(S),
+Gi (S) = Oi (S).
+Moreover, all sets in this family have the same processing-time multiset.
+Proof. The assertion is immediate for i = 0, so assume i > 0.
+First take X ∈ Gi (S). Choose an SPT schedule whose first i accepted jobs form X, and stop it
+immediately after the ith acceptance. The greedy output on this prefix is X. For any Y ∈ Oi (S),
+Corollary 5.2 gives Y ′ ∈ Oi (S) with
+X ⊆Y′
+
+and Y ′ ≡p Y.
+
+Since |X| = |Y ′ | = i, we have X = Y ′ . Thus X ∈ Oi (S) and X ≡p Y . This proves one inclusion
+and the common processing-time multiset.
+Conversely, fix Y ∈ Oi (S). Within every processing-time tier, order the jobs of Y before the jobs
+outside Y , and let X be the first-i acceptance set in the resulting SPT schedule. The first part of
+the proof gives X ≡p Y .
+We prove tier by tier that X = Y . Suppose they agree in every tier shorter than p, and put
+c = |Y <p |. If c = i, neither set contains a job in tier p or in a later tier. Otherwise the accepted set
+before tier p is Y <p . The jobs of Y =p occur first in the tier and are accepted one by one, because
+each intermediate accepted set is a subset of the feasible set Y . Since X ≡p Y , the first i acceptances
+contain exactly |Y =p | jobs of processing time p; hence no tier-p job outside Y can enter X. Induction
+over the finitely many tiers gives X = Y .
+Relative to these cited antecedents, Theorem 5.4 sharpens the minimum-work statement in
+two directions. Lin and Wang characterize the final critical sets by lexicographically least sorted
+processing-time sequences [17, Sec. 3]. Zhao and Yuan obtain one nested list of minimum-work
+solutions, one for each cardinality, from a fixed SPT/EDF run [24]. The theorem applies to every
+SPT tie order and also proves that every minimum-work i-set can be realized by a suitable tie order.
+Deng and Lin study the larger family of all maximum-cardinality solutions [7].
+
+5.1
+
+The common processing-time profile
+
+For 0 ≤ i ≤ κ(S), call a feasible i-job set X threshold-dominant if
+|X ≤p | ≥ |Y ≤p |
+for every feasible i-job set Y and every p > 0. It is enough to check the processing times that occur
+in S. Let Ti (S) be the family of threshold-dominant i-sets.
+Theorem 5.5 (Exact threshold profile). For every 0 ≤ i ≤ κ(S),
+Gi (S) = Oi (S) = Ti (S).
+Every set X in these families satisfies
+|X ≤p | = min{i, κ(S ≤p )}
+17
+
+(p > 0).
+
+(5.1)
+
+Proof. The equality Gi (S) = Oi (S) is Theorem 5.4. Take X ∈ Gi (S) and fix p > 0. In an SPT scan,
+every job of S ≤p is examined before every longer job. At the end of that initial block, its accepted
+jobs form a full greedy output for S ≤p and therefore number κ(S ≤p ). The first i acceptances contain
+exactly
+min{i, κ(S ≤p )}
+of them, proving (5.1).
+If Y is any feasible i-job set, then Y ≤p is a feasible subset of S ≤p . Hence
+|Y ≤p | ≤ min{i, κ(S ≤p )} = |X ≤p |.
+Thus every greedy prefix, and therefore every minimum-work i-set, is threshold-dominant.
+Conversely, let Y ∈ Ti (S) and choose X ∈ Gi (S). Threshold dominance gives |Y ≤p | ≥ |X ≤p |,
+while the preceding rank bound gives the reverse inequality. Therefore
+|Y ≤p | = |X ≤p |
+
+(p > 0).
+
+The two sets have the same number of jobs in every processing-time tier, so Y ≡p X and Proc(Y ) =
+Proc(X). Since X has minimum work, so does Y ; Theorem 5.4 then gives Y ∈ Gi (S).
+Thus the optimum is stronger than a minimum sum: it simultaneously maximizes the number of
+selected jobs below every processing-time threshold. Equivalently, it has the coördinate-wise least
+sorted processing-time vector.
+For 1 ≤ j ≤ κ(S), define
+λj = min{p : p is a processing time in S, κ(S ≤p ) ≥ j}.
+Corollary 5.6 (Componentwise minimum processing profile). Let X ∈ Oi (S), and write its
+processing times as
+p1 (X) ≤ · · · ≤ pi (X).
+Then
+(1 ≤ j ≤ i).
+
+pj (X) = λj
+
+For every feasible i-job set Y , with sorted processing times p1 (Y ) ≤ · · · ≤ pi (Y ),
+pj (X) ≤ pj (Y )
+
+(1 ≤ j ≤ i).
+
+Consequently, if
+Wi = min{Proc(Y ) : Y ∈ F(S), |Y | = i},
+then
+Wi =
+
+i
+X
+
+λj ,
+
+W0 = 0,
+
+Wi − Wi−1 = λi ,
+
+j=1
+
+and (Wi ) is discretely convex.
+Proof. By (5.1), the jth selected processing time is the first threshold at which the restricted
+rank reaches j; hence it is λj . If p = pj (Y ), then |Y ≤p | ≥ j, so κ(S ≤p ) ≥ j and λj ≤ p. The
+formulae for Wi follow, and the nondecreasing sequence λ1 , . . . , λκ(S) gives nondecreasing successive
+differences.
+
+18
+
+P
+In particular, a minimum-work i-set minimizes α∈X f (α.p) for every nondecreasing function f ,
+and, more generally, minimizes every coördinate-wise nondecreasing function of its sorted processingtime vector.
+Remark 5.7 (Scalarized work–cardinality trade-off). Set λ0 = −∞ and λκ(S)+1 = +∞. Since
+Wi − Wi−1 = λi , a cardinality i minimizes
+Wi − θi
+if and only if
+λi ≤ θ ≤ λi+1 .
+Thus every minimizer of Proc(X) − θ|X| over feasible sets X ⊆ S is a minimum-work set of one of
+these cardinalities, and Theorem 5.4 realizes it as an SPT acceptance prefix. This is an immediate
+consequence of the profile theorem rather than a separate structural result.
+
+5.2
+
+Tier orthogonality
+
+The next observation prepares the matroid decomposition of Section 6. Once the order within one
+processing-time tier is fixed, the decisions in that tier do not depend on how the shorter tiers were
+ordered.
+Lemma 5.8 (A fixed tier order). Fix p > 0. Let σ, σ ′ ∈ SPT(S <p ), and let τ be an ordering of S =p .
+The same tier-p jobs are accepted in στ and σ ′ τ .
+Proof. Write τ = α1 · · · αm and expose these jobs one at a time. Before αj is exposed, the two
+partial schedules are SPT schedules of the same job set
+Rj = S <p + α1 + · · · + αj−1 .
+By Corollary 5.3, both partial runs accept κ(Rj ) jobs. After αj is appended, both extended runs
+accept κ(Rj + αj ) jobs. Since αj is last in each extended schedule, it is accepted exactly when
+κ(Rj + αj ) = κ(Rj ) + 1.
+This condition is independent of the lower-tier tie order. Induction on j proves the claim.
+For every processing time p, define the family of possible tier-p slices
+BS,p = {G(σ)=p : σ ∈ SPT(S)}.
+Theorem 5.9 (Product of tier choices). A set X ⊆ S belongs to G(S) if and only if
+X =p ∈ BS,p
+
+for every processing time p occurring in S.
+
+Proof. The forward implication is immediate. For the converse, list the distinct processing times
+as p1 < · · · < pq and construct an SPT schedule one tier at a time. Suppose the orders of the first
+j − 1 tiers have already been fixed and produce the prescribed slices of X. Since X =pj ∈ BS,pj ,
+some full SPT schedule realizes this tier-pj slice. Use its order of the tier-pj jobs as the next block.
+Lemma 5.8 shows that replacing that schedule’s lower-tier block by the block already constructed
+does not change its tier-pj decisions. Continuing through all tiers produces an SPT schedule whose
+greedy output is exactly X.
+Theorem 5.9 says that tie choices in distinct tiers can be combined independently. Section 6
+identifies each family BS,p as the bases of a nested matroid and the full greedy-output family as the
+product of these tier-slice families.
+19
+
+6
+
+Tier matroids and greedy refinement
+
+The feasible subsets of S do not in general form a matroid. For example, let
+a = (d=2, p=2),
+
+b = (d=1, p=1),
+
+c = (d=2, p=1).
+
+The sets {a} and {b, c} are feasible, but neither {a, b} nor {a, c} is feasible. The exchange property
+appears only after the jobs of smaller processing time have been fixed. This tierwise structure has
+an algorithmic consequence: within each equal-processing- time tier, the SPT scan is exactly the
+ordinary matroid greedy algorithm.
+
+6.1
+
+The canonical matroid of one tier
+
+Fix a processing time p > 0, put E = S =p , choose any σ ∈ SPT(S <p ), and let A = G(σ). Thus A is
+the set accepted before the scan reaches tier p. Define
+IS,p (A) = {Y ⊆ E : A ∪ Y is feasible}.
+Recall from Section 5.2 that BS,p is the family of possible tier-p slices of complete SPT outputs.
+Let
+τ1 < · · · < τq
+be the distinct deadlines occurring in A ∪ E, and put
+Dk = {α ∈ E : α.d ≤ τk }
+
+(1 ≤ k ≤ q).
+
+The sets D1 ⊆ · · · ⊆ Dq = E form a chain. Define the raw capacities
+
+
+τk − Proc(A≤τk )
+ck =
+p
+and their suffix minima
+
+(6.1)
+
+
+
+
+SlackA (τk )
+bk = min cj =
+.
+j≥k
+p
+
+(6.2)
+
+Because A is feasible, the capacities are nonnegative; because the bk are suffix minima, they are
+nondecreasing.
+Theorem 6.1 (Canonical tier matroid). The family IS,p (A) is independent of the lower-tier SPT
+order used to obtain A. Writing the common family as IS,p , we have
+IS,p = {Y ⊆ E : |Y ∩ Dk | ≤ bk for 1 ≤ k ≤ q}.
+
+(6.3)
+
+Consequently, (E, IS,p ) is a chain-presented laminar matroid, denoted by MS,p . Its bases are exactly
+the members of BS,p .
+Proof. We first remove the apparent dependence on A. If A ∪ Y is feasible, list the jobs of Y first
+when the SPT scan reaches tier p. Every one is accepted, since each intermediate accepted set is a
+subset of A ∪ Y . Completing the scan gives a tier slice B ∈ BS,p with Y ⊆ B.
+Conversely, suppose that Y ⊆ B for some B ∈ BS,p . Take an SPT order realizing B, retain its
+order within tier p, and replace its lower-tier block by σ. Lemma 5.8 preserves every decision in tier
+p, so the accepted set after that tier is A ∪ B. Hence A ∪ Y is feasible. We have proved
+IS,p (A) = {Y ⊆ E : Y ⊆ B for some B ∈ BS,p },
+20
+
+(6.4)
+
+which is independent of σ.
+For Y ⊆ E, the deadline-prefix criterion gives
+A ∪ Y is feasible
+
+⇐⇒
+
+|Y ∩ Dk | ≤ ck
+
+(1 ≤ k ≤ q).
+
+These raw bounds are equivalent to the tightened bounds in (6.3). One direction follows from bk ≤ ck .
+For the other, choose j ≥ k with bk = cj ; then Dk ⊆ Dj , and the raw bound at j implies
+|Y ∩ Dk | ≤ |Y ∩ Dj | ≤ cj = bk .
+For completeness, the chain bounds satisfy exchange. Let I, J obey (6.3) with |I| < |J|. If no Dk
+is tight for I, any element of J \ I may be added. Otherwise let Dh be the largest tight set. Since
+|J ∩ Dh | ≤ bh = |I ∩ Dh | and |J| > |I|,
+some α ∈ J \ I lies outside Dh . Every chain member containing α properly contains Dh and is not
+tight; the other constraints are unchanged. Hence I + α is independent.
+Finally, (6.4) says that every independent set is contained in a member of BS,p . Theorem 5.5
+says that all members of BS,p have the same cardinality. They are therefore precisely the bases of
+MS,p .
+Chain presentations are a special case of laminar-matroid presentations; see, for example, Fife
+and Oxley [11].
+Remark 6.2 (Raw and tightened capacities). The raw capacities ck need not be nondecreasing:
+lower-tier work may consume more capacity at a later checkpoint. Their suffix minima bk are the
+unique nondecreasing tightening that defines the same chain family. The same tightening reappears
+in the contracted-flow rank of Section 7.
+Example 6.3 (A two-level tier). Suppose that, after redundant constraints are removed, the
+presentation has one nonempty proper chain member D1 ⊊ E, with capacities b1 = 1 and b2 = 2
+for D2 = E. A tier basis then consists of two jobs, at most one of which lies in the early-deadline
+set D1 . Every order of the tier ends with such a basis; ordering by secondary weight selects a
+maximum-weight one by Corollary 6.4.
+
+6.2
+
+Edmonds greedy within a tier
+
+Theorem 6.1 turns the tie-breaking part of SPT into a standard greedy problem. At any point in
+tier p, the accepted slice Y is independent in MS,p , and a new job α ∈ E is accepted exactly when
+Y + α remains independent. Thus arbitrary tie-breaking is safe for the same reason that arbitrary
+ordering finds a basis of a matroid: every maximal independent set is a basis.
+More generally, ties can be used to optimize a secondary objective.
+Corollary 6.4 (Weighted tie-breaking). Assign a real secondary weight wα to each job in E. Process
+tier p in nonincreasing order of wα , accepting a job exactly when feasibility is preserved. The accepted
+tier slice is a maximum-weight basis of MS,p .
+Proof. The feasibility test is exactly the independence test for MS,p . The assertion is therefore the
+Rado–Edmonds greedy theorem for maximum-weight matroid bases [9, 19].
+Define
+IS = {X ⊆ S : X =p ∈ IS,p for every processing time p occurring in S}.
+21
+
+Corollary 6.5 (The greedy-output matroid). The pair MS = (S, IS ) is the direct sum
+M
+MS,p .
+MS =
+p
+
+Every member of IS is scheduling-feasible, and the bases of MS are exactly the greedy outputs G(S).
+Proof. Direct sums of matroids are matroids, and their bases are unions of bases of the summands [19,
+Sec. 4.2]. By Theorem 5.9, such unions are exactly the complete SPT outputs. If X ∈ IS , extend
+every tier slice of X to a tier basis. The union is a greedy output and hence feasible; heredity then
+implies that X is feasible.
+Corollary 6.6 (Secondary optimization among primary optima). Assign a real secondary weight wα
+to every job. Run the SPT scan, ordering jobs of equal processing time by nonincreasing secondary
+weight. The resulting set maximizes
+X
+wα
+α∈X
+
+among all maximum-cardinality feasible sets of minimum total processing time. With the deadline
+tree of Section 4, the algorithm runs in O(n log n) time.
+Proof. Theorem 5.4 identifies the greedy outputs with the minimum-work feasible sets of maximum
+cardinality. By Corollary 6.5, these sets are the bases of the direct sum MS . A maximum-weight
+basis of a direct sum is the union of maximum-weight bases of its summands. Corollary 6.4 therefore
+proves optimality. Sorting by the lexicographic key (α.p, −wα ) and executing the deadline-tree scan
+takes O(n log n) time.
+The preceding corollary is the main algorithmic use of the matroid interpretation: tie-breaking is
+not merely harmless; it can optimize an arbitrary additive objective without changing the primary
+optimum or the asymptotic running time.
+
+6.3
+
+Further structure of optimal prefixes
+
+The remaining consequences describe all acceptance prefixes, but are not needed by the algorithms
+above. Let
+p1 < · · · < pt
+be the distinct processing times, and write
+Ej = S =pj ,
+
+Mj = MS,pj ,
+
+rj = rk(Mj ).
+
+Let
+κ(S)
+
+P(S) =
+
+[
+
+Oi (S)
+
+i=0
+
+be the family of all minimum-work acceptance prefixes.
+Theorem 6.7 (Optimal-prefix greedoid). A set X ⊆ S belongs to P(S) if and only if, for some h,
+it takes a basis of Mj from every tier j < h, an independent set of Mh from tier h, and no job from
+a later tier. Consequently,
+P(S) = M1 ⊗ · · · ⊗ Mt ,
+
+22
+
+the ordered sum of the tier matroids. Moreover, this greedoid is a local poset greedoid: below a fixed
+prefix C, its feasible subsets are exactly the ideals of the order
+α ≺C β
+
+⇐⇒
+
+α.p < β.p.
+
+Its bases are the greedy outputs.
+Proof. By Theorem 5.4, P(S) is the family of all SPT acceptance prefixes. Such a prefix completes
+every tier before its last, takes an independent set from its last tier, and takes nothing from later
+tiers. Conversely, choose the prescribed bases in the tiers before h. Theorem 5.9 realizes them
+simultaneously as the completed lower-tier slices of an SPT scan. Now list the desired independent
+set of Mh first in tier h. By the definition of Mh and Theorem 6.1, each successive one of these jobs
+is accepted. Stopping after the last of them realizes X as an acceptance prefix. This proves the
+ordered-sum description.
+Now fix C ∈ P(S). A subset of C is an ideal in the displayed order exactly when it contains every
+earlier tier represented in it and an arbitrary subset of its last tier. By the ordered-sum description,
+these are precisely the members of P(S) contained in C. This is the local-poset property [16, 2].
+Maximum-cardinality prefixes complete every tier, so Corollary 6.5 identifies them with the greedy
+outputs.
+Put
+Rj =
+
+j
+X
+
+rℓ ,
+
+R0 = 0,
+
+ℓ=1
+
+and, for 0 ≤ i ≤ κ(S), define
+sj (i) = min{rj , max{0, i − Rj−1 }}.
+If Truncs (M ) denotes rank-s truncation, set
+NS,i =
+
+t
+M
+
+Truncsj (i) (Mj ).
+
+(6.5)
+
+j=1
+
+A flag matroid may be represented by a quotient chain of matroids; a flag of bases is a nested
+chain containing one basis from each member of the chain.
+Corollary 6.8 (Matroid layers and flags). For every i, the bases of NS,i are exactly the sets in
+Oi (S). Moreover,
+(NS,0 , NS,1 , . . . , NS,κ(S) )
+is a flag matroid, and its flags of bases are exactly the complete acceptance-prefix chains of SPT
+scans.
+Proof. Theorem 6.7 shows that an i-element prefix takes bases from the completed tiers, an independent set of the prescribed size from the current tier, and nothing later. These are exactly the bases
+of (6.5); Theorem 5.4 identifies them with Oi (S).
+Passing from i to i + 1 increases one truncation rank by one. Truncation gives a quotient chain,
+and direct sums preserve quotient relations [3]; hence the NS,i form a flag matroid. Every SPT scan
+supplies a flag of acceptance prefixes.
+Conversely, let B0 ⊂ B1 ⊂ · · · ⊂ Bκ(S) be a flag of bases, and let αi be the unique job in Bi \ Bi−1 .
+Corollary 5.6 shows that α1 .p, . . . , ακ(S) .p is nondecreasing. Within each processing-time tier, list its
+23
+
+entering jobs in flag order and then list the remaining jobs of that tier. Immediately before αi is
+examined, the accepted set is Bi−1 ; since Bi is feasible, αi is accepted. At the end of a completed
+tier, its accepted slice is a basis of the corresponding tier matroid, so no remaining job of that
+tier is accepted. The resulting SPT scan therefore has exactly the prescribed flag as its complete
+acceptance-prefix chain.
+
+7
+
+A flow-polymatroid view
+
+The deadline tree answers one insertion query at a time. A flow network packages all deadline prefixes
+into one rank function. The resulting threshold formula has three complementary consequences: it
+characterizes feasibility by full rank contribution, defines a scheduling polymatroid for fractional
+capacity, and, after contraction and quantization, recovers the nested matroid governing each
+equal-processing-time tier.
+
+7.1
+
+A threshold-cut rank
+
+Let
+0 = d0 < d1 < · · · < dm
+be the distinct deadlines in S, put ∆k = dk − dk−1 , and choose C > Proc(S). For each job α, let
+j(α) be the index such that α.d = dj(α) . For X ⊆ S, construct N (X) with a job vertex vα for each
+α ∈ X, an interval vertex uk for each 1 ≤ k ≤ m, and arcs
+s
+vα
+uk
+uk
+
+→
+→
+→
+→
+
+vα
+uj(α)
+uk−1
+t
+
+(α.p),
+(C),
+(C)
+(∆k )
+
+(2 ≤ k ≤ m),
+(1 ≤ k ≤ m),
+
+where parentheses give capacities. Flow entering uj(α) may use that interval or move backward to any
+earlier interval. The network has O(|X| + m) vertices and arcs. Let r(X) denote its maximum-flow
+value. Equivalently, one may build the network for all of S and delete the source arcs of jobs outside
+X.
+Theorem 7.1 (Threshold-cut formula). For every X ⊆ S,
+
+
+
+
+X
+
+
+.
+r(X) = min 
+d
++
+α.p
+ℓ
+
+0≤ℓ≤m 
+
+(7.1)
+
+α∈X
+α.d>dℓ
+
+Proof. The cut whose source side is {s} has capacity Proc(X) < C; hence a minimum cut crosses
+no C-arc. Its source-side interval vertices form a prefix, because uk on the source side forces uk−1
+there as well. Write this prefix as u1 , . . . , uℓ , allowing ℓ = 0.
+Fix the interval prefix. When α.d ≤ dℓ , placing vα on the source side crosses neither s → vα
+nor a C-arc. When α.d > dℓ , the vertex uj(α) is on the sink side, so vα must be there as well. The
+minimum cut with this interval prefix therefore has capacity
+X
+X
+X
+∆k +
+α.p = dℓ +
+α.p.
+k≤ℓ
+
+α∈X: α.d>dℓ
+
+α∈X: α.d>dℓ
+
+For every ℓ, these placements define a cut with the displayed capacity. The max-flow min-cut
+theorem now proves (7.1).
+24
+
+Figure 3 shows the network and one threshold cut.
+Corollary 7.2 (Feasibility and full marginal). A set X is feasible if and only if r(X) = Proc(X).
+If X is feasible and α ∈
+/ X, then
+⇐⇒
+
+X + α is feasible
+
+r(X + α) − r(X) = α.p.
+
+(7.2)
+
+Thus the insertion query asks whether the new job contributes its full rank marginal.
+Proof. The ℓth term of (7.1) is at least Proc(X) if and only if Proc(X≤dℓ ) ≤ dℓ ; the term for
+ℓ = 0 equals Proc(X). This proves the first assertion. When X is feasible, (7.2) is equivalent to
+r(X + α) = Proc(X + α), so the first assertion applied to X + α proves the second.
+Theorem 7.3 (Scheduling polymatroid). The function r : 2S → R≥0 is normalized, monotone, and
+submodular. With integral input data it is integer-valued.
+Proof. Put Bℓ = {α ∈ S : α.d > dℓ }. These sets form a decreasing chain, and
+
+r(X) = min dℓ + Proc(X ∩ Bℓ ) .
+ℓ
+
+Normalization and monotonicity follow from this formula. Choose minimizing indices i for X and j
+for Y ; by symmetry assume i ≤ j, so Bi ⊇ Bj . Job by job,
+Proc(X ∩ Bi ) + Proc(Y ∩ Bj ) ≥ Proc((X ∩ Y ) ∩ Bi ) + Proc((X ∪ Y ) ∩ Bj ).
+After adding di + dj , the right side is at least r(X ∩ Y ) + r(X ∪ Y ). This proves submodularity.
+Integral data make every term in (7.1) integral.
+Corollary 7.4 (Diminishing marginal capacity). If X ⊆ Y ⊆ S and α ∈
+/ Y , then
+r(X + α) − r(X) ≥ r(Y + α) − r(Y ).
+In particular, if X and Y are feasible and α cannot be added to X, then it cannot be added to Y .
+Proof. The displayed inequality is the diminishing-returns form of submodularity. If α cannot be
+added to feasible X, its marginal is smaller than α.p by Corollary 7.2. Its marginal at Y is no larger,
+so it cannot be added to Y .
+source-side vertices for d1 = 3
+α
+
+C
+
+4
+
+C
+1
+
+s
+
+u1
+
+β
+
+C
+
+2
+
+u2
+C
+
+1
+γ
+
+(α.p, α.d) = (4, 3)
+
+3
+t
+
+(β.p, β.d) = (1, 5)
+(γ.p, γ.d) = (1, 7)
+
+2
+
+u3
+C
+
+Figure 3: The flow network and the threshold cut at d1 = 3. Its capacity is 3 + 1 + 1 = 5: the first
+interval contributes three units, and the two jobs due later than 3 cross from s. The total offered
+work is six.
+25
+
+A minimizing threshold in Theorem 7.1 is a rejection certificate: it identifies a deadline prefix
+whose offered work exceeds its available machine time. If every processing time is 1 and deadlines
+are integral, then r(X) is the maximum cardinality of a feasible subset of X; the polymatroid rank
+specializes to the classical deadline-scheduling matroid rank.
+
+7.2
+
+Contraction to an equal-processing-time tier
+
+Fix a positive processing time p, choose σ ∈ SPT(S <p ), put A = G(σ), and put E = S =p . For
+Y ⊆ E, define the contracted rank
+ρA,p (Y ) = r(A ∪ Y ) − r(A).
+Let
+0 = τ0 < τ1 < · · · < τq
+be the distinct deadlines in A ∪ E, and define
+
+τk − Proc(A≤τk )
+,
+ck =
+p
+
+
+Dk = {α ∈ E : α.d ≤ τk },
+
+bk = min cj .
+j≥k
+
+(7.3)
+
+Thus D0 ⊆ · · · ⊆ Dq = E and 0 = b0 ≤ · · · ≤ bq . By Theorem 6.1, these are the chain sets and
+capacities of the nested matroid MS,p .
+Lemma 7.5 (Contracted threshold formula). For every Y ⊆ E,
+
+
+
+ρA,p (Y )
+= min bk + |Y \ Dk | .
+0≤k≤q
+p
+
+(7.4)
+
+Proof. Since A is feasible, r(A) = Proc(A). Write
+gA (d) = d − Proc(A≤d ).
+Subtracting r(A) from (7.1) gives
+
+ρA,p (Y ) = min gA (dℓ ) + p|{α ∈ Y : α.d > dℓ }| .
+ℓ
+
+(7.5)
+
+Between consecutive values of τ0 , . . . , τq , the set term is constant and gA (d) increases with d. Hence
+the minimum in (7.5) is attained at some τk . Taking floors gives
+
+
+
+ρA,p (Y )
+= min ck + |Y \ Dk | .
+(7.6)
+0≤k≤q
+p
+It remains to replace the raw capacities by their suffix minima. Since bk ≤ ck ,
+
+
+min bk + |Y \ Dk | ≤ min ck + |Y \ Dk | .
+k
+
+k
+
+Conversely, for each k, choose j ≥ k with bk = cj . Since Dk ⊆ Dj ,
+cj + |Y \ Dj | ≤ bk + |Y \ Dk |.
+The minimum of the raw terms is therefore no larger than every tightened term. Taking the minimum
+over k proves the reverse inequality and (7.4).
+26
+
+Theorem 7.6 (Tier rank from contracted flow). For every Y ⊆ E,
+
+
+ρA,p (Y )
+.
+rkMS,p (Y ) =
+p
+
+(7.7)
+
+Consequently, the right side is independent of the lower-tier tie order, and Y is independent in MS,p
+if and only if ρA,p (Y ) = p|Y |.
+Proof. By Theorem 6.1, a set I ⊆ E is independent in MS,p if and only if
+|I ∩ Dk | ≤ bk
+
+(0 ≤ k ≤ q).
+
+Every independent I ⊆ Y therefore satisfies
+|I| ≤ bk + |Y \ Dk |
+
+(0 ≤ k ≤ q).
+
+Hence the rank of Y is at most the right side of (7.4).
+Let
+
+h = min bk + |Y \ Dk | .
+0≤k≤q
+
+The term for k = 0 shows that h ≤ |Y |. Choose h jobs of Y with latest deadlines, breaking ties
+arbitrarily. For each k, put t = |Y \ Dk |. If t ≥ h, all chosen jobs lie outside Dk ; if t < h, exactly
+h − t ≤ bk chosen jobs lie in Dk . The chosen set is independent and has size h. Lemma 7.5 now
+proves (7.7).
+Finally, the d0 = 0 term in (7.5) gives ρA,p (Y ) ≤ p|Y |. Thus the rank equals |Y | if and only if
+ρA,p (Y ) = p|Y |.
+Corollary 7.7 (SPT is tierwise Edmonds greedy). During tier p, a job is accepted if and only if it
+raises the rank of MS,p by one. Thus an SPT scan is an ordered sequence of ordinary matroid-greedy
+phases, one for each processing-time tier.
+Proof. Let Y be the already accepted slice of tier p. Since Y is independent, Theorem 7.6 gives
+ρA,p (Y ) = p|Y |. By Corollary 7.2, the next job α is accepted if and only if
+ρA,p (Y + α) = ρA,p (Y ) + p.
+Theorem 7.6 identifies this condition with a unit increase in the rank of MS,p .
+
+7.3
+
+Fractional optimization
+
+Let
+P (r) = {x ∈ RS≥0 : x(Y ) ≤ r(Y ) for all Y ⊆ S},
+
+x(Y ) =
+
+X
+
+xα .
+
+α∈Y
+
+Here xα is the amount of processing admitted from job α; a point of P (r) may admit only part of a
+job.
+Corollary 7.8 (Linear optimization over the scheduling polymatroid). Given nonnegative weights
+wα , a maximizer of wT x over P (r) can be computed in O(n log n) time. For integral input, the
+returned vector is integral in units of processing time, although it may allocate only part of a job.
+
+27
+
+Proof. Order the jobs so that wπ(1) ≥ · · · ≥ wπ(n) , put Ui = {π(1), . . . , π(i)}, and set
+xπ(i) = r(Ui ) − r(Ui−1 ).
+Edmonds’ polymatroid greedy theorem proves optimality [8, 12]. The marginals can be computed
+by maintaining
+X
+zℓ = dℓ +
+α.p.
+α∈Ui
+α.d>dℓ
+
+Inserting a job of deadline dj adds its processing time to exactly z0 , . . . , zj−1 , and r(Ui ) = minℓ zℓ .
+Coördinate compression and a lazy segment tree support each prefix addition and global minimum
+in O(log n) time. Integrality follows from Theorem 7.3.
+The tree and the flow rank are two resolutions of the same deadline-prefix capacity. The tree
+implements the full-marginal decision dynamically; the flow rank packages all thresholds into one
+submodular function. The polymatroid does not replace the exchange argument: its greedy algorithm
+may allocate only part of a job, and the family of feasible job sets need not be a matroid. Its discrete
+role is exact but tierwise. After contraction by the shorter jobs and division by p, its rank becomes
+the nested-matroid rank tested during the processing-time-p phase of SPT.
+
+8
+
+Conclusion
+
+Deadline-prefix capacity is the common object behind the algorithmic and structural results. Locally,
+its least remaining value in an affected suffix is the exact insertion margin. The deadline tree stores
+this quantity in its subtree summaries but exposes only the Boolean decision required by the SPT
+scan. A logarithmic root-to-leaf traversal accumulates work on right turns and certifies skipped
+suffix blocks on left turns; an accepted candidate then causes one logarithmic point update, while
+a rejected candidate leaves the state unchanged. The algebraic lower bounds show that both the
+total O(n log n) time and the O(log(q + 2)) query time are sharp in their model; the former remains
+sharp for unit jobs with a supplied SPT order.
+Within a fixed processing-time tier, the same capacities, measured in units of the tier size and
+tightened by suffix minima, become nested cardinality bounds. They define a chain-presented laminar
+matroid. Combining the tiers explains every complete greedy output and every minimum-work
+acceptance prefix, including the local poset greedoid and the fixed-cardinality layer matroids. In
+particular, tie-breaking can optimize an arbitrary additive secondary objective without changing the
+primary optimum.
+Globally, threshold cuts in the flow network define a scheduling polymatroid rank. Contracting
+the shorter accepted jobs and scaling its increments recovers the full rank function of the current
+tier matroid. Suffix slack, tier capacities, and flow cuts are therefore three resolutions of the same
+nested deadline-prefix constraints.
+
+References
+[1] Michael Ben-Or. Lower bounds for algebraic computation trees. In Proceedings of the Fifteenth Annual
+ACM Symposium on Theory of Computing, STOC ’83, pages 80–86. ACM, 1983.
+[2] Anders Björner and Günter M. Ziegler. Introduction to greedoids. In Neil White, editor, Matroid
+Applications, volume 40 of Encyclopedia of Mathematics and its Applications, pages 284–357. Cambridge
+University Press, 1992.
+
+28
+
+[3] Alexandre V. Borovik, I. M. Gelfand, and Neil White. Coxeter Matroids, volume 216 of Progress in
+Mathematics. Birkhäuser-Verlag, Boston, 2003.
+[4] R. M. Burstall and John Darlington. A transformation system for developing recursive programs. Journal
+of the ACM, 24(1):44–67, 1977.
+[5] Joseph Cheriyan, R. Ravi, and Martin Skutella. A simple proof of the Moore–Hodgson algorithm for
+minimizing the number of late jobs. Operations Research Letters, 49(6):842–843, 2021.
+[6] Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, and Clifford Stein. Introduction to
+Algorithms. MIT Press, third edition, 2009.
+[7] Junqiang Deng and Yixun
+P Lin. The uniqueness condition and generating all optimal solutions for
+scheduling problem 1 ||
+Ui . Journal of Zhengzhou University (Natural Science Edition), 1997. No. 4;
+in Chinese.
+[8] Jack Edmonds. Submodular functions, matroids, and certain polyhedra. In Combinatorial Structures
+and Their Applications, pages 69–87. Gordon and Breach, 1970.
+[9] Jack Edmonds. Matroids and the greedy algorithm. Mathematical Programming, 1:127–136, 1971.
+[10] Salah E. Elmaghraby. Note—on the sequencing of n jobs on one machine to minimize the number of
+jobs late. Management Science, 18(7):389–389, 1972.
+[11] Tara Fife and James Oxley. Laminar matroids. European Journal of Combinatorics, 62:206–216, 2017.
+[12] Satoru Fujishige. Submodular Functions and Optimization. Elsevier, second edition, 2005.
+[13] Han Hoogeveen and Vincent T’kindt. Minimizing the number of late jobs when the start time of the
+machine is variable. Operations Research Letters, 40(5):353–355, 2012.
+[14] W. A. Horn. Some simple scheduling algorithms. Naval Research Logistics Quarterly, 21(1):177–185,
+1974.
+[15] James R. Jackson. Scheduling a production line to minimize maximum tardiness. Research Report 43,
+Management Sciences Research Project, University of California, Los Angeles, Los Angeles, California,
+January 1955. Distributed by the Office of Technical Services; NTIS accession number AD 152722.
+[16] Bernhard Korte, László Lovász, and Rainer Schrader. Greedoids, volume 4 of Algorithms and Combinatorics. Springer-Verlag, Berlin, 1991.
+[17] Yixun Lin and Xiumei Wang. Necessary and sufficient conditions of optimality for some classical
+scheduling problems. European Journal of Operational Research, 176(2):809–818, 2007.
+[18] J. Michael Moore. An n job, one machine sequencing algorithm for minimizing the number of late jobs.
+Management Science, 15(1):102–109, 1968.
+[19] James Oxley. Matroid Theory. Oxford University Press, second edition, 2011.
+[20] Michael L. Pinedo. Scheduling: Theory, Algorithms, and Systems. Springer-Verlag, sixth edition, 2022.
+[21] L. B. J. M. Sturm. A simple optimality proof of Moore’s sequencing algorithm. Management Science,
+17(1):116–118, 1970.
+[22] Marjan van den Akker and Han Hoogeveen. Minimizing the number of tardy jobs. In Joseph Y.-T.
+Leung, editor, Handbook of Scheduling: Algorithms, Models, and Performance Analysis, pages 227–243.
+Chapman & Hall/CRC, Boca Raton, Florida, 2004.
+[23] Qiulan Zhao and Jinjiang Yuan. A note on single-machine scheduling to tradeoff between the number of
+tardy jobs and the start time of machine. Operations Research Letters, 47(6):607–610, 2019.
+[24] Qiulan Zhao and Jinjiang Yuan. Scheduling to tradeoff between the number and the length of accepted
+jobs. Theoretical Computer Science, 891:24–34, 2021.
+
+29
+
+

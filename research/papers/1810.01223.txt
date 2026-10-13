@@ -1,0 +1,3600 @@
+arXiv:1810.01223v2 [cs.DS] 1 May 2019
+
+Near-Linear Approximation Algorithms for Scheduling
+Problems with Batch Setup Times∗
+Max A. Deppert
+
+Klaus Jansen
+
+Kiel University
+Kiel, Germany
+made@informatik.uni-kiel.de
+
+Kiel University
+Kiel, Germany
+kj@informatik.uni-kiel.de
+
+ABSTRACT
+
+1 INTRODUCTION
+
+We investigate the scheduling of n jobs divided into c classes on
+m identical parallel machines. For every class there is a setup time
+which is required whenever a machine switches from the processing of one class to another class. The objective is to ﬁnd a schedule
+that minimizes the makespan. We give near-linear approximation
+algorithms for the following problem variants: the non-preemptive
+context where jobs may not be preempted, the preemptive context
+where jobs may be preempted but not parallelized, as well as the
+splittable context where jobs may be preempted and parallelized.
+We present the ﬁrst algorithm improving the previously best approximation ratio of 2 to a better ratio of 3/2 in the preemptive case.
+In more detail, for all three ﬂavors we present an approximation
+ratio 2 with running time O(n), ratio 3/2 + ε in time O(n log 1/ε)
+as well as a ratio of 3/2. The (3/2)-approximate algorithms have
+diﬀerent running times. In the non-preemptive case we get time
+O(n log(n + ∆)) where ∆ is the largest value of the input. The
+splittable approximation runs in time O(n + c log(c + m)) whereas
+the preemptive algorithm has a running time O(n log(c + m)) ≤
+O(n log n). So far, no PTAS is known for the preemptive problem
+without restrictions, so we make progress towards that question.
+Recently Jansen et al. found an EPTAS for the splittable and nonpreemptive case but with impractical running times exponential in
+1/ε.
+
+Scheduling problems with setup times have been intensively studied for over 30 years now; in fact, they allow very natural formulations of scheduling problems.
+In the general scheduling problem with setup times, there are m
+identical and parallel machines, a set J of n ∈ N jobs j ∈ J , c ∈ N
+Ðc
+diﬀerent classes, a partition Û i =1Ci = J of c nonempty and disjoint
+subsets Ci ⊆ J , a processing time of t j ∈ N time units for each job
+j ∈ J and a setup (or setup time) of si ∈ N time units for each class
+i ∈ [c]. The objective is to ﬁnd a schedule which minimizes the
+makespan while holding all of the following.
+All jobs (or its complete sets of job pieces) are scheduled. A setup
+si is scheduled whenever a machine starts processing load of class
+i and when switching processing from one class to another diﬀerent class on a machine. A setup is not required between jobs (or
+job pieces) of the same class. There are various types of setups discussed; here we focus on sequence-independent batch setups, i.e.
+they do not depend on the previous job/class. All machines are
+single-threaded (jobs (or job pieces) and setups do not intersect in
+time on each machine) and no setup is preempted.
+There are three variants of scheduling problems with setup times
+which have been gaining the most attention in the past. There is
+the non-preemptive case where no job may be preempted, formally
+known1 as problem P|setup = si |Cmax . Another variant is the preemptive context, namely P|pmtn, setup = si |Cmax , where a job may
+be preempted at any time but be processed on at most one machine at a time, so a job may not be parallelized. In the generous
+case of splittable scheduling, known as P|split, setup = si |Cmax , a
+job is allowed to be split into any number of job pieces which may
+be processed on any machine at any time.
+Related results. Monma and Potts began their investigation of
+these problems considering the preemptive case. They found ﬁrst
+dynamic programming approaches for various single machine problems [9] polynomial in n but exponential in c. Furthermore, they
+showed NP-hardness for P|pmtn, setup = si |Cmax even if m = 2.
+In a later work [10] they found a heuristic which resembles McNaughton’s preemptive wrap-around rule [8]. It requires O(n) time
+for being (2 − (⌊ m2 ⌋ + 1)−1 )-approximate. Notice that this ratio is
+truly greater than 32 if m ≥ 4 and the asymptotic bound is 2 for
+m → ∞. Monma and Potts also discussed the problem class of
+small batches where for any batch i the sum of one setup time and
+the total processing time of all jobs in i is smaller than the optimal
+Í
+makespan, i.e. si + j ∈C i t j ≤ OPT. Most suitable for this kind of
+problems, they found a heuristic that ﬁrst uses list scheduling for
+complete batches followed by an attempt of splitting some batches
+
+CCS CONCEPTS
+• Theory of computation → Approximation algorithms analysis; Scheduling algorithms; Parallel algorithms.
+
+KEYWORDS
+approximation, scheduling, setup times, preemption, parallelization
+
+∗ Research was supported by German Research Foundation (DFG) project JA 612/20-1
+
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for proﬁt or commercial advantage and that copies bear this notice and the full citation on the ﬁrst page. Copyrights for components of this work owned by others than
+the author(s) must be honored. Abstracting with credit is permitted. To copy otherwise, or republish, to post on servers or to redistribute to lists, requires prior speciﬁc
+permission and/or a fee. Request permissions from permissions@acm.org.
+SPAA ’19, June 22–24, 2019, Phoenix, AZ, USA
+© 2019 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+ACM ISBN 978-1-4503-6184-2/19/06. . . $15.00
+https://doi.org/10.1145/3323165.3323200
+
+1 This is the notation introduced by Graham et al. [3]
+
+unrestricted
+5/3 in poly [12]
+3/2 in O(n + c log(c + m)) *
+Splittable
+EPTAS [5]
+2 + ε in O(n log 1/ε), PTAS [6]
+Non-Preemptive 3/2 in O(n log(n + ∆)) *
+EPTAS [5]
+(2 − (⌊m/2⌋ + 1)−1 ) in O(n) [10]
+Preemptive
+3/2 in O(n logn) *
+Table 1: An overview of known results
+
+m variable
+small batches or |Ci | = 1 or P(Ci ) ≤ γ OPT
+
+m ﬁxed
+
+≈ 32 in O(n + (m + c) log(m + c)) [1]
+
+FPTAS [12]
+
+(1 + ε) min { 32 OPT, OPT +t max − 1 } in poly [7]
+
+FPTAS [7]
+
+4/3 + ε in poly [11]
+EPTAS [5]
+
+so that they are scheduled on two diﬀerent machines. This second
+approach needs a running time of O(n + (m +c)log(m +c)) and con1 )-approximate if m ≤ 4
+sidering only small batches it is ( 32 − 4m−4
+5
+1
+whereas it is ( 3 − m )-approximate for small batches if m is a multiple of 3 and m ≥ 6.
+Then Chen [1] modiﬁed the second approach of Monma and
+Potts. For small batches Chen improved the heuristic to a worst
+3m , 3m−4 } if m ≥ 5 while the same
+case guarantee of max { 2m+1
+2m−2
+time of O(n + (m + c) log(m + c)) is required.
+Schuurman and Woeginger [11] studied the preemptive problem for single-job-batches, i.e. |Ci | = 1. They found a PTAS for
+the uniform setups problem P|pmtn, setup = s|Cmax . Furthermore,
+they presented a ( 43 + ε)-approximation in case of arbitrary setup
+times. Both algorithms have a running time linear in n but exponential in 1/ε. Then Chen, Ye, and Zhang [12] turned to the splittable case. Without other restrictions they presented an FPTAS if
+m is ﬁxed and a 35 -approximation in polynomial time if m is variable. They give some simple arguments that the problem is weakly
+NP-hard if m is ﬁxed and NP-hard in the strong sense otherwise.
+More recently Mäcker et al. [7] made progress to the case of nonpreemptive scheduling. They used the restrictions that all setup
+times are equal (si = s) and the total processing time of each
+Í
+class is bounded by γ OPT for some constant γ , i.e. j ∈C i t j ≤
+γ OPT. Mäcker et al. found a simple 2-approximation, an FPTAS for
+ﬁxed m, and a (1 + ε) min { 32 OPT, OPT +t max − 1 }-approximation
+(where t max = max j ∈J t j ) in polynomial time if m is variable. Therefore, this especially yields a PTAS for unit processing times t j = 1.
+Jansen and Land [6] found three diﬀerent algorithms for the
+non-preemptive context without restrictions. They presented an
+approximation ratio 3 using a next-ﬁt strategy running in time
+O(n), a 2-dual approximation running in time O(n) which leads
+to a (2 + ε)-approximation running in time O(n log( ε1 )), as well as
+a PTAS. Recently Jansen et al. [5] found an EPTAS for all three
+problem variants. For the preemptive case they assume |Ci | = 1.
+They make use of n-fold integer programs, which can be solved
+using the algorithm by Hemmecke, Onn, and Romanchuk. However, even after some runtime improvement the runtime for the
+6
+4
+splittable model is 2 O(1/ε log (1/ε ))n 4 log(m), for example. These
+algorithms are interesting answers to the question of complexity
+but they are useless for solving actual problems in practice. Therefore the design of fast (and especially polynomial) approximation
+algorithms with small approximation ratio remains interesting.
+
+/
+* Result is in this paper
+
+Our Contribution. For all three problem variants we give a 2approximate algorithm running in time O(n) as well as a ( 23 + ε)approximation with running time O(n log( ε1 )). With some runtime
+improvements we present some very eﬃcient near-linear approximation algorithms with a constant approximation ratio equal to
+3
+3
+2 . In detail, we ﬁnd a 2 -approximation for the splittable case with
+running time O(n +c log(c +m)) ≤ O(n log(c +m)). Also we will see
+a 23 -approximate algorithm for the non-preemptive case that runs
+(i )
+
+in time O(n log(Tmin )) where Tmin = max { m1 N , maxi ∈[c] (si + t max ) },
+Í
+Í
+(i )
+t max = max j ∈C i t j and N = ci=1 si + j ∈J t j . For the most complicated case of these three problem contexts, the preemptive case,
+we study a 32 -approximation running in time O(n log(c + m)) ≤
+O(n logn). Especially this last result is interesting; we make progress
+to the general case where classes may consist of an arbitrary number of jobs. The best approximation ratio was the one by Monma
+and Potts [10] mentioned above. All other previously known results for preemptive scheduling used restrictions like small batches
+or even single-job-batches, i.e. |Ci | = 1 (cf. Table 1). As a byproduct
+we give some new dual lower bounds.
+Algorithmic Ideas. The 23 -approximate algorithm for the preemptive case is our main result. It is highly related to the right
+partitioning of classes and jobs into diﬀerent sizes; in fact, the right
+partition allows us to reduce the problem to a ﬁne-grained knapsack instance. To achieve the truly constant bounds in the splittable and preemptive case while speeding up the algorithm we use
+a technique that we call Class Jumping (see Sections 3.4 and 4.4).
+However, we also make extensive use of a simple idea that we name
+Batch Wrapping (see Appendix A.1).
+
+2 PRELIMINARIES
+Notation. Natural numbers are truly greater than zero, i.e. N =
+{ 1, 2, 3, . . . }. The set of all natural numbers from 1 to k ∈ N is
+[k] := { l ∈ N | 1 ≤ l ≤ k }. The load of a machine u ∈ [m] in a
+schedule σ is Lσ (u) (or simply L(u)). This is the sum of all setup
+times and the processing times of all jobs (or job pieces) scheduled
+on machine u. The processing time of a set of jobs K is P(K) :=
+Í
+Ð
+j ∈K t j . The jobs of a set of classes X ⊆ [c] are J (X ) := i ∈X C i .
+′
+A job piece of a job j ∈ J is a (new) job j with a processing time
+t j ′ ≤ t j . Whenever we split a job j ∈ Ci of a class i ∈ [c] into two
+new job pieces j 1 , j 2 , we understand these jobs to be jobs of class i
+as well - although j 1 , j 2 ∈ Ci does not hold formally.
+
+Already this result is much stronger for the preemptive case
+Properties. For later purposes we need to split the classes into
+than the previous ratio of 2 by Monma and Potts. In more detail, we
+expensive classes and cheap classes as follows. Let T > 0 be a
+ﬁnd 23 -dual approximations for all three problem variants, all runmakespan. We say that a class i ∈ [c] is expensive if si > 12 T and
+ning in time O(n). Also in all problem cases there is a value Tmin
+we call it cheap if si ≤ 12 T . We deﬁne I exp ⊆ [c] as the set of all
+depending only on the input such that OPT ∈ [Tmin , 2Tmin ] due to
+expensive classes and I chp ⊆ [c] as the set of all cheap classes such
+the 2-approximations. So a binary search suﬃces. In the following
+Û chp = [c]. We denote the total load of a feasible schedule
+that I exp ∪I
+Í
+Íc
+σ s + P(C )) for some setup
+we brieﬂy describe these dual approximations.
+σ by L(σ ) = m
+L
+(u)
+=
+(λ
+σ
+i
+i
+u=1
+i =1 i
+multiplicities λiσ ∈ N with λiσ ≤ |Ci |. For any instance I it is true
+Í
+Í
+3.1 Preemptive Scheduling
+that OPT(I ) ≤ N := i ∈[c] si + j ∈J t j (all jobs on one machine) as
+Also in the setup context preemptive scheduling means that each
+well as OPT(I ) > s max and OPT(I ) ≥ m1 N and therefore OPT(I ) ≥
+job may be preempted at any time, but it is allowed to be processed
+max { m1 N , s max }.
+on at most one machine at a time. In other words, a job may not run
+An important value to our observations will be the minimal
+in parallel time. So, this is a job-constraint only; in fact, the load of
+number of machines to schedule all jobs of an expensive class. In
+a class may be processed in parallel but not the jobs themselves.
+the following we give two simple lemmas to ﬁnd this minimal machines numbers. Therefore, for all classes i ∈ [c] let αi := ⌈P(Ci )/(T − si )⌉
+(i )
+(i )
+Note 1. OPTpmtn ≥ maxi ∈[c] (si + t max ) where t max = max j ∈C i t j .
+and βi := ⌈2P(Ci )/T ⌉.
+Proof. Let σ be a feasible schedule for an instance I with a
+Lemma 1. Given a feasible schedule σ with makespan T and load
+Íc
+makespan T and consider a job j ∈ Ci of a class i ∈ [c]. There
+σ
+σ
+L(σ ) = i =1 (λi si + P(Ci )), it is true that λi ≥ αi ≥ 1. Furthermore,
+may be k job pieces j 1 , . . . , jk of job j with a total processing time
+i ∈ I exp implies that λiσ ≥ αi ≥ βi ≥ 1 and σ needs at least λiσ
+Í
+of kl=1 t jl . Let pl be the point in time σ starts to schedule job
+diﬀerent machines to place all jobs in Ci .
+piece jl . Without loss of generality we assume p 1 ≤ · · · ≤ pk . So
+the execution of job j ends at time e j = pk + t jk . Now remark that
+Proof. Apparently αi ≥ 1 and βi ≥ 1 are direct results for all
+pl ≤ pl +1 means that pl +t jl ≤ pl +1 since otherwise jl and jl +1 run
+i ∈ [c]. There must be at least one initial setup time si to schedule
+Í
+any jobs of class i on a machine. Since setups may not be split, there
+in parallel time. It follows that p 1 + k−1
+t ≤ pk , which means
+l =1 jl
+is a processing time of at most T − si per machine to schedule jobs
+p 1 + t j ≤ pk + t jk = e j . There is at least one setup si before time
+of Ci and therefore, σ needs at least αi = ⌈P(Ci )/(T − si )⌉ ≤ λiσ
+p 1 , i.e. p 1 ≥ si , and we obtain T ≥ e j ≥ p 1 + t j ≥ si + t j .
+
+setups to schedule all jobs of Ci . If i ∈ I exp we have si > 12 T such
+Due to this, we assume that m < n in the preemptive case, because
+that there cannot be two expensive setups on one machine and
+m ≥ n leads to a trivial optimal solution by simply scheduling one
+1
+αi = ⌈P(Ci )/(T − si )⌉ ≥ ⌈P(Ci )/(T − 2 T )⌉ = ⌈2P(Ci )/T ⌉ = βi . 
+job (and a setup) per machine.
+The preemptive case appears to be very natural on the one hand
+Lemma 2. Let σ be a feasible schedule with makespan T for an
+but hard to approximate (for arbitrary large batches) on the other
+instance I . Then σ schedules jobs of diﬀerent expensive classes on
+Í
+hand. Aiming for the ratio of 32 , we managed to reduce the problem
+diﬀerent machines and m ≥ i ∈Iexp λiσ .
+to a knapsack problem eﬃciently solvable as a continuous knapsack
+Í
+Proof. Assume that m < i ∈Iexp λiσ . Then setups of two diﬀerproblem. Therefore, we need to take a closer look on I exp and I chp
+ent classes i 1 , i 2 ∈ I exp must have been scheduled on one machine
+so we split them again. We divide the expensive classes into three
++
++ , I 0 and I − such that i ∈ I
+u ∈ [m]. We obtain Lσ (u) ≥ si 1 + si 2 > 12 T + 12 T = T since i 1 and
+disjoint subsets I exp
+exp holds i ∈ I exp
+exp
+exp
+0 iﬀ. 3 T < s + P(C ) < T and i ∈ I − iﬀ.
+i 2 are expensive. That is a contradiction to the makespan T .
+
+iﬀ. T ≤ si + P(Ci ), i ∈ I exp
+i
+i
+exp
+4
+3
++ , I − s.t.
+si + P(Ci ) ≤ 4 T . Also we divide the cheap classes into I chp
+chp
+
+3
+
+OVERVIEW
+
+Here we give a brieﬂy overview to our results. We start with our
+general results.
+Theorem 1. For all three problems there is a 2-approximation running in time O(n).
+
+For the details see Appendix A.2 on page 13. Especially if the
+reader is not familiar to these problems, the simple 2-approximations
+in Appendix A.2 might be a good point to start.
+We use the well-known approach of dual approximation algorithms2 introduced by Hochbaum and Shmoys [4] to get the following result.
+Theorem 2. For all three problems there is a ( 23 + ε)-approximation
+running in time O(n log 1/ε).
+2 A ρ -dual approximation algorithm gets the input and a value T and either computes
+
+a feasible schedule with makespan at most ρT or rejects T which then implicates that
+T < OPT.
+
++ iﬀ. 1 T ≤ s ≤ 1 T and i ∈ I − iﬀ. s < 1 T .
+i ∈ I chp holds i ∈ I chp
+i
+i
+4
+2
+4
+chp
+
+Definition 1 (Nice Instances). For a makespan T we call an
+0 is empty.
+instance nice if I exp
+The next theorem yields a 32 -dual approximation for nice instances
+and will be important to ﬁnd a 23 -ratio for general instances too.
+Theorem 4. Let I be a nice instance for a makespan T . Moreover,
+let
+Õ
+Õ
+αi′si +
+si
+L nice = P(J ) +
+− ∪I
+i ∈Iexp
+chp
+
+j
+k
+− |⌉ + Í + α ′ where α ′ = P (C i ) . Then the
+and m nice = ⌈ 12 |I exp
+i ∈Iexp i
+i
+T −si
+following properties hold.
+(i) If mT < L nice or m < m nice , it is true that T < OPTpmtn (I ).
+(ii) Otherwise a feasible schedule with makespan at most 32 T can
+be computed in time O(n).
++
+i ∈Iexp
+
+It turns out that nice instances are some sort of well-behaving instances which can be handled very easily and actually their deﬁnition is helpful for general instances too.
+The motivation behind a general algorithm is the following. Obviously jobs of diﬀerent expensive classes can not be placed on
+a common machine in a T -feasible schedule (a feasible schedule
+0 ) and
+with a makespan of at most T ). Especially the jobs of J (I exp
++
+−
+0
+J (I exp ∪ I exp ) cannot. So we ﬁrst place the classes of I exp on one
+machine per class, which is reasonable as we will see later (cf.
+Lemma 10 on page 14). They obviously ﬁt on a single machine,
+0 . Each of these large masince 34 T < si + P(Ci ) < T for all i ∈ I exp
+chines got free processing time less than 14 T in a T -feasible schedule. After that we decide which jobs of cheap classes will get processing time on the large machines or get processed as part of a
+nice instance with the residual load that is scheduled on the resid0 | machines. Apparently only jobs of I − ⊆ I
+ual m − |I exp
+chp can
+chp
+actually be processed on large machines in a T -feasible schedule,
+because the setups of other cheap classes have a size of at least 41 T
+so we only need to decide about this set. We will ﬁnd a ﬁne-grained
+knapsack instance on an appropriate subset for this decision. See
+Section 4 for the details.
+
+3.2
+
+Splittable Scheduling
+
+Theorem 7. Let I be an instance and let T be a makespan. Let
+Õ
+Õ
+βi si
+L split = P(J ) +
+si +
+and m exp =
+
+Í
+
+3T
+2
+
+s2 s2 s2
+s1 s1 s1 s1
+
+s3
+
+i ∈Iexp
+
+s4 s4
+
+m
+(a) Situation after step (1)
+3T
+2
+
+s6
+
+s5
+
+In case of the splittable problem, jobs are allowed to be preempted
+at any time and all jobs (or job pieces) can be placed on any machine at any time. Especially jobs are allowed to be processed in
+parallel time (on diﬀerent machines). It is important to notice that
+one should not assume n ≥ m in the splittable case, since increasing the number of machines may result in a lower (optimal) makespan;
+in fact, every optimal schedule makes use of all m machines. Due
+to this, it is remarkable that we allow a weaker deﬁnition of schedules in the following manner. A schedule may consist of machine
+conﬁgurations with associated multiplicities instead of (for example) explicitly mapping each job (piece) j to a pair (u j , x j ) ∈ [m]×Q
+where u j is the machine on which j starts processing at time x j .
+
+i ∈Ichp
+
+placed below line 21 T . Figures 1(a) and 1(b) illustrate an example
+situation after step (1) and (2) with green colored wrap templates.
+See Appendix C on page 15 for the details.
+
+s5
+
+s7
+
+T
+s8
+
+s2 s2 s2
+s1 s1 s1 s1
+
+s3
+
+s4 s4
+
+1T
+2
+
+s6 s6
+s7 s7
+
+m
+(b) Situation after step (2)
+
+Figure 1: An example for the algorithm for the splittable case with
+I exp = { 1, 2, 3, 4 } and I chp = { 5, 6, 7, 8 }
+
+i ∈Iexp βi . Then the following properties hold.
+
+(i) If mT < L split orm < m exp , then it is true thatT < OPTsplit (I ).
+(ii) Otherwise a feasible schedule with makespan at most 32 T can
+be computed in time O(n).
+The idea of the algorithm is rather simple. We schedule the expensive classes by using as few setups as possible (imagining an
+optimal makespan, i.e. T = OPT(I )). An optimal schedule needs
+at least αi setups/machines to schedule a class i ∈ I exp , but we
+will only use βi ≤ αi setups/machines (cf. Lemma 1). For each
+expensive class i we may get at most one machine ūi with a load
+L(ūi ) < T . So we can reserve the time interval of [L(ūi ), L(ūi )+ 21 T ]
+for a cheap setup on these machines before ﬁlling the residual time
+ofT −L(ūi ) with load of cheap classes, since L(ūi )+ 21 T +(T −L(ūi )) =
+3 T . Once all machines are ﬁlled up, we turn to unused machines
+2
+and wrap between time 12 T and 23 T such that cheap setups can be
+
+3.3 Non-Preemptive Scheduling
+Doing non-preemptive scheduling we do not allow jobs to be preempted. Even an optimal schedule needs to place at least one setup
+to schedule a job on a machine, so we ﬁnd another lower bound.
+(i )
+
+(i )
+
+Note 2. OPTnonp ≥ maxi ∈[c] (si + t max ) where t max = max j ∈C i t j .
+Therefore, analogous to preemptive scheduling assume m < n.
+Let J+ = { j ∈ J | t j > 12 T } be the big jobs whereas the small jobs
+be denoted by J− = { j ∈ J | t j ≤ 21 T }. Our algorithm is based on
+the fact, that there are three subsets of jobs such that pairwise they
+cannot be scheduled on a single machine. These subsets are J+ ,
+Ð
+J (I exp), and the set K = i ∈Ichp { j ∈ Ci ∩ J− | si + t j > 21 T }.
+
+In Appendix D we ﬁnd the following minimum number of machines for each class. Let
+l
+m
+
+P (C )
+
+: i ∈ I exp
+ T −sii = αi
+
+m
+l
+mi =
+P (C i ∩K )
+
+: i ∈ I chp
+ |Ci ∩ J+ | + T −si
+
+for all i ∈ [c]. The following result yields our 23 -dual approximation.
+Theorem 9. Let I be an instance and let T be a makespan. Let
+c
+Õ
+Õ
+si
+L nonp = P(J ) +
+m i si +
+
+Í
+and m ′ = ci=1 m i where xi = P(Ci )−m i (T −si ). Then the following
+properties hold.
+(i) If mT < L nonp or m < m ′, then it is true that T < OPTnonp (I ).
+(ii) Otherwise a feasible schedule with makespan at most 32 T can
+be computed in time O(n).
+i =1
+
+i :x i >0
+
+Now binary search leads to a constant approximation:
+Theorem 8. There is a 32 -approximation for the non-preemptive
+case running in time O(n log(n + ∆)) where ∆ = max{s max , t max } is
+the largest number of the input.
+Proof. Unlike the other cases, here the optimal value is an integral number, i.e. OPTnonp ∈ N, since all values in the input are
+integral numbers and neither jobs nor setups are allowed to be
+preempted. Therefore, a binary search in [Tmin , 2Tmin ] can ﬁnd an
+appropriate makespan in time ⌈logTmin ⌉ · O(n) = O(n logTmin )
+and it is easy to show that logTmin ≤ O(log(n + ∆)). Given the
+3 -dual approximation of Theorem 9 this completes the proof of
+2
+Theorem 8.
+
+See Appendix D on page 17 for all the details.
+
+3.4
+
+Here we only present the improvement for the splittable case.
+The improved search for the preemptive case is slightly more complicated and based even more on the details of the 32 -dual approximation so we refer to Section 4.4 for the details.
+The following ideas are crucial. Once the total processing times
+Pi = P(Ci ) are computed, the values βi can be computed in constant time and one can test Theorem 7(ii) in time O(c) for a given
+makespan T . Whenever we test a makespan T we save the computed values βi as βi (T ). We will call (A, B] a right interval if makespan
+B satisﬁes Theorem 7(ii) (B is accepted) while A does not (A is rejected). For example (s max , N ] is a right interval.
+
+Class Jumping
+
+With a diﬀerent idea for a binary search routine for an appropriate
+makespan we are able to improve both the running time and the
+approximation ratio for the splittable and preemptive case. As with
+a single binary search we test makespan guesses with our dual algorithms. The general idea is to look at some points in time which
+we call jumps. A jump of an expensive class i is some makespan
+guess T such that any lower guess T ′ < T will cause at least one
+more setup/machine to schedule the jobs of class i. The goal is to
+ﬁnd two jumps Tfail ,Tok of two classes such that there is no jump
+of any other class between them, while Tfail is rejected and Tok
+is accepted. In fact, this means that any makespan T between both
+jumps causes the same load L (with our dual algorithm). Therefore,
+either Tok or m1 L will be an appropriate makespan.
+Theorem 3. There is a 32 -approximation for the splittable case running in time O(n + c log(c + m)).
+With a small modiﬁcation the idea can be reused to be applied
+to the preemptive case as well and this yields our strongest result
+for the preemptive case.
+Theorem 6. There is a 23 -approximation for the preemptive case
+running in time O(n logn).
+
+Algorithm 1 Class Jumping for Splittable Scheduling
+1. Set s̃ 0 = 0 and s̃c+1 = N
+2. Sort the setup time values si ascending and name them
+s̃ 1 , . . . , s̃c in time O(c log c)
+3. Compute Pi = P(Ci ) for all i ∈ [c] in time O(n)
+4. Guess the right makespan interval V = (2s̃i −1, 2s̃i ] in time
+O(c log c) and set T1 := 2s̃i
+5. Find a fastest jumping class f ∈ I exp , i.e. Pf ≥ Pi for all
+i ∈ I exp in time O(c)
+
+i
+2P f
+2P
+6. Guess the right interval W = β (T )+k+1
+, β (T f)+k for
+f 1
+f 1
+some integer k < m such that X := V ∩ W , Ø, in time
+2P
+
+O(c logm) and set T2 := β (T f)+k
+f
+
+1
+
+7. Find and sort the O(c) jumps in X in time O(c log c)
+8. Guess the right interval Y = (Tfail ,Tok ] ⊆ W for two jumps
++ which jump in X such
+Tfail ,Tok of two classes i a , ib ∈ I exp
+that no other class jumps in Y , in time O(c log c)
+9. Choose a suitable makespan in this interval in constant time
+
+We go through the interesting details of Algorithm 1 to get the
+idea of the search routine.
+Step 4. Note that T ∈ [2s̃i −1, 2s̃i ) means s̃ 0 ≤ · · · ≤ s̃i −2 ≤ s̃i −1 ≤
+1 T < s̃ ≤ s̃
+i
+i +1 ≤ · · · ≤ s̃c+1 and so any makespan in an interval
+2
+[2s̃i −1, 2s̃i ) causes the same partition I exp ∪Û I chp . The running time
+can be obtained with binary search.
+Step 5. We call T a jump of a class i ∈ I exp if 2Pi /T is integer.
+That means all machines containing jobs of class i are ﬁlled up to
+line si + 12 T . So T represents a point in time such that any T ′ < T
+will cause at least one more (obligatory) setup to schedule class
+i. It takes a time of O(c) to ﬁnd some class f ∈ I exp with Pf =
+maxi ∈Iexp Pi .
+Step 6. Just remark that 2Pf /(β f (T1 ) +k) and 2Pf /(β f (T1 ) +k + 1)
+are two consecutive jumps of class f .
+Step 7. In the analysis we will see that X contains at most c jumps
+in total (of all classes). To ﬁnd a jump of a class ι ∈ I exp in X just
+look at β ι (T2 ). If 2Pι /β ι (T2 ) < X then there is no jump of class ι in
+X . Otherwise Tι := 2Pι /β ι (T2 ) is the only jump of class ι in X .
+Step 9. So Tok was accepted while Tfail got rejected and there are
+no jumps of any other classes between them. Let L split (Tfail ) be the
+load which is required to place Tfail and set Tnew := m1 L split (Tfail ).
+Case m < m exp (Tfail ). So the jump causes too many required machines and hence T < Tok means T < OPT. We return Tok .
+Case m ≥ m exp (Tfail ). We do another case distinction as follows.
+
+−
+I exp
+
+If Tnew ≥ Tok we ﬁnd that Tok is smaller than the smallest
+makespan that may be suitable to place L split (Tfail ). Therefore, we
+return Tok .
+1
+fail
+If Tnew < Tok it follows Tfail = mT
+m < m L split (Tfail ) = Tnew <
+Tok since m ≥ m exp (Tfail ) and the rejection of Tfail implies that
+mTfail < L split (Tfail ). So we have Tnew ∈ (Tfail ,Tok ) and we get m ≥
+m exp (Tfail ) = m exp (Tnew ) and mTnew = L split (Tfail ) = L split (Tnew ).
+Because of Theorem 7 we return Tnew .
+The interesting part of the analysis is the fact, that there are no
+more than O(c) jumps in X and we want to show the following
+lemma.
+Lemma 3. If T ′ is a jump of f , i.e. T ′ = 2Pf /β f (T ′ ), and T ′′ is a
+jump of a diﬀerent class i, i.e. T ′′ = 2Pi /βi (T ′′ ), such that T ′′ ≤ T ′ ,
+then the next jump of class i is smaller than the next jump of f , which
+can be written as
+2Pf
+2Pi
+≤
+.
+βi (T ′′ ) + 1
+β f (T ′ ) + 1
+Proof. Since T ′′ ≤ T ′ we have
+2Pi
+2Pi
+βi (T ′′ )Pf = ′′ Pf ≥ ′ Pf = β f (T ′ )Pi
+T
+T
+and thus it follows that
+2Pf Pi
+2Pf Pi
+(1)
+2Pi
+≤
+=
+′′
+′′
+βi (T ) + 1 βi (T )Pf + Pf
+β f (T ′ )Pi + Pf
+P f ≥P i
+
+≤
+
+2Pf Pi
+
+β f (T ′)Pi + Pi
+
+=
+
+(1)
+
+2Pf
+
+3T
+2
+5T
+4
+
+T
+3T
+4
+1T
+2
+
+s1 s1 s1 s2 s2 s2 s2
+0
+
+α 1′
+
+1T
+4
+
+µ
+
+α 2′
+m good
+
++ =
+Figure 2: An example solution after using Algorithm 2 with I exp
+{ 1, 2 }
+
+β f (T ′) + 1
+
+Definition 1 (Nice Instances). For a makespan T we call an
+0 is empty.
+instance nice if I exp
+
+.
+
+Proof of Theorem 3. Due to Lemma 3 any class that jumps in
+X jumps outside of X the next time. So for every class i ∈ I exp there
+is at most one jump in X and hence X contains at most |I exp | ≤ c
+jumps. Apparently the sum of the running times of each step is
+O(n + c log(c + m)) and the returned value T ∈ { Tok,Tnew } holds
+T ≤ OPTsplit while being accepted by Theorem 7(ii) such that the
+algorithm for the splittable case computes a feasible schedule with
+ratio 32 in time O(n). The total running time is O(n + c log(c +
+m)).
+
+
+PREEMPTIVE SCHEDULING
+
+One basic tool will be Batch Wrapping, i.e. the wrapping of wrap
+sequences into wrap templates. See Appendix A.1 for the short de(i )
+tails. For this section let Tmin := max { m1 N , maxi ∈[c] (si + t max ) }
+Í
+Í
+(i )
+where N = ci=1 si + j ∈J t j and t max = max j ∈C i t j .
+
+4.1
+
+I chp
+
+∗ = { i ∈ I − | 1 ≤ |C ∗ | } ⊆ I −
+{ j ∈ Ci | si + t j > 12 T } and let I chp
+i
+chp
+chp
+be the set of classes that contain at least one of these jobs.
+
+
+
+4
+
++
+I exp
+
+Nice Instances
+
+In the following we take a closer look on I exp and I chp so we split
+them again. As stated before we divide the expensive classes into
++ , I 0 and I − such that i ∈ I
+three disjoint subsets I exp
+exp holds
+exp
+exp
++
+0 iﬀ. 3 T < s + P(C ) < T and
+i ∈ I exp iﬀ. T ≤ si + P(Ci ), i ∈ I exp
+i
+i
+4
+− iﬀ. s + P(C ) ≤ 3 T . Also we divide the cheap classes into
+i ∈ I exp
+i
+i
+4
+1
+1
+−
++ , I − s.t. i ∈ I
++
+I chp
+chp holds i ∈ I chp iﬀ. 4 T ≤ si ≤ 2 T and i ∈ I chp
+chp
+− as C ∗ =
+iﬀ. si < 14 T . Now denote the big jobs of a class i ∈ I chp
+i
+
+Let αi′ := ⌊P(Ci )/(T − si )⌋ ≤ ⌈P(Ci )/(T − si )⌉ = αi and remark
++ . The following theorem will be of great
+that αi′ ≥ 1 for all i ∈ I exp
+use to ﬁnd a (3/2)-ratio also for general instances.
+Theorem 4. Let I be a nice instance for a makespan T . Moreover,
+let
+Õ
+Õ
+L nice = P(J ) +
+αi′si +
+si
++
+i ∈Iexp
+
+− ∪I
+i ∈Iexp
+chp
+
+j
+k
+− |⌉ + Í + α ′ where α ′ = P (C i ) . Then the
+and m nice = ⌈ 12 |I exp
+i ∈Iexp i
+i
+T −si
+following properties hold.
+(i) If mT < L nice or m < m nice , it is true that T < OPTpmtn (I ).
+(ii) Otherwise a feasible schedule with makespan at most 32 T can
+be computed in time O(n).
+
+Algorithm 2 A 23 -dual Approximation for Nice Instances
++ ) on Í
+′
+′
+1. Schedule J (I exp
+i ∈Iexp α i new machines with α i machines for each class i
+− ) in pairs of two classes on ⌈ 1 |I − |⌉ new ma2. Schedule J (I exp
+2 exp
+chines
+3. Wrap J (I chp) onto the residual machines starting on machine µ (last machine of step 2.)
+Step 1. First, we look at the classes i ∈ I exp with si + P(Ci ) ≥ T ,
++ . We deﬁne a wrap template ω (i ) of length |ω (i ) | =
+i.e. i ∈ I exp
+(i )
+
++ as follows. Let ω
+⌊P(Ci )/(T − si )⌋ = αi′ for each class i ∈ I exp
+1 =
+
+(i )
+
+(ui , 0,T ) and ω1+r = (ui + r, si ,T ) for all 1 ≤ r < αi′ . The ﬁrst
+machines ui have to be chosen distinct to all machines of the other
+wrap templates. We construct simple wrap sequences Q (i ) = [si , Ci ]
++ consisting of an initial setup s followed
+for each class i ∈ I exp
+i
++ we use
+by an arbitrary order of all jobs in Ci . For all i ∈ I exp
+(i )
+
+(i )
+
+Wrap(Q (i ) , ω (i ) ) to wrap Q (i ) into ω (i ) = (ω1 , . . . , ωα ′ ). The last
+i
+
+machine ūi := ui + αi′ − 1 will have a load of at most T but its job
+load will be less than 21 T since si > 21 T . We move these jobs to the
+
+second last machine and place them on top. So the new load will
+be greater than T but at most 32 T . Finally we remove the setup time
+si on the last machine.
+Step 2. Second, we turn to the classes i ∈ I exp with si +P(Ci ) ≤ 34 T ,
+− . We place them paired on one new machine u. So u will
+i.e. i ∈ I exp
+have a load L(u) = si 1 + P(Ci 1 ) + si 2 + P(Ci 2 ) for diﬀerent classes
+i 1 , i 2 that holds T = 12 T + 12 T < si 1 + si 2 < L(u) ≤ 34 T + 34 T = 32 T .
+Note that the number of such classes can be odd. In this case we
+schedule one class separate on a new machine µ. Otherwise we
+choose an unused machine and name it µ. Be aware that this is
+for the ease of notation; in fact, an unused machine may not exist.
+So in both cases µ will hold L(µ) ≤ 43 T . Apparently this step uses
+− |⌉ new machines.
+⌈ 12 |I exp
+Step 3. The third and last step is to place the jobs of cheap classes.
+We build a simple wrap template ω as with a case distinction as
+− | is odd, we set ω = (µ,T , 3 T ) and ω
+follows. If |I exp
+1+r = (µ +
+1
+2
+1
+3
+r, 2 T , 2 T ) for 1 ≤ r ≤ m − m nice . Otherwise we set ωr = (µ +
+r, 12 T , 32 T ) for all 0 ≤ r < m − m nice . So in any case we have |ω| ≤
+m − m nice + 1. We deﬁne Q to be the simple wrap sequence Q =
+[si , Ci ]i ∈Ichp that contains all jobs of cheap classes. So we wrap Q
+into ω = (ω1 , . . . , ω |ω | ) using Wrap(Q, ω).
+Figure 2 shows an example schedule after the last step. Be aware
+that setups are dark gray and that jobs of a class are not explicitly
+drawn.
+Proof of Theorem 4. (i). We show that T ≥ OPTpmtn (I ) implies mT ≥ L nice and m ≥ m nice . Let T ≥ OPTpmtn (I ). Then there
+Í
+is a feasible schedule σ with makespan T . Let L(σ ) = ci=1 (λiσ si +
+P(Ci )). Apparently Lemma 1 implies that
+mT ≥ L(σ ) ≥ P(J ) +
+
+c
+Õ
+
+αi si ≥ P(J ) +
+
+i =1
+
+Õ
+
+αi′si +
+
++
+i ∈Iexp
+
+Õ
+
+si = L nice .
+− ∪I
+i ∈Iexp
+chp
+
+Í
+Í
+Due to Lemmas 1 and 2 we know thatm ≥ i ∈Iexp λiσ ≥ i ∈Iexp αi ≥
+Í
+′
+i ∈Iexp α i and hence
+Õ
+Õ
+Õ
+−
+m≥
+αi′ +
+αi′ ≥
+αi′ + ⌈ 21 |I exp
+|⌉ = m nice .
++
+i ∈Iexp
+
+−
+i ∈Iexp
+
++
+i ∈Iexp
+
+(ii). One may easily conﬁrm that the wrap templates ω (i ) suﬃce
+to wrap the sequences Q (i ) into them, i.e. S(ω (i ) ) ≥ L(Q (i ) ) for all
++ . Apparently the total number of machines used by step 1.
+i ∈ I exp
+and 2. is m nice ≤ m so there are enough machines for the ﬁrst two
+steps. It remains to show that wrap template ω is suﬃcient to wrap
+Q into it, i.e. S(ω) ≥ L(Q). We ﬁnd that
+
+
+P(Ci )
+(T −si ) = αi′si +αi′ (T −si ) = αi′T (2)
+αi′si +P(Ci ) ≥ αi′si +
+T − si
+
++ . Considering that |I − | is odd we show the inequalfor all i ∈ I exp
+exp
+ity.
+
+S(ω) = 21 T + (m − m nice )T
+≥ L nice + 12 T − m niceT
+−
+|⌉ +
+= L nice + 21 T − (⌈ 12 |I exp
+
+≥
+
+Õ
+
+Õ
+
+// mT ≥ L nice
+αi′ )T
+
+Õ
+−
+|⌉T
+(si + P(Ci )) + (si + P(Ci )) + 21 T − ⌈ 12 |I exp
+
+i ∈Ichp
+
+≥ L(Q) +
+
++
+i ∈Iexp
+
+Õ
+
+−
+i ∈Iexp
+
+// (2)
+
+−
+i ∈Iexp
+
+1 T + 1 T − ⌈ 1 |I − |⌉T
+2
+2
+2 exp
+
+− | is even.
+This gets even easier if |I exp
+
+= L(Q)
+
+
+4.2 General Instances
+Consider a makespan T ≥ Tmin and remember the partitions I exp =
++ ∪
+0 ∪
+− and I
++ Û I − as well as the machine
+Û I exp
+Û I exp
+I exp
+chp = I chp ∪
+chp
+′
+numbers αi ≤ αi as mentioned in section 4.1 on page 6. We state
+the algorithm and then we go through the details.
+Algorithm 3 A 23 -dual Approximation for Preemptive Scheduling
+0 ) on l = |I 0 | machines using one machine
+1. Schedule J (I exp
+exp
+per class (the large machines)
+− ) on the residual machines in
+2. Find the free time F for J (I chp
+order to apply Algorithm 2 on a nice instance and split each
+− ) in two pieces (due to Lemma 4 below)
+big job of J (I chp
+− ) on the residual m − l
+3. Find a feasible placement for J (I chp
+empty machines and the free time at the bottom of the large
+machines of step 1. In more detail:
+Í
+If F < i ∈I ∗ (si + P(Ci )) then
+chp
+
+(a) Solve an appropriate knapsack instance for the decision,
++ ),
+place a nice instance (containing the solution, J (I exp
+−
++
+J (I exp) and J (I chp)) with Algorithm 2, and place the unselected items at the bottom of the large machines
+else
+(b) Use a greedy approach and the last placement idea of 3.a
+
+Step 1. First we consider all classes i ∈ I exp with 43 T < si +P(Ci ) <
+T , i.e. i ∈ Ie0xp . We place every class on its own machine u, i.e.
+L(u) = si + P(Ci ), starting at time 12 T . Note that the used machines have less than 14 T free time to schedule any other jobs in
+0 | be the number of these maa T -feasible schedule. Let l = |I exp
+chines. We refer to them as the large machines. Figure 3 illustrates
+the situation. The lighter drawn items indicate the future use of
+Algorithm 2, whereas the question marks indicate the areas where
+− ).
+we need to decide the placement of J (I chp
+∗
+Lemma 4. In a T -feasible schedule a job j ∈ Ci∗ of a class i ∈ I chp
+can not be scheduled on large machines only. Furthermore, j can be
+processed on large machines with a total processing time of at most
+1
+2 T − si .
+
+Proof. Remark that the load of the large machines is at least 43 T .
+The placed setup times are greater than 12 T so we can not pause
+
+0
+I exp
+
++
+I exp
+
+−
+I exp
+3T
+2
+
+?
+
+?
+
+5T
+4
+
+?
+
+T
+?
+
+?
+
+?
+
+3T
+4
+1T
+2
+
+?
+
+?
+
+?
+
+?
+
+?
+
+s s s s
+? s1 s1 s1 2 2 2 2
+
+1T
+4
+
+0
+
+µ
+
+0 |
+l = |I exp
+
+m
++ = { 1, 2 }
+Figure 3: An example situation after step 1. with I exp
+
+si outside the large machines. The now following case distinction
+of step 3. is a bit more complicated.
+Í
+Case 3.a: F < i ∈I ∗ (si + P(Ci )). Now we have to use large machp
+
+∗ ). The task is to optimize the use
+chines to schedule all jobs of J (I chp
+of setup times. We do this by minimizing the total load of necessary
+new setup times to be placed on the large machines 1, . . . , l. Each
+class that can be scheduled entirely outside the large machines will
+not cause a setup time on large machines. So the setup optimization
+can be done by maximizing the total sum of setup times of classes
+we schedule entirely outside large machines. The obligatory job
+∗ is
+load outside large machines for a class i ∈ I chp
+Õ
+Õ
+(2)
+(si + t j − 21 T ) = P(Ci∗ ) − |Ci∗ |( 21 T − si ). (4)
+tj =
+L∗i =
+j ∈C i∗
+
+j ∈C i∗
+
+Therefore the total obligatory load outside large machines of all
+∗ is
+classes in I chp
+Õ
+Õ
+L∗ =
+(si + L∗i ) =
+(si + P(Ci∗ ) − |Ci∗ |( 12 T − si )). (5)
+∗
+i ∈Ichp
+
+their jobs execution to schedule other jobs because that would
+need at least one more setup time. So the load of the large machines
+has to be scheduled consecutively and hence there is at most 41 T
+time to place other load at the bottom or on top of them. Due to
+that and since at least one setup si is required, it is easy to see that
+there can be scheduled at most 2( 14 T − si ) < 12 T − si < t j time
+of job j on large machines (on one at the top and on another one
+at the bottom) since j is not allowed to be processed on diﬀerent
+machines at the same time.
+
++ are too big to place any
+Step 2. Since the setups of the classes I chp
+of their jobs on a large machine, we deﬁnitely will place the jobs
++ ∪ I − ∪ I + ) entirely on the residual m − l machines. We
+J (I exp
+exp
+chp
+− ) on the residual machines;
+need to obtain the free time F for J (I chp
+in fact, we want to place as much load as possible, so, looking at
+Algorithm 2 we ﬁnd that the time
+Õ
+Õ
+(si + P(Ci )) (3)
+(αi′si + P(Ci )) −
+F = (m − l)T −
++
+i ∈Iexp
+
+− ∪I +
+i ∈Iexp
+chp
+
+− ) in step 3. of Algorithm 2.
+can be used to place the jobs of J (I chp
+
+Apparently the free processing time on the large machines is
+Íl
+F˜ := u=1
+(T − L(u)), so for a suitable value of T the residual available processing time F˜ + F suﬃces to schedule the residual jobs
+− ). Remember that C ∗ = { j ∈ C | s + t > 1 T } are the big
+J (I chp
+i
+i
+j
+2
+i
+− , and I ∗
+− denotes the classes that
+jobs of a class i ∈ I chp
+⊆
+I
+chp
+chp
+contain at least one of these jobs. As stated out in Lemma 4, we
+can not place them on large machines only. So we split them in the
+∗ we create new job
+following way. For all jobs j ∈ Ci∗ with i ∈ I chp
+
+(1)
+(2)
+and t j , satisfying
+(1)
+(2)
+(2)
+(1)
+t j = 12 T −si as well as t j = si +t j − 21 T and hence, t j +t j = t j .
+(1)
+(2)
+Note that si + t j ≤ 21 T and t j ≤ T − 21 T = 12 T . Due to Lemma 4
+(2)
+we have to schedule a processing time of at least t j of job j ∈ Ci∗
+
+pieces j (1) and j (2) with processing times t j
+
+outside the large machines. So we also have an obligatoy setup time
+
+∗
+i ∈Ichp
+
+Now we can interpret the maximization problem as a knapsack
+∗ , capacity Y := F − L ∗ , proﬁt p := s
+problem by setting I := I chp
+i
+i
+∗ . We compute an opand weight wi := P(Ci ) − L∗i for all i ∈ I chp
+timal solution x cks for the continuous knapsack problem with split
+∗ that leads to a nearly optimal solution x for ILP
+item e ∈ I chp
+ks
+ks
+∗ |) ≤ O(c).
+(general knapsack problem) computable in time O(|I chp
+So 0 < (x cks )e < 1 may be critical because this means we need to
+schedule an extra setup time se although it might not be necessary
+in an optimal schedule. We overcome this issue later. Remark that
+Í
+∗ (x ks )i w i = Y −(x cks )e w e so (x cks )e w e is the time to ﬁll with
+i ∈Ichp
+job load of class e. Therefore, we create new job pieces as follows.
+[1]
+For all j ∈ Ce let j [1] and j [2] be jobs with processing times t j and
+[2]
+
+tj
+
+holding
+[2]
+tj =
+
+(
+
+(x cks )e t j
+
+:
+
+j ∈ Ce \ Ce∗
+
+(2)
+(1)
+(x cks )e t j + t j
+
+:
+
+j ∈ Ce∗
+
+(6)
+
+[2]
+
+[1]
+
+as well as t j = t j − t j . Now we deﬁne a new instance I (new)
++ ∪ I − ∪ I + with all of their jobs
+containing all classes i ∈ I exp
+exp
+chp
+(new)
+
+Ci
+
+∗ holding (x ) = 1
+:= Ci , all selected classes i ∈ I chp
+cks i
+(new)
+
+with all of their jobs Ci
+
+∗ \
+:= Ci , all unselected classes i ∈ I chp
+(new)
+
+{ e } holding (x cks )i = 0 with just their obligatory load Ci
+:=
+∗ with just the load
+{ j (2) | j ∈ Ci∗ }, and the split item class e ∈ I chp
+(new)
+
+Ce
+:= { j [2] | j ∈ Ce }. Last we set m (new) := m − l. Apparently
+I (new) is a nice instance and we schedule it on the residual m (new)
+machines using Algorithm 2. Later we will see that this load ﬁlls
+Í
+(2)
+the gap of (x cks )e we to Y since the obligatory job load of j ∈C e∗ t j
+is enlarged by exactly (x cks )e we . So with x cks we found a (sub)schedule that ﬁlls up the free time Y outside the large machines
+in an optimal way; in fact, we maximized the setup times of the
+selected classes such that the sum of the setup times of unselected
+classes got minimized. Hence, the residual load can be scheduled
+
+feasibly in the free time F˜ on the large machines, if T is suitable.
+Let K be the set of the residual jobs and job pieces, i.e.
+
+Ø
+−
+∗
+K = { j [1] | j ∈ Ce } ∪
+{ j (1) | j ∈ Ci∗ } ∪ (Ci \Ci∗ ) ∪ J (I chp
+\I chp
+).
+∗ \{ e }
+i ∈Ichp
+(x cks )i =0
+
+(7)
+In Note 3 we will see that all jobs (or job pieces) ι ∈ K of a class i
+hold si + t ι ≤ 12 T . In the following we schedule the jobs of K at the
+bottom of the large machines.
+K−
+
+K+
+
+1T
+2
+
+s7
+
+s 13
+s7
+
+s7
+
+s6
+
+s3
+
+s 14
+
+s 11
+
+s5
+
+chp
+
+1T
+4
+
+s 11
+s 13
+
+s5
+
+s6
+
+s7
+
+0 |
+l = |I exp
+
+Figure 4: An example solution at the bottom of the large machines
+− and e = 6
+after using Algorithm 3 with { 3, 5, 6, 7, 11, 13, 14 } ⊆ I chp
+Note 3. All jobs (or job pieces) ι ∈ K of class i hold si + t ι ≤ 21 T .
+Proof. First we show that this is true for all ι ∈ { j [1] | j ∈ Ce }.
+For j ∈ Ce \ Ce∗ we have se + t j ≤ 12 T and hence
+[1]
+
+= se + t j − (x cks )e t j ≤ 21 T − (x cks )e t j ≤ 12 T .
+(2)
+
+For j ∈ Ce∗ we use t j
+[1]
+
+se +t j
+
+∗ ) entirely outside the large machines. Takschedule the jobs J (I chp
+ing the previous case as a more complex model for this one, split
+− \ I ∗ ) into two well-deﬁned wrap sequences Q , Q such
+J (I chp
+1
+2
+chp
+Í
+that L(Q 1 ) = F − i ∈I ∗ (si + P(Ci )) and there is at most one class
+chp
+
+0
+
+se + t j
+
+larger than required for the obligatory load. Since all jobs (or job
+pieces) ι ∈ K − need at most 14 T time, they can be wrapped without
+parallelization using a wrap template ω with |ω| = l − l ′ deﬁned
+by ω1 = (l ′ + 1, 0, 21 T ) and ω1+r = (l ′ + 1 + r, 14 T , 21 T ) for all
+1 ≤ r < l − l ′. To construct a wrap sequence Q, we order the
+jobs and/or job pieces in K − by class, beginning with class e, and
+insert a suitable setup before the jobs of each class. Remark that Q
+starts with se followed by an arbitrary order of { j [1] | j ∈ Ce }∩K − .
+Finally we wrap Q into ω using Wrap(Q, ω).
+See Figure 4 for an example solution at the bottom of the large
+machines. The split item class setup e is colored red. Note that we
+even got two setups s 6 = se since there was a big job in K + ∩
+{ j [1] | j ∈ Ce }. Also notice that setup s 14 was a critical item on
+machine 6 and therefore it was moved below the next gap.
+Í
+Case 3.b: F ≥ i ∈I ∗ (si + P(Ci )). Then there is enough time to
+
+= se + t j − 12 T to see that
+(1)
+
+(1)
+
+= se +t j −(x cks )e t j −(se +t j − 21 T ) = 21 T −(x cks )e t j
+(1)
+
+∗ be a class with (x ) = 0. We have s +t
+Let i ∈ I chp
+i
+cks i
+j
+
+≤ 21 T .
+
+= si + 12 T −
+
+si = 21 T for all j ∈ Ci∗ and per deﬁnition of Ci∗ the bound holds for
+∗
+all jobs in Ci \ Ci∗ . Also as a direct result of the deﬁnition of I chp
+−
+∗
+we get the bound for all jobs of J (I chp \ I chp ).
+
+Û − into big jobs K + = { ι ∈ K | t ι > 14 T } and
+We split K = K + ∪K
+−
+small jobs K = { ι ∈ K | t ι ≤ 41 T }. Due to Lemma 10 it suﬃces to
+ﬁll large machines with an obligatory load of at least T . Since the
+large machines already have a load of at least 43 T , it is enough to
+add an obligatory load of at least 41 T . We start with the jobs of K + .
+On the one hand all ι ∈ K + of a class i hold t ι > 14 T and on the other
+hand they can be placed entirely at the bottom of a large machine
+since si + t ι ≤ 21 T . So this is what we do. We place the jobs of K +
+on the ﬁrst l ′ ≤ l large machines 1, . . . , l ′ with an initial associated
+setup time at time 0 directly followed by the job (or job piece). The
+very last step is to schedule the jobs of K − . We remember that
+we need to schedule one setup time se extra iﬀ (x cks )e > 0. To
+avoid a case distinction we deﬁne a wrap template which is slightly
+
+− \ I ∗ with jobs (or job pieces) in both sequences. Such
+e ∈ I chp
+chp
+a splitting can be obtained by a simple greedy approach. Then
++ ∪ I − ∪ I ∗ ) and the job pieces of Q lead to a nice instance
+J (I exp
+1
+exp
+chp
+for the residual m − l machines while the job pieces of Q 2 can be
+Û − and be handled just like before.
+named K, be split into K = K + ∪K
+
+4.3 Analysis
+
+Í
+We study case 3.a (F < i ∈I ∗ (si + P(Ci ))) only since the opposite
+chp
+case is much easier. We want to show the following theorem.
+Theorem
+j 5.k Let I be an instance and let T be a makespan. Let
+i)
+′
++
+αi = PT(C
+−si for all i ∈ I exp and x cks be the optimal solution to
+the knapsack problem of step 3. and let
+Õ
+Õ
+Õ
+si +
+si
+αi′si +
+L pmtn = P(J ) +
+∗
+i ∈Ichp
+(x cks )i =0
+
++
+i ∈[c]\Iexp
+
++
+i ∈Iexp
+
+Í
+
+1 −
+′
++ α + ⌈ |I exp |⌉. Then the following hold.
+i ∈Iexp
+2
+i
+(i) If mT < L pmtn or m < m ′, then it is true thatT < OPTpmtn (I ).
+
+0 |+
+and m ′ = |I exp
+
+(ii) Otherwise a feasible schedule with makespan at most 23 T can
+be computed in time O(n).
+Proof. (i). We show that T ≥ OPTpmtn implies mT ≥ L pmtn
+and m ≥ m ′. Let T ≥ OPTpmtn . Then there is a feasible schedule
+Í
+σ with makespan T . Let L(σ ) = ci=1 (λiσ si + P(Ci )). Since F <
+Í
+∗
+i ∈I ∗ (si +P(C i )), we know that we will need an extra setup si for
+chp
+
+∗ holding (x ) = 0, due to Lemma 4.
+all unselected classes i ∈ I chp
+cks i
+Together with Lemma 1 we get that
+
+mT ≥ L(σ ) ≥ P(J ) +
+
+c
+Õ
+
+αi si
+
+Õ
+
+i =1
+
+≥ P(J ) +
+
++
+i ∈Iexp
+
+αi′si +
+
+Õ
+
+si +
+
++
+i ∈[c]\Iexp
+
+Õ
+
+si = L pmtn .
+∗
+i ∈Ichp
+(x cks )i =0
+
+Í
+Í
+Due to Lemmas 1 and 2 we know that m ≥ i ∈Iexp λiσ ≥ i ∈Iexp αi
+and hence
+Õ
+Õ
+Õ
+Õ
+0
+−
+αi +
+αi +
+αi ≥ |I exp
+|+
+αi′ + ⌈ 21 |I exp
+m≥
+|⌉ = m ′ .
+0
+i ∈Iexp
+
++
+i ∈Iexp
+
+−
+i ∈Iexp
+
++
+i ∈Iexp
+
+(ii). Let mT ≥ L pmtn and m ≥ m ′. Apparently there are enough
+0 | = l for step 1.. It is important to see
+machines m ≥ m ′ ≥ |I exp
+that this simple placement of one machine per class is legitimate
+only due to Lemma 10. Now we study step 2.. As mentioned in the
+description of the algorithm, I (new) is a nice instance but we want
+to see that it is placed feasibly on the last m − l machines. So we
+∗ again. We ﬁnd that
+look on the split item class e ∈ I chp
+
+Õ
+Õ 
+Õ
+[2]
+(2)
+(1)
+tj =
+(x cks )e t j +
+(x cks )e t j + t j
+j ∈C e∗
+
+j ∈C e \C e∗
+
+j ∈C e
+
+Õ
+
+Õ
+© Õ
+(2)
+(1) ª
+t j + (x cks )e ­
+tj +
+tj ®
+∗
+∗
+∗
+j ∈C e
+j ∈C e
+« j ∈C e \C e
+¬
+Õ
+©Õ
+(2)
+(1)
+(2) ª
+= L∗e + (x cks )e ­
+tj −
+// (4), t j = t j − t j
+tj ®
+∗
+j ∈C e
+«j ∈C e
+¬
+Õ
+(2)
+∗
+= Le + (x cks )e we
+// we = P(Ce ) −
+tj
+
+=
+
+j ∈C e∗
+
+and this means that the jobs { j [2] | j ∈ Ce } do expand the obligatory load L∗e outside the large machines of e by exactly (x cks )e we ,
+as mentioned before. Turning back to instance I new , we name the
+(new)
+cheap load L chp and ﬁnd that
+(new)
+
+L nice =
+
+Õ
+
+Õ
+
+(αi′si + P(Ci )) +
+
+− ∪I +
+i ∈Iexp
+chp
+
++
+i ∈Iexp
+
+Í
+
+∗
+i ∈Ichp
+
+(x cks )i wi +
+
+(x cks )e we = Y = F − L∗ as well as wi = P(Ci ) − L∗i and hence
+P(Ci ) = L∗i + wi to show the following equality.
+Õ
+Õ
+(new)
+L chp =
+(si + P({ j (2) | j ∈ Ci∗ }))
+(si + P(Ci )) +
+
+=
+
+Õ
+
+∗ \{ e }
+i ∈Ichp
+(x cks )i =0
+
+(si + L∗i + wi ) +
+
+∗
+i ∈Ichp
+
+Õ
+
+= L∗ +
+
+Õ
+
+(si + L∗i ) + se + L∗e + (x cks )e we
+
+Õ
+
+(x cks )i =0
+
+(si + L∗i ) +
+
+∗
+i ∈Ichp
+
++ se + P({ j [2] | j ∈ Ce })
+
+∗ \{ e }
+i ∈Ichp
+
+(x cks )i =1
+
+=
+
+Õ
+
+wi + (x cks )e we
+
+∗
+i ∈Ichp
+(x cks )i =1
+
+(x cks )i wi + (x cks )e we = L∗ + F − L∗ = F
+
+∗
+i ∈Ichp
+
+So with Equations (5) and (8) it follows directly that m (new)T =
+(new)
+(m − l)T = L nice . Also we have
+Õ
+−
+|⌉ − l = m nice
+αi′ + ⌈ 21 |I exp
+m (new) = m − l ≥ m ′ − l = l +
++
+i ∈Iexp
+
+∗
+i ∈Ichp
+(x cks )i =0
+
+− \I ∗
+i ∈Ichp
+chp
+
+Apparently each job in K + has a load of at least 14 T and is placed
+on exactly one large machine u, which holds T − L(u) < 14 T . According to this, the wrap template ω suﬃces to wrap the residual
+jobs K − . Even big jobs of the split item class (or its setups) are no
+problem, since big jobs ﬁll up large machines more than possible
+(in a T -feasible schedule). So the only setup to worry about is the
+setup se wrapped into ω. One can see that it is not part of the above
+inequality, since there is no time reserved for it. Fortunately, the
+time period S(ω) provided by ω is large enough, though. This is
+true, since
+S(ω) = 12 T + (l − l ′ − 1) 14 T = (l − l ′ + 1) 14 T
+≥ (l − |K + |) 41 T + se = |K − | 14 T + se .
+Remark that jobs do never run in parallel, according to suﬃcient
+gap heights. However, it remains to obtain the running time. The
+total sum of the lengths of all used wrap templates and wrap sequences is in O(n). So they are wrapped in a total time of O(n).
+Also we need at time of O(n) to compute the knapsack instance.
+To solve it, we have linear time again. Overall the running time is
+O(n).
+
+
+(new)
+
+(si + P(Ci )) + L chp . (8)
+
+We use the continuous knapsack characteristic
+
+∗
+i ∈Ichp
+(x cks )i =1
+
+so Theorem 4(ii) is satisﬁed and hence I new is scheduled feasibly on
+the last m−l machines with a makespan of at most 23 T . It remains to
+show that K can be placed at the bottom of the large machines. As
+already stated in the description, this is ensured by the optimality
+of the continuous knapsack solution. One may formally conﬁrm
+that
+Õ
+Õ
+l · 41 T ≥ F˜ ≥ P(K) +
+si .
+si +
+
+4.4 Class Jumping
+Here we use our idea of Class Jumping (cf. Section 3.4) to show the
+following theorem.
+Theorem 6. There is a 23 -approximation for the preemptive case
+running in time O(n log n).
+The idea for the splittable case can be applied to the preemptive
+one with a small modiﬁcation as follows. We need to replace step
++ depend less
+1. of Algorithm 2 on page 6 such that the jumps of I exp
+on the setup time si . As in the algorithm for the splittable case, we
+deﬁne a gap of size 12 T above each setup. If a last machine got a
+total load of at least T the machines are ﬁlled well. If a last machine
+got load less than T its job load will be at most T − si . It turns out
+that the machines u before hold 32 T − L(u) = 23 T − (si + 12 T ) =
+T − si . So we simply move the job load of the last machine to the
+top of the second last machine (and remove the setup on the last
+machine). See Figure 5 for an example. To deﬁne the associated
++ we set
+machine number γi for all classes i ∈ I exp
+(
+
+
+max { βi′, 1 } P(Ci ) − βi′ · 12 T ≤ T − si
+2P(Ci )
+βi′ =
+.
+and γi =
+T
+βi
+otherwise
+Remark that γi ≤ βi . One can see that class i jumps right after the
+last machine got a job load of exactlyT −si . In more detail we obtain
+that a makespan T is a jump of class i if Pi = γi (T ) · 12 T + (T − si )
+and this may be rearranged to T = 2(si + Pi )/(γi (T ) + 2).
+
+−
+I exp
+
+and therefore we get
+
++
+I exp
+
+I chp
+3T
+2
+
+2(si + Pi )
+2(si + Pi )
+1
+=
+= 1
+1
+2(si +P i )
+γi (T ′′ ) + 3
++
+′′
+−
+2
++
+3
+′′
+T
+
+1
+≤ 1
+1
++
+′
+T
+2(si +P i )
+1
+≤ 1
+1
++
+′
+T
+2(s +P )
+
+T
+1T
+2
+
+3T
+4
+
+f
+
+=
+
+1T
+2
+
+s1 s1 s1 s2 s2 s2
+0
+
+γ1
+
+2(si +P i )
+
+T
+
+5T
+4
+
+1T
+4
+
+µ
+
+γ2
+m good
+
+Figure 5: An example solution after using the modiﬁcation of Al+ = { 1, 2 }
+gorithm 2 with I exp
+Algorithm 4 Class Jumping for Preemptive Scheduling
+1. Compute Pi = P(Ci ) for all i ∈ [c] in time O(n)
+2. Use consecutive binary search routines to ﬁnd a right interval V = (A1 ,T1 ] in time O(n log c) such that each
++ , I 0 , I − and
+T ∈ (A1 ,T1 ] causes the same sets I exp
+exp exp
+∗ | (x ) = 0 }
+{ i ∈ I chp
+cks i
++ , i.e. s + P ≥ s + P
+3. Find a fastest jumping class f ∈ I exp
+i
+i
+f
+f
++
+for all i ∈ I exp , in time O(c)
+i
+ 2(s +P )
+2(s +P f )
+f
+for
+, γ (Tf )+k+2
+4. Guess the right interval W = γ (Tf )+k+3
+f
+
+1
+
+f
+
+1
+
+some integer k < m such that X := V ∩ W , Ø, in time
+2(s +P )
+
+f
+O(c logm) and set T2 := γ (Tf )+k+2
+f
+
+1
+
+5. Find and sort the O(c) jumps in X in time O(c log c)
+6. Guess the right interval Y = (Tfail ,Tok ] ⊆ W for two jumps
++ which jump in X such
+Tfail ,Tok of two classes i a , ib ∈ I exp
+that no other class jumps in Y , in time O(c log c)
+7. Choose a suitable makespan in this interval in constant time
+
+Analysis of Algorithm 4. Again we focus on the crucial claim,
+that X contains no more than c jumps in total.
+Lemma 5. If T ′ is a jump of f , i.e. T ′ = 2(s f +Pf )/(γ f (T ′ )+ 2), and
+T ′′ is a jump of a diﬀerent class i, i.e. T ′′ = 2(si + Pi )/(γi (T ′′ ) + 2),
+such that T ′′ ≤ T ′ , then the next jump of class i is smaller than the
+next jump of f , which may be written as
+2(s f + Pf )
+2(si + Pi )
+≤
+.
+′′
+γi (T ) + 3 γ f (T ′ ) + 3
+Proof. By simply rearranging the equations for T ′ and T ′′ we
+ﬁnd that
+2(s f + Pf )
+2(si + Pi )
+− 2 and γi (T ′′ ) =
+−2
+γ f (T ′ ) =
+T′
+T ′′
+
+// T ′′ ≤ T ′
+
+f
+
+2(s f + Pf )
+2(s f +P f )
+−2+3
+T′
+
+=
+
+2(s f + Pf )
+γ f (T ′ ) + 3
+
+.
+
+
+
+Proof of Theorem 6. Due to Lemma 5 any class that jumps in
++ there
+X jumps outside of X the next time. So for every class i ∈ I exp
++ | ≤
+is at most one jump in X and hence X contains at most |I exp
+c jumps. Apparently the sum of the running times of each step
+is O(n log(c + m)) and the returned value T ∈ { Tok,Tnew } holds
+T ≤ OPTpmtn while being accepted by Theorem 5 (ii) such that
+Algorithm 3 computes a feasible schedule with ratio 32 in time O(n).
+So we get a total running time of O(n log(c +m)) ≤ O(n logn) since
+c ≤ n and m < n.
+
+
+5 CONCLUSION
+There are several open questions. First of all: can we ﬁnd any polynomial time approximation scheme for the preemptive scheduling
+problem? Remark that the splittable and preemptive case only differ in the (non-)parallelization of jobs. However, the preemptive
+problem turns out to be much harder to approximate. Especially
+because Jansen et al. [5] have not found an (E)PTAS using n-folds,
+this remains as a very interesting open question. It might be an option to ﬁx m (cf. Table 1 on page 2) for ﬁrst results. Also there may
+be constant bounds less than 32 with similar small running times
+as well.
+Another remarkable point may be the investigation of unrelated/uniform
+machines; in fact, there is a known result of Correa et al. [2] for the
+splittable case on unrelated machines.
+Also we only discussed sequence-independent setups here. Considering sequence-dependent setups the setup times are given as a
+matrix S ∈ Nc×c of values s (i 1,i 2 ) which means that processing jobs
+of class i 2 on a machine currently set up for class i 1 will cost a setup
+time of s (i 1,i 2 ) . For example there is a very natural application to
+TSP for m = 1 and Ci = { ji } with t ji = 0 where the jobs/classes
+identify cities. Selecting setups dependent by the previous job as
+well as the next job, we have the classical TSP (path version).
+There may be similar approximation results by (re)using the
+ideas of this paper.
+
+ACKNOWLEDGMENTS
+We want to thank our reviewers for all of their profound reviews
+and many useful comments which helped us a lot to improve our
+paper.
+
+REFERENCES
+[1] Bo Chen. 1993. A Better Heuristic for Preemptive Parallel Machine Scheduling with Batch Setup Times. SIAM J. Comput. 22, 6 (1993), 1303–1318.
+https://doi.org/10.1137/0222078
+[2] José R. Correa, Alberto Marchetti-Spaccamela, Jannik Matuschke, Leen Stougie,
+Ola Svensson, Victor Verdugo, and José Verschae. 2014. Strong LP Formulations for Scheduling Splittable Jobs on Unrelated Machines. In Integer Programming and Combinatorial Optimization - 17th International Conference, IPCO
+2014, Bonn, Germany, June 23-25, 2014. Proceedings (Lecture Notes in Computer Science), Jon Lee and Jens Vygen (Eds.), Vol. 8494. Springer, 249–260.
+https://doi.org/10.1007/978-3-319-07557-0_21
+[3] R.L. Graham, E.L. Lawler, J.K. Lenstra, and A.H.G.Rinnooy Kan. 1979. Optimization and Approximation in Deterministic Sequencing and Scheduling:
+a Survey. In Discrete Optimization II, P.L. Hammer, E.L. Johnson, and B.H.
+Korte (Eds.). Annals of Discrete Mathematics, Vol. 5. Elsevier, 287 – 326.
+https://doi.org/10.1016/S0167-5060(08)70356-X
+[4] Dorit S. Hochbaum and David B. Shmoys. 1987. Using dual approximation algorithms for scheduling problems theoretical and practical results. J. ACM 34, 1
+(1987), 144–162. https://doi.org/10.1145/7531.7535
+[5] Klaus Jansen, Kim-Manuel Klein, Marten Maack, and Malin Rau. 2019. Empowering the Conﬁguration-IP - New PTAS Results for Scheduling with Setups Times. In 10th Innovations in Theoretical Computer Science Conference,
+ITCS 2019, January 10-12, 2019, San Diego, California, USA (LIPIcs), Avrim Blum
+(Ed.), Vol. 124. Schloss Dagstuhl - Leibniz-Zentrum fuer Informatik, 44:1–44:19.
+https://doi.org/10.4230/LIPIcs.ITCS.2019.44
+[6] Klaus Jansen and Felix Land. 2016.
+Non-preemptive Scheduling with
+Setup Times: A PTAS. In Euro-Par 2016: Parallel Processing - 22nd International Conference on Parallel and Distributed Computing, Grenoble, France,
+August 24-26, 2016, Proceedings (Lecture Notes in Computer Science), PierreFrançois Dutot and Denis Trystram (Eds.), Vol. 9833. Springer, 159–170.
+https://doi.org/10.1007/978-3-319-43659-3_12
+[7] Alexander Mäcker, Manuel Malatyali, Friedhelm Meyer auf der Heide, and Sören
+Riechers. 2015. Non-preemptive Scheduling on Machines with Setup Times.
+In Algorithms and Data Structures - 14th International Symposium, WADS 2015,
+Victoria, BC, Canada, August 5-7, 2015. Proceedings (Lecture Notes in Computer
+Science), Frank Dehne, Jörg-Rüdiger Sack, and Ulrike Stege (Eds.), Vol. 9214.
+Springer, 542–553. https://doi.org/10.1007/978-3-319-21840-3_45
+[8] Robert McNaughton. 1959. Scheduling with Deadlines and Loss Functions. Manage. Sci. 6, 1 (Oct. 1959), 1–12. https://doi.org/10.1287/mnsc.6.1.1
+[9] Clyde L. Monma and Chris N. Potts. 1989. On the Complexity of Scheduling with Batch Setup Times. Operations Research 37, 5 (1989), 798–804.
+https://doi.org/10.1287/opre.37.5.798
+[10] Clyde L. Monma and Chris N. Potts. 1993. Analysis of Heuristics for Preemptive
+Parallel Machine Scheduling with Batch Setup Times. Operations Research 41, 5
+(1993), 981–993. https://doi.org/10.1287/opre.41.5.981
+[11] Petra Schuurman and Gerhard J. Woeginger. 1999. Preemptive Scheduling
+with Job-Dependent Setup Times. In Proceedings of the Tenth Annual ACMSIAM Symposium on Discrete Algorithms, 17-19 January 1999, Baltimore, Maryland., Robert Endre Tarjan and Tandy J. Warnow (Eds.). ACM/SIAM, 759–767.
+http://dl.acm.org/citation.cfm?id=314500.314911
+[12] Wenxun Xing and Jiawei Zhang. 2000. Parallel machine scheduling with
+splitting jobs.
+Discrete Applied Mathematics 103, 1-3 (2000), 259–269.
+https://doi.org/10.1016/S0166-218X(00)00176-1
+
+A
+
+MORE PRELIMINARIES
+
+Here we give the deﬁnition of Batch Wrapping as well as some
+simple upper bounds for all three problem contexts.
+
+A.1
+
+Batch Wrapping
+
+Robert McNaughton solved P|pmtn|Cmax in linear time [8]. McNaughton’s wrap-around rule simply schedules all jobs greedily
+Í
+from time 0 to time T = max { t max , m1 j ∈J t j } splitting jobs
+whenever they cross the border T . Indeed, this is not applicable for
+our setup time problems. However, our idea of Batch Wrapping can
+be understood as a generalization of McNaughton’s wrap-around
+rule suitable for scheduling with setup times. To deﬁne it we need
+wrap templates and wrap sequences as follows.
+
+b2
+b4
+b1
+
+b3
+
+a2
+
+a4
+a3
+
+a1
+0
+
+u1
+
+u2
+m
+
+u3
+
+u4
+
+Figure 6: An example of a wrap template ω with |ω| = 4
+Definition 2. A wrap template is a list ω = (ω1 , . . . , ω |ω | ) ∈
+([m] × Q × Q)∗ of triples ωr = (ur , ar , br ) ∈ [m] × Q × Q for 1 ≤
+r ≤ |ω| that hold the following properties:
+(i) ur < ur +1 f.a. 1 ≤ r < |ω| (ii) 0 ≤ ar < br f.a. 1 ≤ r ≤ |ω|
+Í |ω |
+Let S(ω) := r =1 (br −ar ) denote the provided period of time. A wrap
+sequence is a sequence Q = [si l , Cl′]l ∈[k] where
+[si l , Cl′]l ∈[k] = (si 1 , j 11 , . . . , jn1 1 , si 2 , j 12 , . . . , jn2 2 , . . . , si k , j 1k , . . . , jnk k )
+and Cl′ = { j 1l , . . . , jnl l } with n l = |Cl′ | is a set of jobs and/or job
+Í
+pieces of a class i l ∈ [c] for 1 ≤ l ≤ k. Let L(Q) := kl=1 (si l + P(Cl′))
+denote the load of Q.
+These technical deﬁnitions need some intuition. Have a look
+at Figure 6 to see that a wrap template simply stores some free
+time gaps (colored green in Figure 6) in a schedule where jobs may
+be placed. Remark that there can be at most one gap on each machine per deﬁnition. However, a wrap sequence is just a sequence
+of batches.
+We use wrap templates to schedule wrap sequences in the folÐ
+lowing manner. Let X = kl=1 Cl′ be a set of jobs and job pieces
+of k diﬀerent classes i 1 , . . . , i k ∈ [c] where Cl′ = { j 1l , . . . , jnl l }
+is a set of jobs and job pieces of Ci l for all 1 ≤ l ≤ k. Furthermore, let Q = [si l , Cl′]l ∈[k] be a wrap sequence. Hence, Q has
+Í
+Í
+a length of |Q | = kl=1 (1 + n l ) = k + kl=1 n l . Now let ω =
+((u 1, a 1 , b 1 ), . . . , (u |ω | , a |ω | , b |ω | )) be a wrap template. We want to
+schedule Q in McNaughton’s wrap-around style using the gaps
+[ar , br ] for 1 ≤ l ≤ |ω|. The critical point is when an item q hits
+the border br . If q is a setup, the solution is simple. In this case we
+simply move q below the next gap to be sure that the following
+jobs (or job pieces) get scheduled feasibly. If the critical item q is
+a job (piece) of a class i, we split q at time br into two new jobs
+(just like McNaughton’s wrap-around rule) to place one job piece
+at the end of the current gap and the other job piece at the beginning of the next gap. As before, we add a setup si below the next
+gap to guarantee feasibility. We refer to the described algorithm
+as Wrap. Note that the critical job piece can be large such that it
+needs multiple gaps (and splits) to be placed. An algorithm for this
+splitting is given as Algorithm 5, namely Split. Split gets the current gap number r as well as the point in time t where q should be
+processed. It returns the gap number and the point in time where
+
+the next item should start processing. A simple comparison with
+McNaughton’s wrap-around rule will prove the following lemma.
+
+O(n) (cf. Lemma 7) but actually a smarter implementation of Split
+is able to overcome this issue. For details see the proof of Theorem 7
+on page 16.
+
+
+Algorithm 5 Split a critical job (piece) to the subsequent gaps and
+add necessary setups
+
+Due to the same lower bounds (cf. Notes 1 and 2) the non-preemptive
+and preemptive case can be approximated using the same algorithm, stated in the proof of the following Lemma 9.
+
+procedure Split(q, ω, r, t)
+Let i be the class of job (piece) q
+p ← q; t ′ ← t + tq
+while t ′ > br do
+Split q into new job pieces q 1, q 2
+with tq1 = t ′ − br and tq2 = br − t
+Place job piece q 2 at time t on machine ur
+r ← r + 1; q ← q 1 ; t ← ar ; t ′ ← ar + tq
+⊲ turn to the next gap
+Place setup si at time t − si on machine ur
+done
+Place job piece q at time t on machine ur
+⊲ q (= q 1 ) ﬁts in the gap [ar , br ]
+return (r, t ′ )
+
+Lemma 9. There is a 2-approximation for both the non-preemptive
+and preemptive case running in time O(n).
+Proof. Let I be an instance and let Tmin be a makespan with
+(i )
+(i )
+Tmin = max { m1 N , maxi ∈[c] (si + t max ) } where t max = max j ∈C i t j
+Íc
+Í
+and N = i =1 si + j ∈J t j . Consider the non-preemptive case and
+remark that Tmin ≤ OPTnonp (I ). First, we group the jobs by classes.
+Let Ci = { j 1i , . . . , jni i } with n i = |Ci | for all classes i ∈ [c]. Beginning on machine 1, we add one setup for each class followed by all
+jobs of the class. Whenever the load of the current machine exceeds
+Tmin , we keep the last placed item and proceed to the next machine.
+So we add the items s 1 , j 11 , . . . , jn1 1 , s 2 , j 12 , . . . , jn2 2 , . . . , sc , j 1c , . . . , jnc c
+to the machines using a next-ﬁt strategy with threshold Tmin (see
+Figure 7 on the left). The idea of the next step is to move the items
+
+(Q )
+
+2Tmin
+
+Lemma 6. Let Q be a wrap sequence containing a largest setup s max
+and ω be a wrap template with L(Q) ≤ S(ω). Then Wrap will place
+the last job (piece) of Q in a gap ωr with r ≤ |ω|. If there was a free
+(Q )
+time of at least s max below each gap but the ﬁrst, the load gets placed
+feasibly.
+
+
+2Tmin
+
+s3
+
+Lemma 7. If L(Q) ≤ S(ω) then Wrap(Q, ω) has a running time of
+O(|Q | + |ω|).
+Proof. Whenever a critical job (piece) is obtained, Wrap runs
+Split. Apparently each turn of the while loop in Split results in
+a switch to the next entry of ω, i.e. r ← r + 1, such that the total
+number of loop turns over all q ∈ Q is bounded by |ω| thanks
+to Lemma 6. A turn of the for loop in Wrap needs constant time
+except for the execution of Split such that we get a total running
+time of O(|Q | + |ω|).
+
+
+A.2
+
+Tmin
+s3
+
+Lemma 8. There is a 2-approximation for the splittable case running in time O(n).
+(1)
+Proof. Let I be an instance and let Tmin := max { m1 N , s max } ≤
+Íc
+Í
+OPTsplit (I ) where N = i =1 si + j ∈J t j . We construct a wrap
+
+template ω = (ω1 , . . . , ωm ) of length |ω| = m by setting ωr :=
+1 N ) for all r ∈ [m], to wrap a wrap sequence Q =
+(r, s max , s max + m
+[si , Ci ]
+containing all classes/jobs. Apparently we have S(ω) =
+Ím 1i ∈[c]
+N
+=
+N = L(Q) and obviously the time s max below each gap
+r =1 m
+is suﬃcient to place the possibly missing setups. Hence, thanks to
+Lemma 6 this wrapping builds a feasible schedule with a makespan
+1 N ≤ 2T (1) ≤ 2 OPT
+of at most s max + m
+split (I ). The attentive reader
+min
+recognizes that Wrap runs in time O(|Q | + |ω|) = O(c + n + m) >
+
+s5
+
+s2
+s4
+
+s2
+
+Simple Upper Bounds
+
+For all three problems there is a 2-approximation with running
+time O(n). The algorithm for the splittable case is a simple application of wrap templates. For the non-preemptive and preemptive
+case one can use a slightly modiﬁed greedy solution.
+
+Tmin
+
+s4
+
+s4
+
+s1
+
+s1 s1
+
+0
+
+s5
+
+s3
+
+0
+m
+
+m
+
+Figure 7: Example for a next-ﬁt schedule with m = c = 5
+(both jobs and setups) that cross the border Tmin to the beginning
+of the next machine. For each moved item that was a job j ∈ Ck we
+place an additional setup sk right before j. All other load is shifted
+up as much as required to place the moved items (see Figure 7 on
+the right). In a last step one can remove unnecessary setups, i.e.
+setups which are scheduled last on a machine. In Figure 7 this reduces the load of machine 2 by the setup time s 3 . Remark that the
+T -crossing items of the ﬁrst step are hatched.
+Analysis. First consider the ﬁrst step. The load placed is exactly
+c
+c
+Õ
+Õ
+Õ
+1 N ≤ m ·T
+tj = N = m · m
+(si + P(Ci )) =
+si +
+min
+i =1
+
+i =1
+
+j ∈J
+
+and this states that the load of the last machine is at most Tmin . Apparently the makespan of the resulting schedule is at most Tmin +
+max(s max , t max ). Now turn to the second step and consider a machine u < m. Passing away the item that exceeds Tmin , the load
+of u reduces to at most Tmin . Finally it increases to at most Tmin +
+(i )
+maxi ∈[c] (si + t max ) ≤ Tmin + Tmin = 2Tmin since u potentially receives an item q from machine u − 1 as well as an initial setup if q
+is a job. As mentioned above, the last machine u = m already has
+a load of at most Tmin . So after the reassignment its load holds the
+bound of 2Tmin as well. Hence, in total the schedule has a makespan
+of at most 2Tmin ≤ 2 OPT and apparently both steps do run in time
+O(n) such that the described algorithm runs in time O(n).
+Every solution to the non-preemptive case is a solution to the
+preemptive case and we obtained the same lower bounds for the
+preemptive case as for the non-preemptive one, i.e. Tmin ≤ OPTpmtn (I ).
+So the approximation can be used in the preemptive case as well.
+
+
+B PREEMPTIVE SCHEDULING
+B.1 The Soundness of Large Machines
+The proof of Theorem 5 implicitly uses the fact that the use of
+our large machines is reasonable. To be convinced we prove the
+following lemma.
+Lemma 10. For every feasible schedule with makespan T there is a
+feasible schedule σ with a makespan of at most 32 T such that each
+0 is placed on exactly one machine u which holds s +
+class i ∈ I exp
+i
+i
+P(Ci ) ≤ Lσ (ui ) ≤ T .
+We start with a more simple property.
+Lemma 11. Let σ be a feasible schedule with makespan T . Then
+there is a feasible schedule σ ′ with a makespan of at most 23 T that
+holds the following properties.
+0 is scheduled on exactly one machine u in σ
+(1) If a class i ∈ I exp
+i
+(i.e. λiσ = 1) then it is scheduled on exactly one machine ui′ in
+σ ′ such that setup si starts processing at time 12 T and there is
+no more load above Ci while L′ (ui′) = L(ui ) ≤ T .
+(2) On all other machines of σ ′ no job (piece) starts processing
+before time 21 T .
+Proof. Let σ be a feasible schedule with makespan T . Let L(σ ) =
+Íc
+σ
+i =1 (λ i si + P(C i )). We do a simple machine modiﬁcation. Con0 holding
+sider a machine ui in σ that schedules a class i ∈ I exp
+σ
+λi = 1. We reorder machine ui as follows.
+We refer to the load below setup time si as set Ai and to the load
+above the last job of Ci as set B i . So Ai and B i hold setup times, jobs
+and job pieces of classes i ′ , i. Now move up the setup time si as
+well as all jobs of Ci such that si starts at time 12 T and the jobs of Ci
+are scheduled consecutively right behind it. Also we move down
+each item of B i by exactly 12 T such that Ai and B i are scheduled
+until time 21 T . Since si + P(Ci ) > 43 T , we get L(Ai ) + L(B i ) < 41 T
+and thus it follows L(Ai ) < 14 T as well as L(B i ) < 14 T . Hence the
+items of Ai and B i do not intersect in time after this modiﬁcation.
+Also notice that for diﬀerent classes i , i ′ there is no forbidden
+parallelization for preempted jobs of Ai ∪ Ai ′ ∪ B i ∪ B i ′ because
+relatively to each other they are scheduled in time just as before.
+
+3T
+2
+5T
+4
+
+Ci
+
+T
+
+Bi
+si
+
+Ci
+
+3T
+4
+1T
+2
+
+Bi
+
+si
+
+1T
+4
+
+0
+
+Ai
+
+Ai
+
+ui
+Figure 8: Modiﬁcation of a large machine ui
+On all other machines of σ we move up every item by exactly 12 T
+such that nothing is scheduled before line 12 T . Apparently we get
+a feasible schedule with a makespan of at most 23 T .
+
+Proof of Lemma 10. Let σ be a feasible schedule with makespan
+Í
+T and L(σ ) = ci=1 (λiσ si + P(Ci )). First let us add some notation.
+0, 1
+0 as the set of classes i ∈ I 0 with λ σ = 1
+We set I exp
+(σ ) ⊆ I exp
+exp
+i
+0, 2
+0 \ I 0, 1 (σ ) denotes the set of classes i ∈ I 0
+whereas I exp
+(σ ) = I exp
+exp
+exp
+0, 2
+0, 1
+0 = I 0, 1 (σ ) ∪
+Û I exp
+holding λiσ ≥ 2 such that I exp
+(σ ). So I exp
+(σ ) is the
+exp
+set of classes already placed like intended. Nevertheless we need to
+modify their placement according to the feasibility of other classes.
+0, 1
+So for all i ∈ I exp
+(σ ) there is exactly one machine ui that schedules
+all jobs of Ci in schedule σ . We modify them using Lemma 11. Apparently these machines may already schedule jobs or job pieces
+of I chp . To identify the residual load of I chp we do the following. Us(1)
+
+ing the notation of Lemma 11, let t j be the sum of the processing
+Ð
+times of all job pieces in i ∈I 0, 1 (σ ) X i of a job j ∈ J (I chp) where
+exp
+
+0, 1
+X i = Ai ∪B i for all i ∈ I exp
+(σ ). Remember that X i does not contain
+jobs or job pieces of class i. We create a new job piece j (2) for all
+(1)
+(2)
+jobs j ∈ J (I chp) with processing time t j := t j −t j . So the residual
+(2)
+
+jobs and job pieces of I chp are Ci′ := { j (2) | j ∈ Ci , t j > 0 } for all
+′ = {i ∈ I
+′
+i ∈ I chp . Let I chp
+chp | 1 ≤ |C i | } and since σ is feasible, we
+obtain
+Õ
+0, 1
+(m − |I exp
+(σ )|)T ≥ L(σ ) −
+L(ui )
+=
+
+Õ
+
+0, 1
+i Iexp
+(σ )
+
+(λi si + P(Ci )) +
+
+0, 1
+i ∈(Iexp \Iexp
+(σ ))
+
+Õ
+
+(si + P(Ci′)).
+
+(9)
+
+′
+i ∈Ichp
+
+Each one of the λi ≥ 2 machines used to schedule the jobs of a class
+0, 2
+i ∈ I exp
+(σ ) in σ has a total load of diﬀerent classes i ′ , i of at most
+1 T since s > 1 T . We aim to schedule them on a single machine
+i
+2
+2
+such that λi′ = 1 if λr′ is the number of setup times used to schedule
+class r in schedule σ ′ . In fact, we can do this without scheduling
+load of diﬀerent classes on the selected (single) machines. We ex0, 2
+tend the schedule as follows. Each class i ∈ I exp
+is placed on a
+
+single machine with an initial setup time si followed by Ci with
+no load of other classes underneath or above. At ﬁrst glance this
+seems rather wasteful because in schedule σ there may be other
+0, 2
+load on machines scheduling I chp
+(σ ) in general. With a closer look
+we can convince us that its reasonable though. The idea is the fol0, 2
+lowing. A class i ∈ I exp
+(σ ) was placed in schedule σ with a load of
+σ
+Li = λi si + P(Ci ) ≥ 2si + P(Ci ) on λiσ ≥ 2 machines whereas we
+sum up to a load of Li′ = si +P(Ci ) on only one machine in schedule
+σ ′ now. Hence, we get at least one si > 21 T of processing time on
+a diﬀerent and so far unused machine since there cannot be two
+setup times of expensive classes on one machine. So we waste a
+time of T − (si + P(Ci )) < 14 T to schedule class i while gaining at
+least si > 21 T of processing time.
+
+−
+I exp
+
+0, 2
+I exp
+(σ )
+
+′
+I chp
+
++
+I exp
+
+3T
+2
+5T
+4
+
+T
+3T
+4
+1T
+2
+
+s1 s1 s1 s2 s2 s2 s2
+
+1T
+4
+
+0
+
+µ
+I chp
+
+0 |
+|I exp
+
+m#
+m
+
++ =
+Figure 9: An example solution after using Lemma 10 with I exp
+{ 1, 2 }
+
+To look at this issue in more detail we call R the processing time
+Í
+σ
++ ∪I − (λ s i +P(C i ))+
+of the residual load in σ and we ﬁnd R = i ∈Iexp
+i
+exp
+Í
+0, 2
+′
+σ
+i ∈I ′ (si + P(C i )). Applying λ i ≥ 2 for all i ∈ I exp (σ ) we can use
+Õ
+
+chp
+
+(λiσ si +P(Ci )) ≥
+
+0, 2
+i ∈Iexp
+(σ )
+
+Õ
+
+(2si +P(Ci )) ≥
+
+0, 2
+i ∈Iexp
+(σ )
+
+Õ
+
+0, 2
+(T +P(Ci )) ≥ |I exp
+(σ )|T
+
+0, 2
+i ∈Iexp
+(σ )
+
+0, 1
+0, 2
++ ∪
+− to see that
+Û I exp
+and I exp \ I exp
+(σ ) = I exp
+(σ ) ∪Û I exp
+0, 1
+(m − |I exp
+(σ )|)T
+Õ
+Õ
+≥
+(λiσ si + P(Ci )) +
+(si + P(Ci′))
+0, 1
+i ∈(Iexp \Iexp
+(σ ))
+
+=
+
+Õ
+
+chp
+
++ ∪ I − as well as
+with Ci# := Ci for all expensive classes i ∈ I exp
+exp
+#
+′
+′
+Ci := Ci for all cheap classes i ∈ I chp . Apparently I # is a nice
+instance and it actually holds the requirements of Theorem 4 (ii).
+In more detail we obtain that
+0
+m # · T = (m − |I exp
+|)T
+Õ
+≥R=
+
+(λiσ si + P(Ci )) +
+
++ ∪I − )
+i ∈(Iexp
+exp
+
+≥ P(J # ) +
+
+Õ
+
+αi′si +
+
+(λiσ si + P(Ci )) +
+
+0, 2
+i ∈Iexp
+(σ )
+
+0, 2
+≥ |I exp
+(σ )|T + R
+
+Õ
+
+′
+i ∈Ichp
+
+(λiσ si + P(Ci )) +
+
++ ∪I −
+i ∈Iexp
+exp
+
+// (9)
+Õ
+
+′
+i ∈Ichp
+
+(si + P(Ci′))
+
+Õ
+
+Õ
+
+(si + P(Ci′))
+
+′
+i ∈Ichp
+
+// Lemma 1, αi ≥ αi′
+
+si
+
+− ∪I ′
+i ∈Iexp
+chp
+
++
+i ∈Iexp
+
+0
+I exp
+0, 1
+I exp
+(σ )
+
+0 |)T = (m − |I 0, 1 (σ )|)T − |I 0, 2 (σ )|T ≥ R.
+and thus it follows (m − |I exp
+exp
+exp
+0 | machines provide a processing time
+Hence, the residual m − |I exp
+of at least R. So we can build a residual instance I # for the residual
+0 | machines to place J # := J (I + ∪ I − ) ∪ Ð ′ C ′
+m # := m − |I exp
+i ∈I
+exp
+exp
+i
+
+and with Lemmas 1 and 2 and αi ≥ αi′, αi ≥ 1 we get that
+Õ
+0
+0
+αi − |I exp
+|
+m # = m − |I exp
+|≥
+i ∈Iexp
+
+≥
+
+Õ
+
+−
+|≥
+αi′ + |I exp
+
+Õ
+
++
+i ∈Iexp
+
++
+i ∈Iexp
+
+m
+l
+−
+| .
+αi′ + 21 |I exp
+
+So Theorem 4 leads us to use Algorithm 2 to complete our schedule
+feasibly with a makespan of at most 23 T . Figure 9 illustrates the use
+of Algorithm 2 with dashed lines around the area of the m # last
+machines.
+
+
+C SPLITTABLE SCHEDULING
+
+Í
+For this section let Tmin := max { m1 N , s max } where N = ci=1 si +
+Í
+j ∈J t j . Let I be an instance and let T ≥ Tmin be a makespan. We
+describe the algorithm in two steps.
+Step 1. First we place all jobs of expensive classes. We deﬁne a
+wrap template ω (i ) of length |ω (i ) | = ⌈2P(Ci )/T ⌉ = βi for each
+(i )
+(i )
+class i ∈ I exp as follows. Let ω1 = (ui , 0, si + 21 T ) and ω1+r =
+(ui +r, si , si + 12 T ) for 1 ≤ r < βi . Here the ﬁrst machines ui have to
+be chosen distinct to all machines of the other wrap templates. We
+convert the expensive classes i ∈ I exp into simple wrap sequences
+Q (i ) = [si , Ci ] consisting of an initial setup si followed by an arbitrary order of all jobs in Ci . For all i ∈ I exp we use Wrap(Q (i ) , ω (i ) )
+(i )
+
+(i )
+
+to wrap Q (i ) into ω (i ) = (ω1 , . . . , ω β ). Remark that Wrap places
+i
+a setup si at time 0 on each machine ui + l where 1 ≤ l < βi . See
+Figure 1(a) for an example.
+Step 2. The next and last step is to place the jobs of cheap classes.
+Let ūi be the last machine used to wrap a sequence Q (i ) in the
+previous step, i.e. ūi = ui + βi − 1 for all i ∈ I exp . The idea is to
+use the free time left on the machines ūi while reserving a time
+of exactly 12 T for a cheap setup. Once these machines are ﬁlled,
+we turn to unused machines. In more detail we deﬁne one wrap
+template ω and one wrap sequence Q to place all jobs J (I chp) as
+Í
+follows. Let m exp = i ∈Iexp βi be the number of machines used
+in step (1) and let i 1 , . . . , ip ∈ I exp be all p classes i ∈ I exp that
+hold L(ūi ) < T . We deﬁne ωl = (ūi l , L(ūi l ) + 12 T , 23 T ) for all
+1 ≤ l ≤ p. To ﬁll the residual (and empty) k = m − m exp machines r 1 , . . . , r k ∈ [m] we set ωp+l = (r l , 12 T , 23 T ) for all 1 ≤
+
+l ≤ k. The wrap sequence Q = [si , Ci ]i ∈Ichp simply consists of
+Ð
+all jobs of J (I chp) = i ∈Ichp Ci with an initial setup si before all
+the jobs of Ci for a cheap class i ∈ I chp . As predicted, we wrap
+Q into ω = (ω1 , . . . , ωp , ωp+1 , . . . , ωp+m−mexp ) using Wrap(Q, ω).
+See Figure 1(b) for an example.
+
+imply that
+Õ
+Õ
+(βi si + P(Ci ))
+(T − L(ūi )) +
+L ′ :=
+=
+
+C.1
+
+Õ
+
+(βi si + P(Ci ) + T − L(ūi )) +
+
+i ∈Iexp
+L(ū i )<T
+
+Analysis
+
+We want to show the following lemma.
+
+≥
+
+L split = P(J ) +
+
+Õ
+
+si +
+
+βi si
+
+i ∈Iexp
+
+i ∈Ichp
+
+Í
+
+Õ
+
+i ∈Iexp βi . Then the following properties hold.
+
+(i) If mT < L split orm < m exp , then it is true thatT < OPTsplit (I ).
+(ii) Otherwise a feasible schedule with makespan at most 32 T can
+be computed in time O(n).
+
+Õ
+
+βi T +
+
+Õ
+
+Õ
+
+(βi si + P(Ci ))
+
+i ∈Iexp
+L(ū i )≥T
+
+βi T = m expT
+
+i ∈Iexp
+L(ū i )≥T
+
+i ∈Iexp
+L(ū i )<T
+
+Theorem 7. Let I be an instance and let T be a makespan. Let
+
+and m exp =
+
+i ∈Iexp
+
+i ∈Iexp
+L(ū i )<T
+
+and we use this inequality to show that ω is suitable to wrap Q
+since
+Õ
+(T − L(ūi )) + (m − m exp )T
+S(ω) =
+i ∈Iexp
+L(ū i )<T
+
+≥
+
+Õ
+
+(T − L(ūi )) + L split − m expT
+
+// mT ≥ L split
+
+Õ
+
+// L ′ ≥ m expT
+
+i ∈Iexp
+L(ū i )<T
+
+= L′ +
+
+(si + P(Ci )) − m expT ≥ L(Q).
+
+i ∈Ichp
+
+Proof. (i). We show that T ≥ OPTsplit implies mT ≥ L split and
+m ≥ m exp . Let T ≥ OPTsplit . Then there is a feasible schedule σ
+Í
+(σ )
+with makespan T and L(σ ) = ci=1 (λi si +P(Ci )). Due to Lemma 1,
+we have
+mT ≥ L(σ ) =
+
+c
+Õ
+(λiσ si + P(Ci ))
+i =1
+
+≥ P(J ) +
+
+c
+Õ
+
+αi si ≥ P(J ) +
+
+i =1
+
+Õ
+
+si +
+
+i ∈Ichp
+
+Õ
+
+βi si = L split .
+
+i ∈Iexp
+
+Also m ≥ m exp is a direct consequence of Lemmas 1 and 2.
+(ii). Let mT ≥ L split and m ≥ m exp . Note that the number of
+Í
+machines used in step (1) is i ∈Iexp βi = m exp ≤ m and hence we
+have enough machines but we have to check for all i ∈ I exp that
+the wrap template ω (i ) in step (1) is suitable to wrap Q (i ) = [si , Ci ]
+into it, i.e. S(ω (i ) ) ≥ L(Q (i ) ). This is true since
+S(ω
+
+(i )
+
+) = si + βi · 21 T = si +
+
+&
+
+P(Ci )
+1T
+2
+
+'
+
+· 12 T ≥ si + P(Ci ) = L(Q (i ) ).
+
+Each wrap template ω (i ) is ﬁlled with exactly one class i and reserves a time si below each gap. So there is enough space to place
+a setup si below all gaps of ω (i ) . It remains to show that the wrap
+template ω in step (2) is suitable to wrap Q into it. This needs a bit
+more eﬀort. Apparently for all i ∈ I exp the load L(ūi ) of the last
+machine ūi = ui + βi − 1 holds
+βi si + P(Ci ) = (βi − 1)(si + 12 T ) + L(ūi ) ≥ (βi − 1)T + L(ūi )
+since si ≥ 12 T . Hence, if the last machine is ﬁlled to at least T , i.e.
+L(ūi ) ≥ T , we obtain that βi si + P(Ci ) ≥ βi T and otherwise it
+follows that βi si + P(Ci ) +T − L(ūi ) ≥ βi T . These two inequalities
+
+One can easily conﬁrm that the reserved processing time of 12 T
+below all used gaps is suﬃcient. In detail, we only place jobs of
+cheap classes in step (2). So the call of Wrap(Q, ω) needs a time
+of at most 12 T to place cheap setups below the gaps. Hence, the
+computed schedule is feasible and this proves Theorem 7.
+Nevertheless we still need to analyze the running time. Apparently the running time directly depends on the running time of
+WrapSplit as follows. For step (1) we get a running time of O(1) +
+Í
+Í
+O(|Q (i ) | + |ω (i ) |) = i ∈Iexp O(|Ci | + βi ) = O(|J (I exp)| +
+Íi ∈Iexp
+i ∈Iexp βi ) ≤ O(n + m) due to Lemma 7 since |Q i | = 1 + |C i | and
+|ωi | = βi for all i ∈ I exp . To optimize the running time we ﬁnd
+another implementation3 of Split (and Wrap) for our use case. As
+mentioned before we allow that a schedule consists of machine
+conﬁgurations with given multiplicities. In fact, there is a more eﬃcient implementation of Split for ranges of wrap sequences where
+all gaps start and end at equal times, i.e. ar 1 = ar 2 and br 1 = br 2 .
+Apparently Split will place at most three diﬀerent gap types (or
+gap conﬁgurations) for each job (piece) in such ranges of parallel
+gaps. To see that let 0 ≤ a < b describe the gaps and consider a
+job (piece) j which we start to place at time t ∈ [a, b). If j is split
+by Split at most once, we obviously have at most two used gaps;
+hence, we have at most two diﬀerent gap conﬁgurations. If j is split
+at least two times j is split into a ﬁrst piece with processing time
+b − t followed by µ j := ⌊(t j − (b − t))/(b − a)⌋ gaps ﬁlled with
+processing time b − a and a last gap starting with a piece of time
+t j − (b − t) − µ j (b − a). These deﬁne at most three diﬀerent gap conﬁgurations. Since the multiplicity µ j of the in between gaps can
+be computed in constant time, we can compute these three gap
+conﬁgurations and its multiplicities in constant time. So we get a
+running time of O(n + c) = O(n) for step (1). For step (2) we apply
+this technique only for the m−m exp last gaps ωp+1 , . . . , ωp−m−mexp
+which are parallel in our sense. Remark that p ≤ c to see that the
+3 A similar idea was already mentioned by Jansen et al. in [5]
+
+running time is O(c + |Q |) ≤ O(n). Hence, we get a total running
+time of O(n).
+
+
+D
+
+NON-PREEMPTIVE SCHEDULING
+
+Doing non-preemptive scheduling we do not allow jobs to be preempted. Even an optimal schedule needs to place at least one setup
+to schedule a job on a machine, so remember Note 2 which says
+(i )
+(i )
+OPTnonp ≥ maxi ∈[c] (si + t max ) where t max = max j ∈C i t j .
+Analogous to preemptive scheduling we assume m < n. For this
+(i )
+1 N , max
+section let Tmin := max { m
+i ∈[c] (si + t max ) } where N =
+Íc
+Í
+(i )
+i =1 si + j ∈J t j and t max = max j ∈C i t j .
+Theorem 8. There is a 32 -approximation for the non-preemptive
+case running in time O(n log(n + ∆)) where ∆ = max{s max , t max } is
+the largest number of the input.
+
+Let I be an instance and T ≥ Tmin be a makspan. For later purposes we split the jobs into big and small ones. In more detail, let
+J+ = { j ∈ J | t j > 12 T } and J− = { j ∈ J | t j ≤ 12 T }. In the following we will look at three subsets of J . They are J+ , J (I exp) =
+Ð
+Ð
+1
+i ∈Iexp C i as well as K := i ∈Ichp { j ∈ C i ∩ J− | si + t j > 2 T } and
+Û
+one can easily see that they are in pairs disjoint. Let L = J+ ∪
+J (I exp) ∪Û K.
+Ð
+Note 4. It is true that L = i ∈[c] { j ∈ Ci | si + t j > 12 T }.
+
+
+We ﬁnd the following minimum number of machines for each class.
+For all i ∈ [c] let
+m
+l
+
+ P (C i ) = αi
+: i ∈ I exp
+
+
+T −si
+m
+l
+.
+mi =
+P
+(C
+∩K
+)
+i
+
+:
+i
+∈
+I
+ |Ci ∩ J+ | + T −s
+chp
+i
+
+Note 5. Diﬀerent jobs in L of diﬀerent classes have to be scheduled
+on diﬀerent machines. Furthermore, every job in J+ ⊆ L needs an
+own machine.
+
+Proof. Assume that two jobs j 1 , j 2 ∈ L of diﬀerent classes i 1 , i 2 ∈
+[c] are scheduled feasibly on one machine u, i.e. L(u) ≤ T . Due to
+Note 4, we have si 1 + t j1 > 21 T as well as si 2 + t j2 > 21 T . To schedule j 1 and j 2 on u it needs at least one setup time for both of them
+since i 1 , i 2 . So we get a total load of L(u) ≥ (si 1 + t j1 ) + (si 2 +
+t j2 ) > 12 T + 21 T = T , a contradiction. Now assume that j 1 , j 2 ∈ J+
+are jobs of a common class i ∈ [c] and they are scheduled feasibly on one machine u, i.e. L(u) ≤ T . Since both jobs are in the
+same class i we need only one setup time si , but the total load is
+L(u) ≥ si + t j1 + t j2 > si + T > T since t j1 > 12 T and t j2 > 12 T .
+Again, this is a contradiction.
+
+Lemma 12. Let σ be a feasible schedule with makespan T . Then σ
+needs at least m i diﬀerent machines to schedule a class i ∈ [c] and
+Í
+in total σ needs at least ci=1 m i diﬀerent machines.
+
+
+Lemma 12 is a consequence of Lemmas 1 and 2 and note 5. We look
+at Algorithm 6 in more detail.
+Step 1. We schedule the jobs of L. For every class i ∈ [c] do
+the following. If i is expensive, we place all jobs of Ci preemptively (until T ) with one initial setup time si at the beginning of
+each of the required machines. In detail, we use a wrap template
+(i )
+(i )
+ω (i ) = (ω1 , . . . , ωα i ) of length |ω(i)| = αi = ⌈P(Ci )/(T − si )⌉ with
+
+Algorithm 6 A 23 -dual Approximation for Non-Preemptive Scheduling
+Ð
+1. Schedule all jobs of L = i ∈[c] { j ∈ Ci | si + t j > 12 T } on
+m i machines for each class i
+2. Schedule as many jobs as possible of J \ L
+=
+Ð
+1 T } on used machines with{
+j
+∈
+C
+|
+s
++
+t
+≤
+i
+i
+j
+i ∈[c]
+2
+out adding new setup times
+3. Take one new setup time for each remaining class and place
+the remaining jobs greedily
+4. Make the schedule non-preemptive and add setup times as
+needed
+(i )
+
+(i )
+
+ω1 = (ui , 0,T ) and ω1+r = (ui +r, si ,T ) for a ﬁrst machine ui such
+that all used machines are distinct and 1 ≤ r < αi . We use this
+wrap template to schedule a simple wrap sequence Q (i ) = [si , Ci ]
+with Wrap(Q (i ) , ω (i ) ). If i is cheap, we place all the jobs j ∈ Ci ∩ J+
+(i )
+with an initial setup time si on a single unused machine vk , i.e.
+the load of such a machine will be 12 T < si + t j ≤ T . After that
+we place all jobs of Ci ∩ K preemptively (until T ) on unused machines with one initial setup time si at the beginning of each of
+the required machines. As before, we use a simple wrap template
+(i )
+(i )
+(i )
+ω (i ) = (ω1 , . . . , ωα i ) of length |ω (i ) | = αi with ω1 = (ui , 0,T )
+(i )
+
+and ω1+r = (ui + r, si ,T ) for a ﬁrst machine ui such that all used
+machines are distinct and 1 ≤ r < αi . We use ω (i ) to wrap a wrap
+sequence Q (i ) = [si , Ci ∩ K] with Wrap(Q (i ) , ω (i ) ). For all classes
+i ∈ [c] let ūi = ui + m i − 1 be the last machine used to wrap
+the sequence Q (i ) . For an example schedule after this step see Figure 10. The dashed lines indicate the wrap templates and the wrap
+sequences are ﬁlled green (dark if preempted).
+I chp
+
+I exp
+C 2 ∩ J+
+
+C1
+
+C2 ∩ K
+T
+
+...
+
+... ...
+
+...
+
+s1 s1 s1 s1 s1
+s2 s2 s2 s2 s2 s2 s2
+0
+u1
+
+ū 1
+m1
+
+(2) (2) (2)
+v1 v2 v3 u2
+m2
+m′
+
+ū 2
+
+Figure 10: An example situation after step 1. of Algorithm 6 with
+1 ∈ I exp and 2 ∈ I chp
+Step 2. Now we will place as many jobs as possible of J \L without
+adding new machines or setup times. Note that there is at most
+(i )
+(i )
+one setup time on a used machine so far. Let v 1 , . . . , vk be the
+i
+machines used to schedule Ci ∩ J+ in step 1., i.e. ki = |Ci ∩ J+ |,
+(i )
+and let vk +1 = ūi . For every cheap class i ∈ I chp set Ci′ ← Ci \ L
+i
+
+and start the following loop. Let j ∈ Ci′ and ﬁnd a used machine
+
+s4
+
+(i )
+
+u = vk for 1 ≤ k ≤ ki + 1 that has a load L(u) < T . If such a
+machine can not be found, the remaining jobs Ci′ will be placed
+in step 3.. If L(u) + t j ≤ T place j on top of machine u and set
+Ci′ ← Ci′ \ { j }. Otherwise split j into two new job pieces j 1 , j 2 (of
+class i) such that t j1 = T − L(u) as well as t j2 = t j − t j1 and place j 1
+on top of machine u and set Ci′ ← (Ci′ \ { j }) ∪ { j 2 }. Furthermore,
+we save j as the parent job of the new job pieces j 1 and j 2 , i.e. we
+set parent(j 1 ) ← j as well as parent(j 2 ) ← j. Process j 2 next in the
+loop. See Figure 11 for an example of this step. The new placed jobs
+of the cheap class 2 ∈ I chp are colored blue (and dark if preempted).
+Remark that jobs may be split more than once; in fact, one can see
+(2) (2)
+that there is a job of class 2 that is split onto the machines v 2 , v 3
+
+T
+
+s3
+...
+
+... ...
+
+... s 5
+
+s1 s1 s1 s1 s1
+s2 s2 s2 s2 s2 s2 s2
+0
+u1
+
+ū 1
+m1
+
+(2) (2) (2)
+v1 v2 v3 u2
+m2
+m′
+m
+
+ū 2
+
+(2)
+
+and v 4 = ū 2 .
+
+Figure 12: The situation after step 3. of Algorithm 6 with 1 ∈ I exp
+and { 2, 3, 4, 5 } ⊆ I chp
+
+I chp
+
+I exp
+C 2 ∩ J+
+
+C1
+
+C2 ∩ K
+T
+
+...
+
+... ...
+
+...
+
+s1 s1 s1 s1 s1
+s2 s2 s2 s2 s2 s2 s2
+0
+u1
+
+ū 1
+m1
+
+(2) (2) (2)
+v1 v2 v3 u2
+m2
+m′
+
+ū 2
+
+look upon the items scheduled in 3. in the order they were placed.
+Every item q that exceeds T in the current schedule (and therefore
+is last on its machine) is moved to the machine of item q ′ that was
+placed next. More precisely q ′ and all jobs above q ′ are shifted up
+by si + tq if q is a job of class i or by q = si if q is a setup. Accordingly si followed by q is placed at the free place below q ′ if q
+is a job of class i or q = si is placed at the free place below q ′ if
+q is a setup. In the analysis we will see that this builds a feasible
+schedule with makespan at most 23 T . Have a look at Figure 13 to
+see an example result of Algorithm 6. All previously preempted or
+T -crossing items are colored dark.
+
+Figure 11: The situation after step 2. of Algorithm 6 with 1 ∈ I exp
+and 2 ∈ I chp
+
+T
+s3
+s3
+
+Step 3. Now we cannot schedule a job of Ci′ for any i ∈ I chp without paying a new setup time si . However, we can discard classes i
+without residual load, i.e. P(Ci′) = 0. So we build a wrap sequence
+Q = [si , Ci′]i :P (C ′ )>0 that only contains classes with non-empty
+i
+
+residual load. Instead of wrapping Q using a wrap template, we
+greedily ﬁll up the used machines with a load less than T until an
+item crosses the border T . We do not split these critical items but
+just keep them as they are (non-preempted) and turn to the next
+machine. Once all used machines are ﬁlled to at least T , we ﬁll up
+the unused machines in just the same manner. In Figure 12 one can
+see an example situation after this step where the items of Q are
+colored red (dark if T -crossing).
+Step 4. The former solution is not feasible yet. That is due to a
+number of preemptively scheduled jobs on the one hand and the
+lack of some setup times on the other hand. The ﬁrst step to obtain a non-preemptive solution is to consider each last job j on a
+machine. If j was scheduled integral, we keep it that way. If on the
+other hand j is the ﬁrst part of a split of step 1. or step 2., we remove
+j from the machine and schedule the parent job parent(j) instead.
+Also, we remove all other split pieces j ′ with parent(j ′ ) = parent(j)
+from the schedule and shift down the above jobs by t j ′ . Note that
+all jobs are placed non-preemptively now. The second step is to
+
+...
+
+... ...
+
+s5
+...
+
+s1 s1 s1 s1 s1
+s2 s2 s2 s2 s2 s2 s2
+0
+u1
+
+ū 1
+m1
+
+(2) (2) (2)
+v1 v2 v3 u2
+m2
+m′
+m
+
+s4
+
+s5
+
+ū 2
+
+Figure 13: The situation after step 4. of Algorithm 6 with 1 ∈ I exp
+and { 2, 3, 4, 5 } ⊆ I chp
+
+D.1
+
+Analysis
+
+We want to show the following theorem.
+Theorem 9. Let I be an instance and let T be a makespan. Let
+L nonp = P(J ) +
+
+c
+Õ
+i =1
+
+m i si +
+
+Õ
+
+i :x i >0
+
+si
+
+Í
+and m ′ = ci=1 m i where xi = P(Ci )−m i (T −si ). Then the following
+properties hold.
+(i) If mT < L nonp or m < m ′, then it is true that T < OPTnonp (I ).
+(ii) Otherwise a feasible schedule with makespan at most 23 T can
+be computed in time O(n).
+We start with some preliminary work and obtain the following important notes.
+Note 6. The remaining processing time for class i after step 2. is xi ,
+i.e. P(Ci′) = xi for all i ∈ [c] with xi ≥ 0. Furthermore, xi < 0 implies
+that there is a time of |xi | left to schedule arbitrary jobs.
+Proof. We consider the situation right after step 1.. First we
+want to know the time Fi that is left to schedule jobs of a class
+i ∈ [c] without adding new setups. Each machine of class i got a
+time of T − si to schedule the jobs of Ci ∩ L. Since there are m i of
+such machines we obtain Fi = m i (T − si ) − P(Ci ∩ L) ≥ 0. The
+remaining jobs of class i are Ci \ L and that gives us a total residual
+processing time of P(Ci \ L). Let Ci′ ⊆ Ci \ L be the residual jobs
+after step 2.. Since Ci = (Ci \ L) ∪Û (Ci ∩ L), we obtain
+P(Ci′) = P(Ci \ L) − Fi = P(Ci \ L) + P(Ci ∩ L) − m i (T − si )
+= P(Ci ) − m i (T − si ) = xi
+if xi ≥ 0. So if xi < 0, we have P(Ci \ L) < Fi and that means there
+is a time of Fi − P(Ci \ L) = |P(Ci \ L) − Fi | = |xi | left to schedule
+any jobs.
+
+Note 7. A T -feasible schedule needs at least m i + 1 setups to place
+a class i with xi > 0.
+Proof. By its deﬁnition we know that xi > 0 means P(Ci ) >
+m i (T − si ). So the obligatory m i machines (and setups) do not provide enough time to schedule all jobs of class i. Hence at least one
+additional setup must be placed.
+
+Proof of Theorem 9. (i). We show that T ≥ OPTnonp (I ) implies that mT ≥ L nonp and m ≥ m ′. So let T ≥ OPTnonp (I ). Then
+there is a feasible schedule σ with makespan T . Due to Notes 5
+and 7 and lemma 12 we get
+Õ
+Õ
+(m i + 1)si
+m i si +
+mT ≥ L(σ ) ≥ P(J ) +
+i :x i ≤0
+
+= P(J ) +
+
+c
+Õ
+
+m i si +
+
+i :x i >0
+
+Õ
+
+si = L nonp
+
+Í
+and also Lemma 12 proves that m ≥ ci=1 m i = m ′.
+Í
+′
+(ii). Let mT ≥ L nonp and m ≥ m . Note that step 1. uses ci=1 m i =
+m ′ machines and since m ≥ m ′, there are enough machines. Furthermore, one can easily conﬁrm that the wrap templates ω (i ) sufﬁce to schedule the wrap sequences Q (i ) , i.e. S(ω (i ) ) ≥ L(Q (i ) ), but
+we still need to show that there is enough time to ﬁll up with step
+2. and 3.. Instead of analyzing these steps separately we can use
+the values xi to ﬁnd a much more intuitive formalization for both
+of them. Apparently in general the steps ﬁll up the m ′ obligatory
+machines to at least time T . In the worst case they ﬁll them up to
+exactly time T since the residual load of Q, which is to be placed on
+the residual (and so far unused) m − m ′ machines, gets maximized
+then. Due to Note 6 and Note 7, this (worst case) residual load R
+i =1
+
+i :x i >0
+
+Í
+Í
+can be written as R = i :x i <0 xi + i :x i >0 (si + xi ) and we show
+that R ≤ (m − m ′)T as follows.
+c
+Õ
+Õ
+si
+R=
+xi +
+i :x i >0
+
+i =1
+
+= P(J ) −
+= L nonp
+
+c
+Õ
+
+mi T +
+
+i =1
+− m ′T
+
+≤ (m − m ′)T
+
+!
+
+c
+Õ
+i =1
+
+m i si +
+
+Õ
+
+si
+
+// Def. xi
+
+i :x i >0
+
+// mT ≥ L nonp
+
+So the m − m ′ residual machines do provide enough time to schedule R. Hence, all load can be placed and it remains to show that step
+4. is correct. Apparently step 1. and 2. ﬁll up machines to at most
+T . Step 3. ﬁlls machines to at most 32 T . Now consider the situation
+right after step 3. and remark that the parent jobs j of all preempted
+jobs of a class i hold t j ≤ si + t j ≤ 21 T since j ∈ J \ L. The ﬁrst modiﬁcation of step 4. is to replace preempted jobs (which are last on a
+machine with load at most T ) with their integral parent jobs while
+removing all other child pieces. It is easy to see that the makespan
+can raise up to at most T + 12 T = 32 T . Also no jobs are preempted
+anymore since for each job piece j there was a job piece j ′ with
+parent(j ′ ) = parent(j) such that j ′ was last on a machine. The second and last modiﬁcation repairs the lack of setups. Passing the
+T -crossing items to the next machine u + below the next job will
+give extra load of at most 12 T to machine u + (either passing a setup
+or a job with an additional setup). For u + there are two cases. If u +
+is not the last used machine, then u + passes away its last item too
+such that its load will be at most 23 T after all. If u + is the last used
+machine, it has a load of at most T (otherwise this is a contradiction to R ≤ (m − m ′)T ) so it will end up with a load of at most 32 T .
+The order of Q guarantees that this movement/addition of setups
+will remove any lacks of setups such that the resulting schedule is
+feasible with a makespan of at most 32 T .
+However, it remains to obtain the running time. The inclined
+reader will obtain that the primitive way of shifting up items on
+the considered next machines may require non-linear time, but
+this can actually be avoided as an implementation detail, with additional running time no more than O(n). All other steps can be
+conﬁrmed to run in linear time in a straightforward way.
+
+
+

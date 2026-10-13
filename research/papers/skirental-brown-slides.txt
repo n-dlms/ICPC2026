@@ -1,0 +1,387 @@
+Online algorithms: Ski rental
+Assume that renting skis costs 1 per day and buying skis costs b units. Every
+day x ≥ 1 you have to decide, in an online fashion, whether you will continue
+renting skis for one more day or buy a pair of skis. The online adversary, during
+the course of some unknown future day D, is going to break your leg. You would
+like to minimize the cost of skiing.
+With foresight, you would either rent every day in [1, D] or buy skis right
+away, thus incurring a cost of min{D, b}. That’s the optimal offline cost. A
+deterministic online algorithm chooses some day t, rents for up to t − 1 days
+and buys skis on the morning of day t if the adversary has not yet cut your
+skiing career short. The algorithm’s cost will be t if D < t and t − 1 + b if
+D ≥ t. The adversary knows t and will break your leg on day t at the latest,
+since waiting further could only increase the optimal offline cost and would not
+hurt the algorithm’s cost. Choosing D = t yields competitive ratio
+max(t, b)
+1
+t−1+b
+=1+
+−
+.
+min(t, b)
+min(t, b)
+min(t, b)
+D
+Choosing D < t yields competitive ratio min(D,b)
+, a monotone non-decreasing
+function of D, so the adversary’s best choice in that case would be D = t − 1
+t−1
+, which is less than or equal to t/ min(t, b),
+to yield competitive ratio min(t−1,b)
+and so the adversary will prefer D = t. Thus the deterministic algorithm has
+competitive ratio exactly
+max(t, b) − 1
+1+
+,
+min(t, b)
+
+which is minimized for t = b, yielding optimal deterministic competitive ratio
+of 2 − 1/b.
+A randomized algorithm chooses some day T at random according to some
+distribution, rents for up to T − 1 days and buys skis on the morning of day T
+if the adversary has not yet broken your leg. Given the distribution of T , the
+adversary chooses D to maximize the expected cost of the algorithm divided by
+the optimal cost.
+In order to defeat the adversary, the randomized algorithm thus seeks a
+c-competitive strategy for the distribution (pt )t of T , that is:
+inf c s.t. for every D,
+bp1 + (1 + b)p2 + (2 + b)p3 + · · · + (D − 1 + b)pD + D
+
+X
+
+pj ≤ c min(D, b).
+
+j>D
+
+The constraints defining the problem form an infinite linear program which we
+now want to solve.
+
+1
+
+For simplicity, consider the case b = 4. The algorithm wants:
+inf c s.t.
+
+4p1 + p2 + p3 + p4 + p5 + p6 + p7 + · · ·
+
+
+
+
+4p1 + 5p2 + 2p3 + 2p4 + 2p5 + 2p6 + 2p7 + · · ·
+
+
+
+
+
+ 4p1 + 5p2 + 6p3 + 3p4 + 3p5 + 3p6 + 3p7 + · · ·
+4p1 + 5p2 + 6p3 + 7p4 + 4p5 + 4p6 + 4p7 + · · ·
+
+4p1 + 5p2 + 6p3 + 7p4 + 8p5 + 5p6 + 5p7 + · · ·
+
+
+
+
+4p1 + 5p2 + 6p3 + 7p4 + 8p5 + 9p6 + 6p7 + · · ·
+
+
+
+
+..
+
+.
+
+≤
+≤
+≤
+≤
+≤
+≤
+
+c
+2c
+3c
+4c
+4c
+4c
+
+(D = 1)
+(D = 2)
+(D = 3)
+(D = 4)
+(D = 5)
+(D = 6)
+
+≤ 4c
+
+Step 1. Now observe that for D ≥ 4, the right hand side stays fixed while
+all the coefficients of the variables on the left hand side vary monotonically
+when going from one row to the next; thus, the row D = 4 is dominated by
+the subsequent rows and can be deleted from the set of constraints. In the
+remaining system, consider the column of p4 and the column of p5 , and observe
+that the coefficient of p4 is always less than or equal to the coefficient of p5 .
+Thus, if p5 6= 0, the algorithm can always construct a solution which is at least
+as good by setting p05 = 0, p04 = p4 + p5 , and p0i = pi otherwise. Thus, without
+loss of generality we can assume that p5 = 0 and remove column 5, leading to
+the following equivalent LP:
+inf c s.t.
+
+4p1 + p2 + p3 + p4 + p6 + p7 + · · ·
+≤ c
+(D = 1)
+
+
+
+
+4p
++
+5p
++
+2p
++
+2p
++
+2p
++
+2p
++
+·
+·
+·
+≤
+2c
+(D = 2)
+
+1
+2
+3
+4
+6
+7
+
+
+ 4p1 + 5p2 + 6p3 + 3p4 + 3p6 + 3p7 + · · · ≤ 3c (D = 3)
+4p1 + 5p2 + 6p3 + 7p4 + 5p6 + 5p7 + · · · ≤ 4c (D = 5)
+
+
+
+4p1 + 5p2 + 6p3 + 7p4 + 9p6 + 6p7 + · · · ≤ 4c (D = 6)
+
+
+
+
+..
+
+.
+≤ 4c
+Iterating, we can argue that for any i > 4, without loss of generality we have
+pj = 0 for every j ∈ (4, i]. We will apply this for i = 2b/.
+P
+Step 2. Now, note that for every N ≥ 2b, it must be that t≥N pt < 2b/N ,
+since otherwise the adversary could just set D = N to force competitive ratio
+at least (2b/N )N/b ≥ 2, which would be worse than the simple deterministic
+algorithm described above. (In particular, the probability p∞Pthat we keep
+renting forever is 0.) Applying this remark to N = 2b/ yields t>2b/ pt < .
+P
+Now, consider the solution such that p0t = 0 for t > 2b/, p01 = p1 + t>2b/ pt ,
+and p0t = pt otherwise. The left hand side of any constraint increases by at most
+3. Letting c0 = c + 3 creates a feasible solution to the LP.
+Thus we have proved that without loss of generality, pt = 0 for every t ≥
+5, and have reduced ourselves to solving a finite problem (where the inf now
+becomes a min by compactness):
+min c s.t.
+
+2
+
+
+
+
+
+
+4p1 + p2 + p3 + p4
+4p1 + 5p2 + 2p3 + 2p4
+4p1 + 5p2 + 6p3 + 3p4
+
+
+
+4p1 + 5p2 + 6p3 + 7p4
+
+≤
+≤
+≤
+≤
+
+c
+2c
+3c
+4c
+
+(D = 1)
+(D = 2)
+(D = 3)
+(D ≥ 4)
+
+Step 3. We now prove the “principle of equality”, which claims that in the
+optimal solution, every constraint is exactly tight.
+Indeed, take a solution which achieves the minium c and assume, for a contradiction, that one of the inequalities has slack, for example the inequality for
+D = 3. Then we can increase p3 and decrease p4 until that inequality is tight.
+This does not affect inequalities D = 1, D = 2 and creates slack in the inequality
+D = 4. We then increase p1 a little bit and decrease p4 a little bit to create
+slack in every constraint, which then enables us to decrease c, a contradiction.
+Thus we have:
+min c s.t.
+
+4p1 + p2 + p3 + p4
+= c
+(D = 1)
+
+
+
+4p1 + 5p2 + 2p3 + 2p4 = 2c (D = 2)
+4p1 + 5p2 + 6p3 + 3p4 = 3c (D = 3)
+
+
+
+4p1 + 5p2 + 6p3 + 7p4 = 4c (D ≥ 4)
+Step 4. To solve this simple linear system, substract each row from the row
+below to make the system upper triangular, then substract each row from the
+row above to make the system near diagonal, then substitute. We go back to
+general b to give the explicit form of the general solution. Subtracting once:
+
+bp1 + p2 + p3 + · · · + pb = c (D = 1)
+
+
+
+
+bp2 + p3 + · · · + pb = c (D = 2)
+
+
+bp3 + · · · + pb = c (D = 3)
+
+..
+
+
+.
+
+
+
+bpb = c (D = b)
+Subtracting again:
+
+
+
+
+
+
+
+
+
+
+We obtain:
+
+bp1 − (b − 1)p2 =
+bp2 − (b − 1)p3 =
+bp3 − (b − 1)p4 =
+..
+.
+
+
+
+
+
+
+bp
+− (b − 1)pb
+
+
+ p−1
+bpb
+
+=
+=
+
+0
+0
+0
+
+(D = 1)
+(D = 2)
+(D = 3)
+
+0 (D = b − 1)
+c
+(D = b)
+
+b − 1 b−i c
+)
+.
+b
+b
+Since the pi ’s sum to 1, this yields the value of c, the optimal randomized
+competitive ratio, and using the fact that (1 − 1/b)b is always at most 1/e and
+tends to 1/e at infinity:
+pi = (
+
+c= P
+
+b
+b−1 i
+0≤i≤b−1 ( b )
+
+b
+= 1−(1−1/b)b =
+1−(1−1/b)
+
+3
+
+1
+e
+≈
+.
+1 − (1 − 1/b)b
+e−1
+
+Step 4, alternate approach. Alternatively, one can go to the continuous
+setting (pt ) over real numbers t and (with some kind of justification presumably
+needed in order to make this rigorous) replace the system of equations by the
+following:
+Z x
+Z b
+∀x ∈ [0, b],
+(b + t)pt dt + x
+pt dt = cx.
+0
+
+Differentiating:
+(b + x)px +
+
+x
+
+Z b
+
+pt dt + x(pb − px ) = c.
+
+x
+
+Differentiating again and noting that by continuity we should have pb = 0:
+px + (b + x)p0x − px − xp0x − px = 0.
+Rb
+In other words, p0x /px = (1/b), hence px = Kex/b . Since 0 pt dt = 1, it follows
+that Kb(e − 1) = 1 and K = 1/(b(e − 1)). Finally, using the equation giving c
+for x = 0:
+Z b
+e
+1
+c = bp0 +
++1=
+.
+pt dt =
+e
+−
+1
+e
+−
+1
+0
+
+4
+
+

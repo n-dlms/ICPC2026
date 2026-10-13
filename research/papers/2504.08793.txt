@@ -1,0 +1,2973 @@
+Constraint Programming Models For Serial Batch Scheduling With Minimum Batch Size
+Jorge A. Huertasa , Pascal Van Hentenrycka
+a Georgia Institute of Technology, Atlanta, Georgia, United States
+
+arXiv:2504.08793v2 [cs.DC] 10 Jul 2025
+
+Abstract
+In serial batch (s-batch) scheduling, jobs are grouped in batches and processed sequentially within their batch. This paper considers
+multiple parallel machines, nonidentical job weights and release times, and sequence-dependent setup times between batches of
+different families. Although s-batch has been widely studied in the literature, very few papers have taken into account a minimum
+batch size, typical in practical settings such as semiconductor manufacturing and the metal industry. The problem with this minimum batch size requirement has been mostly tackled with dynamic programming and meta-heuristics, and no article has ever used
+constraint programming (CP) to do so. This paper fills this gap by proposing, three CP models for s-batching with minimum batch
+size: (i) an Interval Assignment model that computes and bounds the size of the batches using the presence literals of interval variables of the jobs. (ii) A Global model that exclusively uses global constraints that track the size of the batches over time. (iii) And
+a Hybrid model that combines the benefits of the extra global constraints with the efficiency of the sum-of-presences constraints to
+ensure the minimum batch sizes. The computational experiments on standard cases compare the three CP models with two existing
+mixed-integer programming (MIP) models from the literature. The results demonstrate the versatility of the proposed CP models to
+handle multiple variations of s-batching; and their ability to produce, in large instances, better solutions than the MIP models faster.
+Keywords: Scheduling, Serial Batch, Setup times, Minimum Batch Size, Constraint Programming, Mixed-integer Programming
+
+1. Introduction
+In the current and highly competitive landscape of the manufacturing industry, companies are under growing pressure to
+minimize production costs and reduce cycle times. One effective strategy to improve efficiency is to process similar tasks,
+called jobs, together in groups known as batches [1]. There
+are two main ways to process these batches. In parallel batching (p-batch), all jobs in a batch are processed simultaneously
+[2]. In contrast, in serial batching (s-batch), jobs in a batch are
+processed sequentially one after another [3]. The benefits of pbatching are obvious since it saves time by processing multiple
+jobs at once. Similarly, s-batching is especially useful when
+grouping similar jobs can prevent repetitive machine setups,
+which are time-consuming and costly [4].
+Serial batching appears in many industries, including metal
+processing [5], additive manufacturing (3D printing) [5, 6],
+paint [7] and pharmaceutical production [8], chemical manufacturing [9], and semiconductor manufacturing [10, 11]. In semiconductor manufacturing, for example, microchips are built
+on silicon wafers through repeated steps such as diffusion,
+photolithography, etching, ion implantation, and planarization
+[12, 13]. P-batching is commonly studied in the diffusion operations [12, 13], while s-batching is more typical in photolithography [1] and ion implantation [11].
+The s-batch problem falls under what is known in the
+scheduling literature as a family scheduling model [3]. In this
+
+Email addresses: huertas.ja@gatech.edu (Jorge A. Huertas),
+pvh@gatech.edu (Pascal Van Hentenryck)
+
+framework, each job belongs to a specific family, which typically represents a shared machine setup or product recipe. Jobs
+are processed one after another on each machine, and switching between families often requires setup times, for example,
+cleaning the machine or reconfiguring it with the right setup for
+the next job [4]. To reduce these costly transitions, batches are
+usually formed using jobs from the same family, minimizing
+unnecessary setup operations [1].
+In the s-batch literature it is common to find maximum batch
+sizes due to physical capacities of the machines that process the
+batches [14, 4]. On the other hand, minimum batch sizes accommodate practical situations where a minimum work load is
+necessary to justify the usage of the machine to process a batch
+[15]. For example, in metal processing, laser cutting machines
+cut out metal parts from base metal slides which define families depending on material type and thickness. The slide maximum capacity is approximated by the areas of the minimum
+bounding rectangle of each job shape (defining the minimum
+batch size) and the area of the base metal slides (defining the
+maximum batch size) [5, 14]. In industrial 3D printing, batch
+capacity requirements are approximated by the volumes of the
+jobs’ enclosing cuboids and the maximum batch size is given by
+the volumes of the surrounding box (printing area times height)
+defined by the production technology [5, 4]. In the ion implantation area of the semiconductor manufacturing process, dopant
+ions are added into a silicon wafer by accelerating them through
+an electric field, ultimately altering the electrical properties of
+the wafers [16]. The ion sources (e.g., Germanium or Phosphor)
+come from implant gases, which have to be changed in every
+setup. The maximum batch size is given by the volumes of
+
+gas introduced [11], while the minimum batch size is given by
+the minimum number of runs required to justify the gas change
+[17].
+Most of the studies in the s-batch literature consider maximum batch sizes [4]. In contrast, only few studies have considered minimum batch sizes [15, 18, 19, 20, 21, 22, 23]. Furthermore, none of them has ever used Constraint Programming
+(CP) to do so. This paper fills this gap by proposing three CP
+models for s-batch scheduling with minimum batch size: The
+Interval Assignment, Global, and Hybrid models. The paper
+conducts thorough computational experiments that compare the
+proposed CP models with two existing mixed-integer programming (MIP) models from the literature that solve different variations of s-batch independently. These experiments demonstrate
+the versatility of the CP models to handle different variations
+of s-batch, and also their ability to find high-quality solutions
+quickly.
+The remainder of this paper is organized as follows. Section
+2 presents a literature review on s-batch variations and studies
+that consider a minimum batch size. Section 3 clearly outlines
+the contributions of this paper. Section 4 formally presents the
+description of the problem addressed. Section 5 presents the Interval Assignment CP model. Section 6 presents the Global and
+Hybrid models. Section 7 presents the computational experiments conducted and their results. Finally, Section 8 presents
+the conclusions and outlines future lines of research.
+
+as much as possible, squeezing out the idle spaces from the
+batches.
+Typically, the models proposed in different studies focus only
+on one specific variation of the problem and are unable to solve
+other variations. For example, Shahvari and Logendran [22]
+proposed a MIP model for the IPF s-batch variation that uses
+continuous variables for the completion times of the batches
+and the completion times of the jobs inside their batch; and
+binary variables to define the relative positioning of any pair
+of batches and any pair of jobs inside a batch. Because of this,
+their model is henceforward referred to as the Relative Positioning (RP) MIP model. Minimal changes to the RP model allow
+it to consider batch availability. Nonetheless, due to its lack of
+variables representing the start time of the batches or the start
+time of the jobs, it cannot handle the B·C s-batch variation.
+On the other hand, Gahm et al. [5] proposed a MIP model for
+the B·C s-batch variation that assumes that all jobs are released
+at time 0 and they do not consider minimum batch sizes, just
+maximum. Furthermore, their way of modeling the batches is
+by predefining the positions of the batches on the machines, i.e.,
+by machine and by position on this machine. Hence, this model
+defines binary variables to assign jobs to the bth batch on each
+machine, scheduling empty batches at the end. Because of this,
+their model is henceforward referred to as the Positional Assignment (PA) MIP model. Besides the binary assignment variables, the PA model also uses continues variables that capture
+the completion times of the batches; and additional variables
+are necessary to capture the batches’ start times and consider
+non-identical release times. Furthermore, they proposed a constructive heuristic that is capable of solving instances with up
+to a thousand jobs, but relying on the simplification assumptions such as identical release times and not considering minimum batch size requirements. Additionally, the PA model does
+not capture the order in which the jobs are processed inside
+the batches, making it unsuitable for the IPF variation, where
+knowing the end time of the jobs is necessary. To allow the RP
+and PA models solve other s-batch variations than their originally intended ones, significant changes are required in their
+formulations that completely modify their model structure, not
+only including (removing) additional (existing) variables and/or
+constraints, but also restructuring the existing ones.
+Existing s-batch reviews in the literature include the early
+one by Potts and Kovalyov [3] in 2000, the one by Mönch et al.
+[1] in 2011, and the most recent by Wahl et al. [4] in 2024.
+In the most recent one, only seven articles are known to consider a minimum batch size [15, 18, 19, 20, 22, 21, 23]. Sung
+and Joo [15], Mosheiov and Oron [18], Chrétienne et al. [19]
+and Hazır and Kedad-Sidhoum [20] focus on s-batching on a
+single machine and identical release times of the jobs. The extension to multiple machines and non-identical release times
+was addressed by Shahvari and Logendran [22] in their RP
+model, and also by Shahvari and Logendran [21] in a larger hybrid flowshop environment. The proposed approaches to solve
+s-batch with minimum batch size include dynamic programming (DP) [15, 19, 20], heuristic algorithms [15], rounding algorithms for the cases where only an upper or a lower bound
+on the batch size was considered, separately [18], MIP models
+
+2. Literature review
+The scheduling literature distinguishes multiple s-batch variations [4]. Two variations exist depending on the time when
+jobs are considered completed: under item availability, the jobs
+become completed as soon as their processing time is finished;
+instead, under batch availability, jobs are considered completed
+when the entire batch has been processed [3]. Figure 1 shows
+two types of variations depending on whether idle times are
+allowed to preempt the processing of jobs inside a batch. Preemptive processing allows idle times inside a batch, and nonpreemptive forbids them [24]. Figure 2 shows the two types of
+s-batch variations depending on the batch initiation. Flexible
+initiation allows the batches to start before the release time of
+one (or more) of its jobs, while a complete initiation forces all
+the jobs in the batch to be released before the batch start time.
+The typical s-batch variation in the photolithography and
+ion implant operations usually considers item availability, preemptive processing, and flexible initiation [1]. For this reason, this variation is henceforward referred to as the IPF variation. On the other hand, the typical s-batch variation in the
+metal processing and pharmaceutical industry usually considers batch availability and complete initiation [5]. For this reason, this variation is henceforward referred to as the B·C variation. When using a utilization or cycle time objective (e.g.,
+minimizing the makespan or the total weighted completion time
+(TWCT) [2]), the B·C variation results a non-preemptive batch
+processing. This happens because, under these types of objectives, the jobs are pulled to the start of the scheduling horizon
+2
+
+release time
+
+release time
+
+Job 2
+
+Job 2
+
+Job 1
+10
+
+(a) Preemptive
+
+0
+
+5
+Time
+
+Job 1
+
+Job 1
+
+Batch
+
+5
+Time
+
+Job 2
+
+Job 2
+
+Job 1
+
+Batch
+0
+
+release time
+
+release time
+
+Batch
+
+Batch
+10
+
+0
+
+(b) Non-preemptive
+
+5
+Time
+
+10
+
+0
+
+(a) Flexible
+
+5
+Time
+
+10
+
+(b) Complete
+
+Figure 1: Batch processing type
+
+Figure 2: Batch initiation type
+
+[21, 22], Tabu Search (TS) algorithms [22], and Genetic Algorithms (GA) [23]. For example, the TS algorithm by Shahvari
+and Logendran [22] solves instances with up to 27 jobs, taking
+up to 13,000 seconds in some cases, and obtaining deviations of
+up to 16% with respect to the solution of the RP model found by
+CPLEX. Nonetheless, to the best of our knowledge, no article
+has used CP for s-batch with minimum batch size, as evidenced
+in the lack of references mentioning CP in the review by Wahl
+et al. [4].
+
+jobs can be scheduled on all the machines, and each machine
+can process only one job at a time. Consecutive jobs of the
+same family f are a serial batch and it is necessary to have a
+minimum and maximum number l f and u f of consecutive jobs
+in the batch before processing another batch (0 < l f ≤ u f ). No
+setup is required between consecutive jobs of the same batch.
+However, let τ f g be the family setup time when a batch of family
+g ∈ F is immediately preceded by a batch of a different family
+f ∈ F , or τ0g if there is no preceding batch. It is assumed that
+these setup times satisfy the triangular inequality, meaning that
+τ f f ′ ≤ τ f g + τg f ′ .
+The objective is to minimize the total weighted completion
+time (TWCT) of the jobs, which is the sum of the completion
+time of the jobs by their weight. The constraints include selecting the machine where each job is processed, ensuring that
+jobs processed in the same machine do not overlap while respecting the release times of the jobs, the family setup times
+between batches, and the minimum (and maximum) batch size
+requirements.
+
+3. Contributions
+This paper proposes, for the first time, three CP models for sbatch scheduling that considers a minimum batch size. Unlike
+the existing MIP models in the literature that can only handle
+specific variations of s-batch, the proposed CP models are versatile and can address all the possible variations with minimal
+changes. The first model is an Interval Assignment model that
+uses interval variables to assign and sequence jobs to batches
+on machines, enforcing the batch size requirements with nonglobal constraints at the assignment level. The second model
+is a Global model that exclusively uses global constraints to
+ensure the minimum batch size requirements at every point in
+time. The third model is a Hybrid model that combines the
+benefits of the previous two: global constraints that provide
+a global perspective to the solver and assignment-level constraints that boost performance. The paper further explores the
+impact of symmetry-breaking constraints in the search process.
+The computational experiments compare the CP models with
+two existing models in the literature, mainly the RP [22] and
+the PA [5] models, in their respective s-batch variations. The
+results demonstrate the versatility of the CP models to handle
+multiple variations of s-batch, as well as their ability to produce,
+in larger instances, better solutions than these MIPs faster. For
+completeness, the MIP formulations used for comparison are
+provided in the appendix, as the main focus of this paper is the
+development and evaluation of the CP models.
+
+5. Constraint Programming model: Interval Assignment
+CP is a powerful method for solving combinatorial problems
+by defining constraints that a solution must satisfy. In CP, variables are assigned values from their domains, and the system
+works to ensure that all constraints are met. The search process
+explores the solution space in the form of a tree, where fixing
+the values of variables at each node branches out potential solutions. A key aspect of CP is the use of constraint propagation,
+which reduces the search space by pruning values from variable domains that cannot satisfy the constraints. Backtracking
+occurs when a branch leads to an invalid solution, allowing the
+search to revert to an earlier state and explore different variable
+assignments [25].
+Scheduling is one of the most successful application areas of
+CP. It leverages interval variables to represent tasks or operations over time. These interval variables encapsulate three key
+components: the start time, the end time, and the presence status of the interval (indicating whether the task is executed). The
+start time and the end time define the size of the interval. The
+presence attribute allows CP to model both mandatory and optional activities within a schedule. In particular, it plays a crucial role in handling optional tasks and alternative resource allocations. Interval sequence variables allow to model sequences
+
+4. Problem description
+Let J be the set of jobs and M be the set of machines. Jobs
+are partitioned into families F based on their similarity. Let
+f j ∈ F be the family of job j ∈ J, and J f = { j ∈ J : f j = f }
+be the subset of jobs that belong to family f ∈ F . Each job j has
+a weight ω j , a release time r j , and a processing time p j . All the
+3
+
+Table 1: Information of the illustrative example
+
+Model 1a Core section
+Variables and functions:
+• Interval variables:
+x j ∈ { [s, s + p j ) : s ∈ Z, r j ≤ s } , ∀ j ∈ J;
+x jm ∈ { [s, s + p j ) : s ∈ Z } ∪ { ⊥ } , ∀ j ∈ J, m ∈ M;
+• Sequence variables:
+φm ∈ Perm({ x jm } j∈J ). Types: { f j } j∈J , ∀ m ∈ M;
+• State functions:
+fm : state
+∀ m ∈ M;
+
+(1d)
+
+Formulation:X
+ω j · endOf(x j )
+minimize
+
+(1e)
+
+(1a)
+(1b)
+(1c)
+
+∀ j ∈ M;
+(1 f )
+∀ m ∈ M;
+(1g)
+∀ m ∈ M, j ∈ J; (1h)
+
+Model 1b Batching section
+Additional variables and subsets:
+• Interval variables:
+xbjm ∈ { [s, s + p j ) : s ∈ Z } ∪ { ⊥ } ,
+∀ j ∈ J, m ∈ M, b ∈ B f j ; (1i)
+yb ∈ { [s, e) : s, e ∈ Z, τ0 f b ≤ s ≤ e } ∪ { ⊥ } , ∀ b ∈ B; (1 j)
+ybm ∈ { [s, e) : s, e ∈ Z, s ≤ b } ∪ { ⊥ } , ∀ b ∈ B, m ∈ M; (1k)
+• Sets of intervals required to be present if xbjm is also present:
+V bjm = { yb , ybm } ,
+∀ j ∈ J, m ∈ M, b ∈ B f j ;
+(1l)
+• Sequence variables:
+ψm ∈ Perm({ ybm }b∈B ). Types: { f j } j∈J , ∀ m ∈ M; (1m)
+Additional constraints:
+alternative(x jm , { xbjm }b∈B ), ∀ j ∈ J, m ∈ M;
+
+(1n)
+
+fj
+
+alternative(yb , { ybm }m∈M ), ∀ b ∈ B;
+(1o)
+b
+presenceOf(x jm ) ⇒ presenceOf (v) ,
+∀ j ∈ J, m ∈ M, b ∈ B f j , v ∈ V bjm ; (1p)
+span(ybm , { xbjm } j∈J ),
+∀ b ∈ B, m ∈ M;
+(1q)
+fb
+
+alwaysEqual(fm , ybm , f b ),
+noOverlap(ψm , S),
+
+∀ m ∈ M, b ∈ B;
+∀ m ∈ M;
+
+Weight
+
+Release Time
+
+Processing Time
+
+Family
+
+1
+2
+3
+4
+5
+
+1
+1
+1
+1
+1
+
+1
+5
+6
+12
+11
+
+2
+2
+2
+2
+2
+
+1
+1
+2
+2
+1
+
+of tasks. CP also uses cumulative functions to model the evolution of resource usage over time, ensuring that resource capacities are respected by aggregating the resource demands of
+all overlapping tasks. These cumulative functions are crucial in
+preventing over-utilization of resources like machines, personnel, or energy. The efficiency of the search process is further
+enhanced by global constraints that exploit the structure of the
+problem to propagate information and prune variable domains
+efficiently. Together, CP and its tools for constraint propagation, domain pruning, backtracking, and cumulative functions
+provide a structured and efficient approach for solving complex scheduling problems [25, 26]. The interested reader on
+an in-depth CP overview is referred to the well-known book by
+Van Beek et al. [25], and the paper by Laborie et al. [26].
+Model 1 presents the mathematical formulation of the Interval Assignment (IA) CP model for s-batching with minimum
+batch size for the IPF variation. The syntax follows that of
+the IBM ILOG CPLEX CP Optimizer [26], a widely used CP
+solver. The model is organized into three sections: (i) the Core
+section, which sequences jobs on machines; (ii) the Batching
+section, which groups jobs into serial batches; and (iii) the Sizing section, which enforces minimum (and maximum) batch
+size requirements. The name Interval Assignment refers to the
+central modeling approach: jobs are represented by interval
+variables, and are assigned to batches through additional interval variables. These assignments capture both the temporal positioning and the grouping structure of the jobs within batches.
+To illustrate how each section of the model contributes to
+constructing the solution, consider the simple example in Table 1, which involves 5 jobs belonging to 2 families, and a single machine. Assume the minimum batch sizes are l1 = 3 for
+family 1 and l2 = 2 for family 2. Also, let the initial setup times
+be τ0,1 = τ0,2 = 1, and the setup times between families be
+τ1,2 = τ2,1 = 3. The following sections describe each part of the
+model in detail and illustrate how the solution of this example
+evolves as each section is incrementally added.
+
+j∈J
+
+subject to,
+alternative(x j , { x jm }m∈M ),
+noOverlap(φm , S),
+alwaysEqual(fm , x jm , f j ),
+
+Job
+
+(1r)
+(1s)
+
+Model 1c Sizing section
+
+5.1. Core Section
+
+Additional constraints:
+∀X
+b ∈X
+B:
+presenceOf(xbjm )≥ l f b · presenceOf(yb )
+
+The Core section is a straight forward CP formulation that
+is commonly presented in many CP tutorials and official documentations [27] to demonstrate how sequence-dependent setup
+times can be considered when sequencing non-overlapping jobs
+on machines. To do so, these setup times are packed in the matrix S = { τ f g } f,g∈F ∈ ZF ×F that should satisfy the triangular inequality. This requirement avoids inconsistencies in setup durations, such as indirect transitions being shorter than direct ones,
+
+(1t)
+
+j∈J f b m∈M
+
+X X
+
+presenceOf(xbjm )≤ u f b · presenceOf(yb )
+
+(1u)
+
+j∈J f b m∈M
+
+4
+
+which would undermine the logic of the sequencing decisions.
+The Core section schedules similar jobs consecutively to avoid
+unnecessary setups. These consecutive jobs can be viewed as
+a serial batch. Thus, this Core section is itself a model for sbatching. Nonetheless, it cannot guarantee the minimum batch
+size. To solve this problem, this paper proposes to extend the
+Core section with the Batching and Sizing sections. The Batching section includes additional variables and constraints to assign the jobs to non-overlapping batches and the Sizing section
+enforces the minimum batch size requirement.
+Model 1a presents the Core section of the model. Equation
+(1a) defines a variable of the form [s, s + p j ), i.e., it has a size
+of exactly p j units of time, which represents job j ∈ J and can
+only start after r j . Equation (1b) defines an optional interval
+variable x jm of size p j that represents the option of job j being
+processed on machine m ∈ M. This interval is optional since it
+is allowed to take the value ⊥, which indicates its absence from
+the solution. It is not necessary to indicate that variable x jm can
+only start after r j because, if selected to be present, this variable
+is going to be synchronized with variable x j , which already accounts for this. Equation (1c) defines a sequence variable φm
+of jobs on machine m, which is a permutation of the job intervals { x jm } j∈J on such machine, whose types are the associated
+job families. The last element of the core model is defined by
+equation (1d), which defines a state variable fm that represents
+the family being processed on machine m. This state function
+considers the transition times S to change its values.
+Objective function (1e) minimizes the TWCT under item
+availability, tallying the completion of the jobs as soon as
+their processing time finishes.
+Constraints (1f) use the
+alternative(v, V) global constraint, which receives an interval variable v and a set of optional intervals V. This constraint
+ensures that if the interval v is present in the solution, then exactly one interval from the set V is selected to be present in the
+solution as well, and synchronizes it with interval v. Hence,
+constraints (1f) ensure that each job is processed on exactly
+one machine. Constraints (1g) use the noOverlap(φ, S) global
+constraint, which receives an interval sequence variable φ and
+a matrix with transition times S. This global constraint ensures non-overlapping intervals in the sequence defined by the
+permutation φ, with a minimum distance between them given
+by the transition times S. Hence, constraints (1g) ensure that
+only one job is processed at a time on each machine, while
+respecting the family setup times. Constraints (1h) use the
+alwaysEqual(h, v, a) global constraint, which receives a state
+function h, an interval variable v, and an integer value a. This
+global constraint ensures that if v is present in the solution, then
+the state function takes a constant value h(t) = a at any point
+in time during interval v, i.e., t ∈ v. Hence, constraints (1h) ensure that the sate of each machine is the family of the job being
+processed.
+The solution produced by the Core section for the example
+in Table 1 is illustrated in Figure 3. Since there is only one machine, the Gantt chart represents its schedule. The figure shows
+how the job-on-machine intervals x jm are assigned their optimal
+values, achieving a total weighted completion time (TWCT) of
+55. This value corresponds to the sum of the completion times
+
+release time
+Job on
+machine
+(𝑥!" )
+
+j4
+
+𝜏%#
+
+j2
+
+𝜏#$
+
+𝜏$#
+
+j5
+
+j3
+
+j1
+0
+
+5
+
+10
+Time
+
+15
+
+20
+
+Figure 3: Solution of the Core section
+
+of all jobs, given that each job has a weight of 1. Each job is
+shown as a box, with its color indicating its family: blue for
+family 1 and pink for family 2. Each job appears on a separate
+vertical level, and the green vertical lines mark their respective
+release times. The initial setup time is applied at time 0, allowing job 1 to start as soon as it is released. From there, jobs are
+scheduled sequentially without overlap. Setup times between
+families are respected—for example, between jobs 2 and 3, and
+again between jobs 4 and 5. Although the minimum batch size
+for family 1 is l1 = 3, the Core solution only places two consecutive jobs of that family (jobs 1 and 2) before switching to
+jobs of family 2. Job 5 from family 1 is scheduled last to minimize TWCT. Thus, the Core section effectively schedules nonoverlapping jobs while respecting setup times between families.
+However, it cannot enforce minimum batch size requirements.
+For this reason, the Batching and Sizing sections are needed.
+5.2. Batching section
+The Batching and Sizing sections use an ordered set of posP
+sible batches B = { 1, 2, . . . , N }, where N = f ∈F N f is the
+maximum number of possible batches that can be scheduled on
+a single machine, and N f = ⌊|J f |/l f ⌋ is the maximum number
+of possible batches needed to process jobs of family f ∈ F .
+This ordered set of possible batches can be further partitioned
+into mutually exclusive subsets by predefining the unique family f b ∈ F that each batch b ∈ B is allowed to process. Hence,
+B = ∪ f ∈F B f , where B f = { b ∈ B : f b = f } ⊂ B is the set of
+possible batches where jobs of family f can be processed, and
+|B f | = N f . In this way, the first |B1 | elements of B correspond to
+the possible batches where jobs of family 1 can be processed;
+the next |B2 | elements to the possible batches for jobs of the
+family 2, and so on.
+Model 1b presents the Batching section of the model. Equation (1i) defines another optional interval variable xbjm of size p j
+that represents the option of job j being processed on machine
+m in batch b ∈ B f j . It is not necessary to indicate that variable
+xbjm can only start after r j because, if selected to be present, this
+variable is going to be synchronized with the present variable
+x jm , which is in turn synchronized with variable x j that already
+considers it. Equation (1j) defines an optional interval variable
+yb that represents batch b ∈ B. To consider the initial setup
+time, this interval variable can only start after τ0 f b . It is optional
+because only batches with jobs assigned to it are present in the
+solution. Equation (1k) defines an optional interval variable ybm
+5
+
+that represents the option of sequencing batch b on machine m.
+It is not necessary to specify that this interval can only start after
+τ0 f b because, if selected to be present in the solution, it is going
+to be synchronized with variable yb , which already considers it.
+If interval variable xbjm is present in the solution it means that
+job j is processed on machine m ∈ M in batch b ∈ B f j . Thus,
+to ensure consistency, batch b must be used and processed on
+machine m as well. To ensure this, equation (1l) defines a set
+V bjm of interval variables that are required to be present in the
+solution if the interval variable xbjm is also present: the associated batch interval yb and its option on machine ybm . Equation
+(1m) defines a sequence variable ψm of batches on machine m,
+which is a permutation of the batch intervals { ybm }b∈B on such
+machine, whose types are the associated batch families.
+Constraints (1n) ensure that if job j is processed on machine
+m, it is processed in exactly one batch. Constraints (1o) schedule each batch on exactly one machine. The machine that process each job (given by constraints 1f), the batch where each
+job is processed (given by constraints 1n), and the machine that
+processes each batch (given by constraints 1o) are completely
+unrelated. Constraints (1p) solve this issue and guarantee that
+if a job j is scheduled on a machine m in batch b, i.e., xbjm is
+present, then the two related intervals in V bjm = { yb , ybm } must
+also be present, linking them all together. Having ensured that
+the right intervals are present in the solution, constraints (1q)
+ensure that the batch interval ybm spans all the present job intervals { xbjm }
+on the same machine in the same batch. These
+
+b3
+
+Batch on
+machine
+(𝑦&" )
+
+b2
+b1
+
+j5-b2
+
+Job in
+batch on
+machine
+&
+(𝑥!"
+)
+
+j4-b3
+j3-b3
+j2-b1
+j1-b1
+
+release time
+Job on
+machine
+(𝑥!" )
+
+j4
+
+𝜏%#
+
+j2
+
+𝜏$#
+
+j5
+
+j3
+
+𝜏#$
+
+j1
+0
+
+5
+
+10
+Time
+
+15
+
+20
+
+Figure 4: Solution of the Core and Batching sections
+
+section, which is introduced next.
+5.3. Sizing section
+The Batching section of the model assigns jobs to batches
+and captures the correct duration of the batches based on the
+jobs assigned to them. This Sizing section enforces the batch
+size requirements. Model 1c presents constraints (1t) and (1u),
+which ensure the minimum and maximum batch size, respectively. The left-hand side of these constraints captures the size
+of a batch. The double summation holds because each batch is
+processed on at most one machine. The right-hand side of these
+constraints impose the minimum and maximum batch sizes,
+only if batch b is in fact present in the solution.
+Continuing with our example, the inclusion of the Sizing section in the model leads to a noticeable change in the solution,
+as the minimum batch size requirements are now enforced. Figure 5 presents the complete solution obtained by the combined
+Core, Batching, and Sizing sections. To satisfy the minimum
+batch size l1 = 3 for family 1, the model must delay the processing of jobs 3 and 4 (from family 2) and schedule job 5 earlier. As a result, batch 1 now includes jobs 1, 2, and 5, which
+meets the minimum batch size requirement of l1 = 3 for family 1. Similarly, batch 3 includes jobs 3 and 4, satisfying the
+minimum batch size requirement of l2 = 2 for family 2. These
+constraints are enforced by the Sizing section through the summation of presence variables, which ensures that only batches
+meeting the minimum size thresholds are allowed in the solution. Ensuring this constraint impacts the objective function,
+since the TWCT increases from 55 to 61.
+
+j∈J f b
+
+constraints use the span(v, V) global constraint, which receives
+an interval variable v and a set of optional interval variables V.
+This global constraint ensures that the interval v starts with the
+first present interval in V and ends with the last present interval
+in V. In this way, constraints (1q) capture the correct duration
+of the batches, based on the jobs assigned to them. Constraints
+(1r) add redundancy to the structure of the problem, which enhances computational performance as demonstrated by Huertas and Van Hentenryck [28]. These constraints ensure that the
+state of the machines is the family of the batch being processed
+on them. Constraints (1s) include further redundancy and ensure that the batches being processed on the machines do not
+overlap, while respecting the setup family times.
+Figure 4 shows the solution of the illustrative example when
+combining the Core and Batching sections. The Batching section introduces new interval variables xbjm , which indicate the
+specific batch b in which each job j is processed. These are displayed within the boxes as job–batch identifiers. The machine
+identifier is omitted since the example involves only a single
+machine. In addition, new batch-level interval variables ybm are
+introduced to represent the time span of each batch, covering
+the intervals of the jobs assigned to them. Batch 1 covers jobs 1
+and 2, batch 3 covers only job 5, and batch 3 covers jobs job 3
+and 4. Importantly, the Batching section does not alter the optimal schedule produced by the Core section; rather, it enriches
+the model with additional interval variables that explicitly capture the batch assignments. While the Batching section defines
+which jobs belong to which batch, it does not enforce any batch
+size requirements. This responsibility is handled by the Sizing
+
+5.4. Handling problem variations
+The following modifications are necessary to handle each
+problem variation, separately:
+6
+
+Batch on
+machine
+(𝑦&" )
+
+b1
+
+j5-b1
+
+Job in
+batch on
+machine
+&
+(𝑥!"
+)
+
+j3-b3
+j2-b1
+j1-b1
+
+j5-b1
+j4-b3
+j3-b3
+j2-b1
+j1-b1
+
+release time
+
+j5
+
+𝜏#$
+𝜏%#
+
+b3
+b1
+
+Job in
+batch on
+machine
+&
+(𝑥!"
+)
+
+j4-b3
+
+release time
+Job on
+machine
+(𝑥!" )
+
+Batch on
+machine
+(𝑦&" )
+
+b3
+
+Job on
+machine
+(𝑥!" )
+
+j4
+j3
+
+j2
+
+j5
+
+𝜏#$
+𝜏%#
+
+j4
+j3
+
+j2
+j1
+
+j1
+0
+
+5
+
+10
+Time
+
+15
+
+20
+
+0
+
+Figure 5: Solution of the Core, Batching and Sizing sections
+
+10
+Time
+
+15
+
+20
+
+Figure 6: Solution with non-preemptive batch processing
+
+• Batch availability: objective function (1e) should be replaced by objective (2a), which captures the completion
+time of the jobs as the completion time of their assigned
+batch.
+XX X
+minimize
+ω j · presenceOf(xbjm ) · ebjm , (2a)
+
+Figure 6 presents the solution of the IA model when individually applying the non-preemptive constraints 2c. To
+squeeze out the idle times inside batch 1, the processing
+of jobs 1 and 2 have to be delayed to synchronize the end
+of one job right before the start of the next one. These
+constraints cause that the new TWCT is 71.
+
+j∈J m∈M b∈B f j
+
+• Complete initiation: constraints 2d should be included,
+which guarantee that a batch only starts on or after the
+release times of the jobs assigned to it.
+
+where ebjm is the end time of job j if processed in batch
+b ∈ B f j on machine m. For the sake of space, equation
+(2b) describes how to compute this value, which finds the
+maximum end time of all the jobs assigned to the batch in
+which job j is processed.
+
+startOf(ybm ) ≥ r j · presenceOf(xbjm ),
+∀ j ∈ J, m ∈ M, b ∈ B f j .
+
+n
+o
+b
+b
+ebjm = max endOf(xkm
+) · presenceOf(xkm
+) ,
+
+(2d)
+
+Figure 7 presents the solution of the IA model when individually applying constraints 2d. To further ensure the
+complete batch initiation, jobs 1 and two have to be further delayed to start only after job 3 is released. These
+constraints cause that the new TWCT is 91.
+
+k∈J f j
+
+∀ j ∈ J, m ∈ M, b ∈ B f j .
+
+5
+
+(2b)
+
+Once this new objective function is applied to the IA
+model, the new objective function of the example is 79,
+since jobs 1, 2, and 3 are only considered completed when
+the last job finishes, i.e., job 5 at time 13. And jobs 4 and
+5 are considered completed when the last job finishes, at
+time 20.
+
+5.5. Symmetry-breaking constraints
+Symmetries in the search space could delay the CP engine to
+prove optimality. Hence, breaking these symmetries could potentially benefit the search process. Since the number of the
+batch is irrelevant for the solution, the following symmetrybreaking SB constraints can be included in the CP model for
+any of the variants of s-batching:
+
+• Non-preemptive processing: constraints (2c) should be
+included, which force the size of the interval ybm to be the
+summation of the sizes of the present intervals { xbjm }
+.
+j∈J f b
+
+These constraints squeeze out of the batches any possible
+idle times.
+sizeOf(ybm ) =
+
+X
+
+presenceOf(yb ) ≤ presenceOf(yb−1 ),
+∀ f ∈ F , b ∈ B f \ min B f ;
+startBeforeStart(yb−1 , yb ),
+
+sizeOf(xbjm ),
+
+∀ f ∈ F , b ∈ B f \ min B f ;
+
+j∈J f b
+
+∀ b ∈ B, m ∈ M;
+
+(3a)
+
+(2c)
+7
+
+(3b)
+
+Batch on
+machine
+(𝑦&" )
+
+b3
+b1
+
+j5-b1
+
+Job in
+batch on
+machine
+&
+(𝑥!"
+)
+
+j4-b3
+j3-b3
+j2-b1
+j1-b1
+
+release time
+Job on
+machine
+(𝑥!" )
+
+To address this limitation, this section introduces the Global
+model, which enforces the batch size requirements exclusively
+through global constraints. These constraints introduce additional structure and redundancy to the problem, which can improve computational performance in certain s-batching variations. However, the G model relies on cumulative functions
+that track the batch sizes continuously over time. This approach
+might be unnecessary, as the batch size only needs to be satisfied at the level of job assignment.
+To balance expressiveness and efficiency, this section also
+introduces the Hybrid model. This formulation combines the
+global constraints from the G model with the more direct constraints used in Model 1c, which enforce batch size requirements without tracking them over time. The result is a model
+that retains the benefits of global propagation while avoiding
+unnecessary overhead.
+
+j5
+j4
+
+𝜏#$
+𝜏%#
+
+j3
+
+j2
+j1
+
+0
+
+5
+
+10
+Time
+
+15
+
+20
+
+25
+
+6.1. Global model
+The Global (G) CP model presented in this section enforces
+the size of the batches exclusively using global constraints. To
+do so, it uses the alwaysIn(n, v, l, u) global constraints which
+receives a cumulative function n, an interval variable v, and integer values l ≤ u. This global constraint guarantees that if v is
+present in the solution, then the cumulative function n is within
+the bounds l and u at any time during v, i.e., l ≤ n(t) ≤ u ∀ t ∈ v.
+In this way, the cumulative function provided to the
+alwaysIn constraint should capture the size of each batch so
+that the constraint can enforce the batch size requirements.
+However, cumulative functions in CP Optimizer only accumulate values over overlapping intervals, whereas jobs within a
+serial batch are processed sequentially and do not overlap in
+time. To address this issue, the G model introduces additional
+virtual interval variables that represent the full duration of the
+batch in which each job is processed. These virtual intervals
+are synchronized across all jobs in the same batch, ensuring
+they start and end at the same time. As a result, although the
+actual job intervals do not overlap, their corresponding virtual
+intervals do. This approach allows the cumulative function to
+correctly reflect the number of jobs in the batch at any moment
+during its execution.
+The G model replaces the Sizing section from Model 1c with
+the Global sizing section presented in Model 4. Equation (4a)
+defines a virtual interval variable z j for each job j, representing
+the full duration of the batch in which it is processed. To model
+this duration correctly, equation (4b) defines an optional virtual
+interval z jb for each possible batch b ∈ B f j , indicating the batchspecific virtual duration for job j. These intervals are flexible
+in both start and end times, allowing them to span the entire
+batch, even before the job’s release time. Equation (4c) augments the set V bjm to include z jb , ensuring that whenever a job
+is scheduled in batch b on machine m, its corresponding virtual
+interval is also present. Finally, equation (4d) defines a cumulative function nb for each batch b, which tallies the number
+of jobs assigned to it by pulsing 1 during their corresponding
+virtual intervals.
+Constraints (4e) ensure that each job is associated with exactly one virtual interval z jb , and synchronize this selected in-
+
+Figure 7: Solution with complete batch initiation
+
+endBeforeStart(ybm , ykm ),
+∀ m ∈ M, f ∈ F , b, k ∈ B f | b < k.
+
+(3c)
+
+Constraints (3a) guarantee that non-used batches of each
+family are the last ones. Constraints (3b) guarantee that the start
+times of the used batches of each family form a non-decreasing
+sequence. Constraints (3c) take these two concepts further and
+ensure that if any two batches of the same family are sequenced
+on the same machine, the batch with smaller number is scheduled first.
+5.5.1. Tighter symmetry-breaking constraints
+In the B·C variation all the jobs in the same batch (which
+have already been released when the batch starts) are considered completed at the end of the last processed job. Therefore,
+the order in which these jobs are processed within the batch is
+not relevant for the objective function. Hence, besides the previous SB constraints, in this problem variation it is possible to
+enforce an additional tighter SB (SBT) constraint that forces an
+arbitrary order of the jobs inside a batch, e.g., by release time,
+as in constraints (3d).
+b
+endBeforeStart(xim
+, xbjm ),
+
+∀ m ∈ M, b ∈ B, i, j ∈ J f b | ri ≤ r j .
+
+(3d)
+
+6. Global and hybrid models
+The global constraints in the Core and Batching sections of
+the IA model 1 rely on specialized algorithms that exploit the
+problem’s structure and provide the solver with a global perspective. This enables more effective constraint propagation
+and domain pruning. In contrast, the Sizing section of Model 1c
+uses non-global constraints that enforce batch size requirements
+by summing the binary presence indicators of jobs within each
+batch and applying bounds, which do not leverage the advantages of the global reasoning.
+8
+
+Model 4 Global sizing section
+
+Size of batch 1
+Virtual
+intervals
+of jobs in
+batch
+(𝑧!& )
+
+Additional variables and functions:
+• Interval variables:
+z j ∈ { [s, e) : s, e ∈ Z, s ≤ e } ,
+∀ j ∈ J;
+(4a)
+z jb ∈ { [s, e) : s, e ∈ Z, s ≤ e } ∪ { ⊥ } ,∀ j ∈ J, b ∈ B f j ; (4b)
+• Sets of intervals required to be present if xbjm is also present:
+V bjm ← V bjm ∪ { z jb } ,
+∀ j ∈ J, m ∈ M, b ∈ B f j ;
+(4c)
+• Cumulative functions:
+X
+
+
+nb : cumul =
+pulse z jb , 1 ,
+∀ b ∈ B.
+(4d)
+Additional constraints:
+alternative(z j , { z jb }b∈B f ), ∀ j ∈ J;
+
+(4e)
+
+synchronize(yb , { z jb } j∈J b ), ∀ b ∈ B;
+
+(4 f )
+
+j5-b1
+j2-b1
+j1-b1
+
+Batch on
+machine
+(𝑦&" )
+
+b3
+b1
+
+j5-b1
+
+Job in
+batch on
+machine
+&
+(𝑥!"
+)
+
+j∈J f b
+
+Batch size
+(𝑛& )
+3
+2
+j3-b3
+1
+j3-b3
+0
+
+Size of batch 2
+
+j4-b3
+j3-b3
+j2-b1
+j1-b1
+
+j
+
+f
+
+alwaysIn(nb , z jb , l f , u f ),
+
+∀ f ∈ F , j ∈ J f , b ∈ B f .(4g)
+
+release time
+Job on
+machine
+(𝑥!" )
+
+terval with z j . Constraints (1p) then guarantee consistency by
+requiring z jb to be present only when the job is actually assigned
+to batch b on machine m, as dictated by the augmented set V bjm .
+Constraints (4f) use the synchronize(v, V) global constraint,
+which receives an optional interval variable v and a set of optional interval variables V. This global constraint aligns the start
+and end times of the present intervals in V with the start and end
+times of the interval v, if present. Therefore, constraints (4f) ensure that the virtual intervals of all jobs in the same batch are
+synchronized with the batch interval yb , effectively giving them
+the full duration of the batch. This alignment causes the virtual
+intervals to overlap, allowing the cumulative function nb to correctly represent the number of jobs in the batch over time. This
+is an intuition derived from the CP model for p-batching presented by Huertas and Van Hentenryck [28]. Lastly, constraints
+(4g) apply the alwaysIn global constraint, enforcing that the
+batch size (as reflected by nb ) remains within the required lower
+and upper bounds throughout the interval.
+Continuing with our example, Figure 8 presents the solution
+of the G model. The solution itself for the IPF variation doesn’t
+necessarily change. The real change comes from the way the
+minimum batch size requirement is ensured. Figure 8 shows
+the new virtual variables z jb created, which overlap for jobs in
+the same batch. This allows the cumulative functions nb to tally
+the correct size of the batches, and therefore bound them with
+the proper batch size requirements.
+
+j5
+j4
+
+𝜏#$
+𝜏%#
+
+j3
+
+j2
+j1
+
+0
+
+5
+
+10
+Time
+
+15
+
+20
+
+Figure 8: Solution of the Global model
+
+batch using the virtual intervals.
+X
+minimize
+ω j · endOf(z j ).
+
+(5a)
+
+j∈J
+
+• Complete initiation: instead of including constraints
+(2d), the domain definition of the virtual intervals z j in
+equation (4a) should be replaced by equation (5b). This
+new domain restricts the start time of the virtual intervals
+to start on or after the release time of the jobs, forcing the
+complete initiation.
+z j ∈ { [s, e) : s, e ∈ Z, r j ≤ s ≤ e } ,
+
+∀ j ∈ J.
+
+(5b)
+
+6.2. Hybrid Model
+The Hybrid (H) model combines the structural redundancy
+introduced by the global constraints of the G model with the
+simplicity of sum-of-presences constraints of the IA model,
+which enforce batch size requirements without tracking them
+over time. Specifically, the H model removes the cumulative
+functions (4d) and the alwaysIn constraints (4g) from the G
+model, replacing them with the lower and upper bound constraints (1t) and (1u) from the IA model. These summationbased constraints ensure that batch sizes are respected while
+avoiding the overhead of time-dependent tracking.
+The H model is particularly effective for the BC variation,
+where jobs are considered completed only after the last job in
+their corresponding batch finishes. In this context, the order of
+jobs within a batch is irrelevant. The H model captures this behavior by shifting the objective to the virtual intervals, which
+
+6.1.1. Handling problem variations
+To handle different s-batch variations with the G model, the
+same constraints (2c) handle non-preemptive processing. In
+contrast, the following modifications are necessary to handle
+batch availability and complete initiation:
+• Batch availability: objective function (2a) should be replaced by objective (5a), which captures the completion
+time of the jobs as the completion time of their assigned
+9
+
+|J f |. This construction ensures that the specific solution found
+by the Core model is infeasible under the new batch size requirement, thereby motivating the usage of an extended model
+capable of explicitly enforcing these constraints.
+The experiments address the following two variations of sbatch, comparing the IA, G, and H models with different MIP
+models in each variation:
+
+abstract away the internal ordering of jobs, as evidenced by
+objective function (5a). Nonetheless, the synchronization constraints (4f) still link these orderless virtual intervals with the
+job sequencing, providing additional structure to the solver and
+a global perspective that enhances constraint propagation and
+domain pruning. Meanwhile, the sum-of-presences constraints
+enforce the batch size requirements without tracking them over
+time.
+
+• IPF: item availability, preemptive processing, & flexible
+initiation:
+
+7. Computational experiments
+
+– RP: Relative Positioning MIP model by Shahvari and
+Logendran [22] (see Appendix A).
+
+The computational experiments consider 1, 170 instances
+generated using a similar approach as the one used by Shahvari
+and Logendran [22] in combination with the process of Huertas
+and Van Hentenryck [28], who create instances that gradually
+grow in size. The number of jobs in each instance can be one
+of four possible values: |J| ∈ { 15, 25, 50, 100 }. The number
+of families in each instance is |F | ∈ Φ|J| , where Φ15 = { 2 },
+Φ25 = { 2, 3 }, Φ50 = { 3, 5 }, and Φ100 = { 5, 7 }. The number
+of machines in each instance is |M| ∈ Ω|J| , where Ω15 = { 2 },
+Ω25 = { 2, 3 }, Ω50 = { 3, 4 }, and Ω100 = { 4, 5 }. All the processing times and job weights are generated as p j , ω j ∼ U([10]),
+where U([a]) is the discrete uniform distribution over the set
+[a] = { 1, . . . , a }.
+To generate integer family setup times that satisfy the triangular inequality, we first build a fully connected directed graph
+with |F | nodes, where each arc is assigned a random weight
+uniformly drawn from the interval [0, 1]. Dijkstra’s algorithm
+[29] is then executed from each node to compute the shortestpath distances to all other nodes. These minimum distances are
+scaled by a factor S ∈ 20, 50, 100—as in Shahvari and Logendran [22] and Schaller et al. [30]—and rounded to the nearest
+integer. This rounding step can introduce violations of the triangular inequality, so we enforce the inequality whenever needed
+by checking which pairs of families have setup times that don’t
+satisfy the inequality, and enforce the strict equality. This process might require multiple iterations and even restarts until a
+non-symmetric integer matrix S is generated that satisfies the
+triangular inequality. This method does not yield setup times
+with an expected value of (S + 1)/2; however, it does produce a realistic and consistent matrix of setup times suitable
+for modeling sequence-dependent setups with asymmetry and
+path-consistency.
+To generate the release times of the jobs, a lower bound of
+the overall makespan is computed as
+&P
+Cmax =
+
+j∈J p j + (|F | − 1) · max f,g∈F τ f g + maxg∈F τ0g
+
+|M|
+
+• B·C: batch availability & complete initiation:
+– PA: Positional Assignment MIP model by Gahm
+et al. [5] with additional variables and constraints
+to consider non-identical release times and minimum
+batch sizes (see Appendix B).
+All the models were implemented in Python 3.9.12. All the
+CP models were solved with IBM ILOG CP Optimizer [26]
+from CPLEX 22.1.1, using its Python interface [31]. All the
+MIP models were solved with Gurobi Optimizer version 12.0.0
+[32]. A time limit of 1 hour was imposed to all the models. All
+the experiments were run on the PACE Phoenix cluster [33],
+using machines that run Red Hat Enterprise Linux Server release 7.9 (Maipo) with dual Intel® Xeon® Gold 6226 CPU
+@ 2.70GHz processors, with 24 cores, and 48 GB RAM, and
+parallelizing up to three experiments at the same time. Each run
+uses 8 cores and 16 GB RAM.
+Figure 9 compares the results obtained with the proposed IA,
+G, and H models against the MIP from the literature associated
+with each one of the two s-batch variations considered. These
+graphs group the 1,170 instances in 13 classes of 90 instances
+each according to their number of jobs, families, and machines.
+These graphs show three columns for each instance class in the
+horizontal axis. Each one of these columns is associated to one
+of the proposed CP models: the IA (in yellow), G (in green),
+and H (in blue) models, respectively. In this way, each column compares the column’s CP model against the MIP model
+of the corresponding s-batch variation (in pink). Each cone of
+the columns displays three stacked bars. The first bar indicates
+the percentage of instances where the column’s CP model obtained better solutions than the MIP model. The second bar
+indicates the percentage of instances where the MIP model obtained better solutions than the column’s CP model. Lastly, the
+last bar indicates the percentage of instances where both models obtained solutions with the same objective (in gray). Both
+graphs reveal that in the small instances, the MIP and CP models find similar solutions, as evidenced by the dominance of the
+gray bars in the left-hand side of the graphs. Nonetheless, in instances with 50 and 100 jobs, the length of the MIP bars (pink)
+reduce in size. Thus, as the instance sizes grow, the CP models
+consistently outperform the MIP models.
+To asses the quality of the solution produced by each model
+on each instance i, its relative gap is computed as gapi,model =
+|TWCTi,model − TWCT∗i |/|TWCTi,model |, where TWCT∗i is the
+
+'
+.
+
+Hence, the release times are drawn from U([Cmax ]). For each
+combination of the possible values for the number of jobs, families, machines, and setup times distributions, a total of 30 instances are generated, resulting in 1, 170 instances in total.
+To define the minimum batch sizes l f , each instance was first
+solved using the Core Model 1a. From this solution, the minimum number of consecutive jobs of each family f ∈ F scheduled on the machines was retrieved as l f . Then, the minimum
+¯
+batch size l f is defined as a random number
+between l f + 1 and
+¯
+10
+
+3.3%
+1.1%
+1.1%
+96.7%
+98.9%
+98.9%
+
+2.2%
+4.4%
+1.1%
+
+72.2%
+75.6%
+76.7%
+
+50
+-54
+10
+0-5
+-4
+10
+0-5
+-5
+10
+0-7
+-4
+10
+0-7
+-5
+
+97.8%
+95.6%
+98.9%
+
+87.8%
+75.6%
+85.6%
+
+50
+-53
+
+2.3%
+2.2%
+1.1%
+3.3%
+1.1%
+
+75.6%
+71.1%
+74.4%
+
+50
+-34
+
+97.7%
+96.7%
+95.6%
+
+71.1%
+66.7%
+66.7%
+
+50
+-33
+
+3.3%
+4.4%
+1.1%
+
+Equal
+
+96.7%
+95.6%
+98.9%
+
+11.1% 16.7%
+8.9% 15.6%
+8.9% 14.4%
+
+5.6%6.7%
+14.4% 10.0%
+6.7%7.8%
+
+RP better
+
+82.2%
+82.2%
+82.2%
+7.8%10.0%
+7.8%10.0%
+8.9% 8.9%
+
+25
+-33
+
+78.9%
+77.8%
+77.8%
+11.1% 10.0%
+11.1% 11.1%
+10.0% 12.2%
+
+25
+-32
+
+77.8%
+76.7%
+76.7%
+18.9% 3.3%
+18.9% 4.4%
+17.8% 5.6%
+
+25
+-23
+
+84.4%
+84.4%
+84.4%
+8.9%6.7%
+8.9%6.7%
+8.9%6.7%
+
+0
+
+1.1%
+15
+-2- 1.1%
+2 1.1%
+
+20
+
+25
+-22
+
+40
+
+98.9%
+98.9%
+98.9%
+
+% of instances
+
+80
+60
+
+H better
+13.3% 11.1%
+15.6% 13.3%
+12.2% 13.3%
+
+G better
+6.7% 22.2%
+8.9% 24.4%
+7.8% 25.6%
+
+IA better
+
+100
+
+Instance class (Jobs-Families-Machines)
+(a) IPF
+
+1.4%
+2.3%
+2.3%
+
+2.7%
+1.1%
+2.4%
+
+20.0% 3.3%
+20.0% 3.3%
+17.8% 3.3%
+
+10.0%
+10.0%
+10.0%
+
+18.9% 3.3%
+20.0% 3.3%
+21.1% 3.3%
+
+100.0%
+100.0%
+100.0%
+
+100.0%
+100.0%
+100.0%
+
+98.6%
+97.7%
+97.7%
+
+97.3%
+98.9%
+97.6%
+
+77.8%
+76.7%
+75.6%
+
+21.1%
+21.1%
+21.1%
+
+34.4%
+34.4%
+32.2%
+76.7%
+76.7%
+78.9%
+
+27.8%
+28.9%
+28.9%
+
+Equal
+
+-5
+0-7
+10
+
+-4
+0-7
+10
+
+-5
+0-5
+10
+
+-4
+0-5
+
+-550
+
+10
+
+-550
+
+4
+
+-350
+
+3
+
+-350
+
+4
+
+-325
+
+3
+
+14.4%
+14.4%
+14.4%
+
+-325
+
+3
+
+8.9% 18.9%
+10.0% 18.9%
+10.0% 17.8%
+
+-225
+
+2
+
+7.8% 13.3%
+7.8% 14.4%
+7.8% 15.6%
+
+-225
+
+3
+
+-2-
+
+2
+
+PA better
+
+15
+
+2
+
+0
+
+3.3%
+3.3%
+3.3%
+
+20
+
+11.1% 12.2%
+11.1% 16.7%
+11.1% 17.8%
+
+40
+
+60.0%
+62.2%
+62.2%
+
+57.8%
+56.7%
+56.7%
+
+72.2%
+71.1%
+72.2%
+
+78.9%
+77.8%
+76.7%
+
+76.7%
+72.2%
+71.1%
+
+96.7%
+96.7%
+96.7%
+
+% of instances
+
+80
+60
+
+H better
+
+18.9%
+16.7%
+16.7%
+
+G better
+
+55.6%
+55.6%
+57.8%
+
+IA better
+
+100
+
+Instance class (Jobs-Families-Machines)
+(b) B·C
+
+Figure 9: Percentage (%) of instances where each model is better or equal in each variation
+
+minimum TWCT obtained for the instance i across all the models that solved it (including those with SB and SBT constraints).
+Figure 10 shows the average relative gaps of each one of the
+proposed CP models and the MIP model of the corresponding
+s-batch variation. Estimating the true relative gap would require infinite instances. Instead, the sample of 90 instances is
+used. Thus, the region around each series represents the 95%
+confidence interval of the avg. relative gap.
+
+instances with 50 jobs; and up to 12% worse on the instances
+with 100 jobs.
+Figures 11-14 evaluate the impact of the symmetry-breaking
+constraints. Figures 11-12 focus on the small instances with
+15 and 25 jobs. Figure 11 shows the percentage of instances
+in which each model declared optimality within the time limit
+in each s-batch variation. Figure 12 shows the average solve
+time of each model in both s-batch variations. In both s-batch
+variations, no model is able to declare optimality on the large
+instances, hitting the time limit. However, on the small instances, the SB (and SBT) constraints consistently allow the
+CP models prove optimality in a larger percentage of instances
+than the CP models without these constraints. In the IPF variation, the IA+SB model is able to prove optimality in the largest
+percentage of instances, allowing it to terminate the search process faster, drastically dominating the RP model. In contrast, in
+the B·C variation, the best performing CP model is the H+SBT
+model, but it is still dominated by the PA model.
+
+Figure 10a shows that in the IPF variation, on the instances
+with 15 and 25 jobs, the CP models and the RP model have the
+same gap of 0, meaning that they find solutions with the same
+TWCT, which corresponds to the results in Figure 9. On the
+other hand, Figure 10b shows that in the B·C variation, on the
+instances with 15 and 25 jobs, the CP models have a slightly
+larger gap than the PA model. This is explained by the fact
+that the PA model does not consider in any way the decisions
+about ordering the jobs inside a batch whereas the CP models do. However, both graphs show that on the instances with
+50 and 100 jobs, the CP models find better solutions than the
+MIP models. In fact, the solutions of the MIP models are up
+to 2% worse than the solutions found by the CP models on the
+
+Since no model is capable of declaring optimality in the large
+instances with 50 and 100 jobs and all of them hit the time limit,
+Figures 13 and 14 focus on evaluating the impact of the SB (and
+11
+
+15.0
+12.5
+
+8
+6
+4
+
+PA
+IA
+G
+H
+
+10.0
+7.5
+5.0
+2.5
+
+0
+
+0.0
+
+15
+25-2-2
+25-2-2
+25-2-3
+25-3-2
+50-3-3
+50-3-3
+50-3-4
+50-5-3
+10 -5-4
+100-5-4
+100-5-5
+100-7-4
+0-7
+-5
+
+2
+
+15
+25-2-2
+25-2-2
+25-2-3
+25-3-2
+50-3-3
+50-3-3
+50-3-4
+50-5-3
+10 -5-4
+100-5-4
+100-5-5
+100-7-4
+0-7
+-5
+
+Average gap (%)
+
+10
+
+RP
+IA
+G
+H
+
+Average gap (%)
+
+12
+
+Instance class (# of Jobs-Families-Machines)
+
+Instance class (# of Jobs-Families-Machines)
+
+(a) IPF
+
+(b) B·C
+
+Figure 10: Average relative gap (%) of each model in each s-batch variation
+
+improvement (API) of the best-performing CP model of each
+s-batch variation over the corresponding MIP solution (APICP-vs-MIP) and tracks how it evolves during the solve process, minute-by-minute. In these graphs, the 1,170 instances
+are grouped by the number of jobs in it, resulting in the four
+colored series for instances with 15, 25, 50, and 100 jobs. The
+shaded region around each series indicates the 95% confidence
+interval (CI). To generate these graphs, for every instance i,
+the percentage of improvement of the CP solution over the
+MIP solution after t minutes of solve time was computed as
+(TWCTi,MIP,t − TWCTi,CP,t )/TWCTi,MIP,t , where TWCTi,model,t
+is the best objective function value obtained by each model on
+each instance after t minutes. This percentage is positive if the
+CP solution is better than the MIP solution, and negative in the
+opposite case.
+Figure 16 reveals that the API-CP-vs-MIP for instances with
+15 and 25 jobs is near zero in both s-batch variations, reflecting
+that both models produce the same objective function values
+in most of these instances, as shown in Figure 9. Conversely,
+the API-CP-vs-MIP is significantly higher for instances with 50
+and 100 jobs, where the best CP model generally delivers better results. Since the scheduling systems in several areas of a
+wafer fab are expected to generate a Gantt-chart schedule every
+few minutes [34], Figure 16 marks the API-CP-vs-MIP after 10
+minutes of solve time. At 10 minutes, the API-CP-vs-MIP for
+instances with 50 and 100 jobs is approximately 2% and 7.5%,
+respectively in the IPF variation; and 2% and 24%, respectively
+in the B·C variation. Hence, Figure 16 demonstrates the superiority of the best-performing CP models over the MIP models
+in both s-batch variations, delivering better results in larger instances faster
+
+SBT) constraints using the relative gap of each CP model, independently. Figure 13 demonstrates that in the IPF variation,
+on larger instances, the SB constraints consistently negatively
+impact the relative gap of each one of the proposed CP models.
+Although the SB constraints help proving optimality in more of
+the small instances, allowing them to conclude the search process faster, these constraints become difficult to satisfy on the
+large instances under the same time limit, affecting their relative gap performance. Figure 14 shows that in the B·C variation, the IA model presents the same behavior. Nonetheless,
+the SBT constraints become helpful for the G and H models.
+In fact, the G+SBT model performs similar to the G model;
+whereas the H+SBT model becomes better than the H model.
+Two key observations can be derived from these results. The
+first one is that the extra redundancy provided by the global
+constraints in the G and H models prove to be beneficial when
+combined with the SBT constraints, which basically reduce the
+complexity of the decisions by forcing a specific order of jobs
+inside a batch. The second one is that this benefit is boosted in
+the H model because the batch size requirement is handled with
+the sum-of-presences constraints rather than tracking the batch
+size over time.
+Figures 13 and 14 show the performance with and without
+SB (and SBT) constraints of every CP model independently,
+which makes it difficult to determine which model is better.
+To remedy this, Figure 15 presents the best of the IA, G, and
+H models in the same graph for every s-batch variation. For
+the IPF variation, the model with the best relative gap is the
+IA model, which clearly dominates the other models. In the
+B·C variation, it is not clear which model is better. Nonetheless, in the largest instance class, the best model is the H-SBT
+model.
+Although all the models reach the time limit on the larger
+instances, the benefits of CP go beyond merely finding better
+solutions within the time limit of 1 hour. They also find better solutions faster. Figure 16 shows the average percentage of
+
+8. Concluding remarks
+This paper proposed, for the first time, a set of constraint
+programming (CP) models for serial batch scheduling, consid12
+
+100
+
+RP
+IA
+IA+SB
+G
+G+SB
+H
+H+SB
+
+75
+
+% of instances solved to optimality
+
+% of instances solved to optimality
+
+100
+
+50
+25
+
+75
+50
+25
+
+15
+25-2-2
+25-2-2
+25-2-3
+25-3-2
+50-3-3
+50-3-3
+50-3-4
+50-5-3
+10 -5-4
+100-5-4
+100-5-5
+100-7-4
+0-7
+-5
+
+0
+
+15
+25-2-2
+25-2-2
+25-2-3
+25-3-2
+50-3-3
+50-3-3
+50-3-4
+50-5-3
+10 -5-4
+100-5-4
+100-5-5
+100-7-4
+0-7
+-5
+
+0
+
+PA
+IA
+IA+SB
+IA+SBT
+G
+G+SB
+G+SBT
+H
+H+SB
+H+SBT
+
+Instance class (Jobs-Families-Machines)
+
+Instance class (Jobs-Families-Machines)
+
+(a) IPF
+
+(b) B·C
+
+3000
+
+RP
+IA
+IA+SB
+G
+G+SB
+H
+H+SB
+
+2000
+1000
+
+Average solve time (s)
+
+Average solve time (s)
+
+Figure 11: Percentage (%) of instances solved to optimality by each model in each s-batch variation
+
+0
+
+PA
+IA
+IA+SB
+IA+SBT
+G
+G+SB
+G+SBT
+H
+H+SB
+H+SBT
+
+3000
+2000
+1000
+
+15
+25-2-2
+25-2-2
+25-2-3
+25-3-2
+50-3-3
+50-3-3
+50-3-4
+50-5-3
+10 -5-4
+100-5-4
+100-5-5
+100-7-4
+0-7
+-5
+
+15
+25-2-2
+25-2-2
+25-2-3
+25-3-2
+50-3-3
+50-3-3
+50-3-4
+50-5-3
+10 -5-4
+100-5-4
+100-5-5
+100-7-4
+0-7
+-5
+
+0
+
+Instance class (# of Jobs-Families-Machines)
+
+Instance class (# of Jobs-Families-Machines)
+
+(a) IPF
+
+(b) B·C
+
+Figure 12: Average solve time (s) of each model in each s-batch variation
+
+2.5
+
+1.00
+
+2.0
+
+Average gap (%)
+
+1.25
+
+0.75
+0.50
+
+G
+G+SB
+
+1.50
+
+H
+H+SB
+
+1.25
+Average gap (%)
+
+3.0
+
+IA
+IA+SB
+
+1.5
+1.0
+
+1.00
+0.75
+0.50
+0.25
+
+0.00
+
+0.0
+
+0.00
+
+15
+25-2-2
+25-2-2
+25-2-3
+25-3-2
+50-3-3
+50-3-3
+50-3-4
+50-5-3
+10 -5-4
+100-5-4
+100-5-5
+100-7-4
+0-7
+-5
+
+0.5
+
+15
+25-2-2
+25-2-2
+25-2-3
+25-3-2
+50-3-3
+50-3-3
+50-3-4
+50-5-3
+10 -5-4
+100-5-4
+100-5-5
+100-7-4
+0-7
+-5
+
+0.25
+
+15
+25-2-2
+25-2-2
+25-2-3
+25-3-2
+50-3-3
+50-3-3
+50-3-4
+50-5-3
+10 -5-4
+100-5-4
+100-5-5
+100-7-4
+0-7
+-5
+
+Average gap (%)
+
+1.50
+
+Instance class (# of Jobs-Families-Machines)
+
+Instance class (# of Jobs-Families-Machines)
+
+Instance class (# of Jobs-Families-Machines)
+
+(a) IA model
+
+(b) G model
+
+Figure 13: Impact of SB constraints on the relative gap of each model in the IPF s-batch variation
+
+13
+
+(c) H model
+
+2.5
+
+G
+G+SB
+G+SBT
+
+2.0
+Average gap (%)
+
+2.0
+1.5
+1.0
+
+H
+H+SB
+H+SBT
+
+2.5
+
+1.5
+1.0
+
+2.0
+1.5
+1.0
+0.5
+
+0.0
+
+0.0
+
+0.0
+
+15
+25-2-2
+25-2-2
+25-2-3
+25-3-2
+50-3-3
+50-3-3
+50-3-4
+50-5-3
+10 -5-4
+100-5-4
+100-5-5
+100-7-4
+0-7
+-5
+
+0.5
+
+15
+25-2-2
+25-2-2
+25-2-3
+25-3-2
+50-3-3
+50-3-3
+50-3-4
+50-5-3
+10 -5-4
+100-5-4
+100-5-5
+100-7-4
+0-7
+-5
+
+0.5
+
+15
+25-2-2
+25-2-2
+25-2-3
+25-3-2
+50-3-3
+50-3-3
+50-3-4
+50-5-3
+10 -5-4
+100-5-4
+100-5-5
+100-7-4
+0-7
+-5
+
+Average gap (%)
+
+2.5
+
+IA
+IA+SB
+IA+SBT
+
+Average gap (%)
+
+3.0
+
+Instance class (# of Jobs-Families-Machines)
+
+Instance class (# of Jobs-Families-Machines)
+
+Instance class (# of Jobs-Families-Machines)
+
+(a) IA model
+
+(b) G model
+
+(c) H model
+
+Figure 14: Impact of SB and SBT constraints on the relative gap of each model in the B·C s-batch variation
+
+1.4
+
+1.0
+Average gap (%)
+
+1.0
+0.8
+0.6
+0.4
+
+IA
+G+SBT
+H+SBT
+
+0.8
+0.6
+0.4
+0.2
+
+0.0
+
+0.0
+
+15
+25-2-2
+25-2-2
+25-2-3
+25-3-2
+50-3-3
+50-3-3
+50-3-4
+50-5-3
+10 -5-4
+100-5-4
+100-5-5
+100-7-4
+0-7
+-5
+
+0.2
+
+15
+25-2-2
+25-2-2
+25-2-3
+25-3-2
+50-3-3
+50-3-3
+50-3-4
+50-5-3
+10 -5-4
+100-5-4
+100-5-5
+100-7-4
+0-7
+-5
+
+Average gap (%)
+
+1.2
+
+1.2
+
+IA
+G
+H
+
+Instance class (# of Jobs-Families-Machines)
+
+Instance class (# of Jobs-Families-Machines)
+
+(a) IPF
+
+(b) B·C
+
+Figure 15: Avg. relative gap (%) of the best CP model in each s-batch variation
+
+ering multiple parallel machines, non-identical job weights and
+release times, sequence-dependent setup times, and minimum
+batch sizes. A possible explanation to why no CP model has
+previously addressed s-batching with this minimum batch size
+can be the extra effort required in the modeling process to ensure this requirement. This becomes evident in the structure of
+the proposed CP models, which require a Batching and a Sizing
+section on top of the Core section, each with additional variables and constraints, just to ensure the minimum batch size
+requirement.
+
+and prune variables domains. This G model tracks the size of
+the batches over time, which results impractical. (iii) The Hybrid (H) model solves this issue by combining the strengths of
+the previous models, including the additional global constraints
+of the G model and using the efficient sizing constraints of the
+IA model.
+The proposed CP models can easily solve different variations of s-batch with minimal changes, including item and batch
+availability, preemptive and non-preemptive batch processing,
+and flexible and complete batch initiation. The computational
+experiments demonstrate this versatility by comparing these
+CP models against two existing MIP models in the literature
+that are only capable of solving specific variations of s-batch
+independently. These experiments demonstrate that the bestperforming model in the IPF variation is the IA model thanks
+to the efficient constraints that sum the presence indicators of
+the intervals in every batch. In the B·C variation, these constraints also allow the H-SBT model to have the best perfor-
+
+The proposed CP models are three. (i) An Interval Assignment (IA) model that defines interval variables of jobs, and assigns them to batches with additional intervals. In this model,
+the minimum batch size requirement is enforced using bounding constraints over the sum of presence indicator of jobs in
+batches. (ii) A Global (G) that replaces these constraints with
+additional global constraints that provide a global perspective of
+the problem’s structure, allowing to better propagate constraints
+14
+
+Percentage Improvement of H+SBT over PA (%)
+
+Number of Jobs
+
+Average Percentage Improvement (%)
+
+Average Percentage Improvement (%)
+
+Percentage Improvement of IA over RP (%)
+15
+
+15 Jobs
+25 Jobs
+50 Jobs
+100 Jobs
+
+10
+
+5
+
+0
+1 5 10 15 20 25 30 35 40 45 50 55 60
+Solve time (minute)
+
+45
+40
+35
+30
+25
+20
+15
+10
+5
+0
+
+Number of Jobs
+15 Jobs
+25 Jobs
+50 Jobs
+100 Jobs
+
+1 5 10 15 20 25 30 35 40 45 50 55 60
+Solve time (minute)
+
+(a) IPF
+
+(b) B·C
+
+Figure 16: Average percentage (%) of improvement of the best CP model in each s-batch variation over the corresponding MIP (with its 95% CI) after every minute
+of solve time
+
+Let yb ∈ { 0, 1 } be a binary variable that takes the value of 1 if
+batch b ∈ B is used, or 0 if not. Let ybm ∈ { 0, 1 } be a binary
+variable that takes the value of 1 if the batch b ∈ B is processed
+on machine m ∈ M, or 0 otherwise. Let zbi j ∈ { 0, 1 } be a binary variable that takes the value of 1 if inside batch b ∈ B job
+i ∈ J f b is sequenced before job j ∈ J f b (i < j), or 0 otherwise. Let wab ∈ { 0, 1 } be a binary variable that takes the value
+of 1 if batch a ∈ B is before batch b ∈ B (a < b). Let C j ,
+C b , and C bj , and be three non-negative variables that represent
+the completion time of job j ∈ J, the completion time of batch
+b ∈ B, and the completion time of job j in batch b ∈ B f j . Model
+5 presents the mathematical formulation of the RP model for
+non-preemptive s-batch scheduling with item availability, preemptive processing, and flexible initiation.
+
+mance, in combination with the tighter symmetry breaking constraints and extra global perspective. These experiments also
+showcase the ability of the CP models to find, in large instances,
+better solutions than these MIPs faster.
+While this study offers a comprehensive comparison of different CP formulations across a wide range of instance sizes,
+future work could include a formal scalability and sensitivity
+analysis to assess memory usage and evaluate how variations
+in key parameters such as job weights, release times, and setup
+times affect performance.
+Current research includes improving the Global model for
+the IPF variation and considering family-machine dedications.
+Future research includes embedding the serial and parallel
+batching CP models in larger contexts for wafer fab scheduling.
+
+Objective function (A.1a) minimizes the TWCT. Constraints
+(A.1b) guarantee that each job is assigned to one batch. Constraints (A.1c) ensure that if a batch is used, it is assigned assigned to exactly one machine. Constraints (A.1d) prevent job
+assignments in batches that are not used. Constraints (A.1e) ensure the minimum batch size requirements. Constraints (A.1f)(A.1g) are in charge of sequencing the batches. They ensure
+that the completion time of a job inside a batch is greater than
+the completion time of a previous batch, plus the family setup
+time required between the batches, plus the processing time
+of the job. These constraints use the big number K to deactivate the constraint if the batches are not consecutive, or if the
+batches are not processed by the same machine, or if the job
+is not assigned to the batch. Constraints (A.1h) guarantee that
+the completion times of the jobs are after their release time plus
+their processing times. Constraints (A.1i) ensure that the initial setup times are satisfied. Constraints (A.1j)-(A.1k) are in
+charge of sequencing jobs inside their batch. They ensure that
+the difference between any pair of jobs inside a batch is at least
+their processing time. These constraints deactivate if the two
+jobs are not assigned to the same batch or if the relative posi-
+
+Acknowledgments
+This research was partly supported by the NSF AI Institute
+for Advances in Optimization (Award 2112533)
+Appendix A. Relative Positioning model
+This section presents the Relative Positioning (RP) MIP
+model, inspired by Shahvari and Logendran [22]. Their model
+only considered variables of completion times of jobs, which
+only allowed them to consider the problem variation with preemptive processing and flexible batch initiation. The key structure of the problem is provided by binary variables for every
+pair of batches and every pair of jobs inside the batches that indicate their relative position, which in turn are used to capture
+the completion times of the jobs, of the batches, and of the jobs
+inside the batches.
+Let x jb ∈ { 0, 1 } be a binary variable that takes the value of
+1 if job j ∈ J is assigned to batch b ∈ B f j , or 0 otherwise.
+15
+
+Model 5 Relative Positioning (RP) MIP model by Shahvari and Logendran [22]
+X
+
+minimize
+
+ωj · Cj
+
+(A.1a)
+
+j∈J
+
+subject to
+X
+
+x jb = 1,
+
+∀ j ∈ J;
+
+(A.1b)
+
+ybm = yb ,
+
+∀ b ∈ B;
+
+(A.1c)
+
+x jb ≤ yb ,
+
+∀ j ∈ J, b ∈ B f j ;
+
+(A.1d)
+
+x jb ≤ |J f b | · yb ,
+
+∀ b ∈ B;
+
+(A.1e)
+
+∀ a, b ∈ B, j ∈ B f b , m ∈ M | a < b;
+
+(A.1f)
+
+∀ a, b ∈ B, j ∈ B f a , m ∈ M | a < b;
+
+(A.1g)
+
+∀ j ∈ J, b ∈ B f j ;
+
+(A.1h)
+
+∀ j ∈ J, b ∈ B f j ;
+
+(A.1i)
+
+∀ b ∈ B, i, j ∈ J f b | i < j;
+
+(A.1j)
+
+∀ b ∈ B, i, j ∈ J f b | i < j;
+
+(A.1k)
+
+b∈B f j
+
+X
+m∈M
+
+l f b · yb ≤
+
+X
+j∈J f b
+
+C bj ≥ C a + τ f a , f b + p j − K · [(1 − wab ) + (1 − x jb )
++ (1 − yam ) + (1 − ybm )],
+C aj ≥ C b + τ f b , f a + p j − K · [wab + (1 − x jb )
++ (1 − yam ) + (1 − ybm )],
+C bj ≥ (r j + p j ) · yb − K · (1 − x jb ),
+C bj ≥ (τ0 f j + p j ) · yb − K · (1 − x jb ),
+C bj − Cib ≥ p j · yb − K · [(1 − zbi j ) + (1 − xib ) + (1 − x jb )],
+Cib − C bj ≥ pi · yb − K · [zbi j + (1 − xib ) + (1 − x jb )],
+Cb ≥ C bj − K(1 − x jb ),
+
+∀ b ∈ B, j ∈ J f b ;
+
+(A.1l)
+
+C j ≥ C bj − K(1 − x jb ),
+
+∀ j ∈ J, b ∈ B f j ;
+
+(A.1m)
+
+C j ≥ 0,
+
+∀ j ∈ J;
+
+(A.1n)
+
+C ≥ 0,
+
+∀ b ∈ B;
+
+(A.1o)
+
+C bj ≥ 0,
+
+∀ j ∈ J, b ∈ B f j ;
+
+(A.1p)
+
+x jb ∈ { 0, 1 } ,
+
+∀ j ∈ J, b ∈ B f j ;
+
+(A.1q)
+
+b
+
+yb ∈ { 0, 1 } ,
+
+∀ b ∈ B;
+
+(A.1r)
+
+ybm ∈ { 0, 1 } ,
+
+∀ b ∈ B, m ∈ M;
+
+(A.1s)
+
+wab ∈ { 0, 1 } ,
+
+∀ a, b ∈ B | a < b;
+
+(A.1t)
+
+zbi j ∈ { 0, 1 } ,
+
+∀ b ∈ B, i, j ∈ J f b | i < j.
+
+(A.1u)
+
+tions of the jobs do not coincide. Constraints (A.1l) capture the
+completion time of the batches. Constraint (A.1m) ensure item
+availability by tallying the overall completion time of the jobs
+as soon as their processing time has been completed. Finally,
+constraints (A.1n)-(A.1u) define the variables domain.
+
+jobs of each family can be grouped—as the IA, G, H, and RP
+models do, this model assumes that these batches are sequentially scheduled on each machine according to their appearing
+order in the set B. Hence, the family and the jobs allowed to be
+grouped in each batch are defined using binary assignment variables, scheduling empty batches after all the non-empty ones.
+This model does not capture the order in which the jobs are
+processed inside the batch. For this reason, it only works for
+s-batch variants with batch availability and complete batch initiation.
+
+Appendix B. Positional Assignment model
+This section presents the Positional Assignment (PA) MIP
+model, inspired by Gahm et al. [5] for serial batching. Their
+original model assumes that all the jobs are available at time 0,
+and didn’t consider a minimum batch size. The PA model in this
+section extends their formulation to consider the non-identical
+release times of the jobs, as well as the minimum batch size requirements. Instead of predefining the possible batches where
+
+Let xbjm ∈ { 0, 1 } be a binary variable that takes the value of 1
+if job j ∈ J is assigned to the bth batch (b ∈ B) on machine m ∈
+f
+M, or 0 otherwise. Let ybm
+∈ { 0, 1 } be a binary variable that
+takes the value of 1 if the bth batch on machine m processes jobs
+of family f ∈ F . Let S bm , Pbm , and Cbm be three non-negative
+16
+
+Model 6 Positional Assignment (PA) MIP model inspired by Gahm et al. [5]
+X
+
+minimize
+
+ωj · Cj
+
+(B.1a)
+
+j∈J
+
+subject to
+XX
+
+xbjm = 1,
+
+∀ j ∈ J;
+
+(B.1b)
+
+f
+ybm
+≤ 1,
+
+∀ b ∈ B, m ∈ M;
+
+(B.1c)
+
+f
+xbjm ≤ ybm
+,
+
+∀ f ∈ F , j ∈ J f , b ∈ B, m ∈ M;
+
+(B.1d)
+
+f
+xbjm ≤ |J f | · ybm
+,
+
+∀ b ∈ B, m ∈ M, f ∈ F ;
+
+(B.1e)
+
+X
+
+f
+ybm
+,
+
+∀ b ∈ B, m ∈ M | b > 1;
+
+(B.1f)
+
+p j · xbjm ,
+
+∀ b ∈ B, m ∈ M;
+
+(B.1g)
+
+f
+,
+τ0 f · y1,m
+
+∀ m ∈ M;
+
+(B.1h)
+
+f
+S bm ≥ Cb−1,m + τg f − K · [(1 − ygb−1,m ) + (1 − ybm
+)],
+
+∀ b ∈ B, m ∈ M, g, f ∈ F | b > 1;
+
+(B.1i)
+
+S bm ≥ r j · xbjm ,
+
+j ∈ J, b ∈ B, m ∈ M;
+
+(B.1j)
+
+Cbm ≥ S bm + Pbm ,
+
+∀ b ∈ B, m ∈ M;
+
+(B.1k)
+
+C j ≥ Cbm − K(1 − xbjm ),
+xbjm ∈ { 0, 1 } ,
+
+∀ j ∈ J, b ∈ B, m ∈ M;
+
+(B.1l)
+
+∀ j ∈ J, b ∈ B, m ∈ M;
+
+(B.1m)
+
+∀ b ∈ B, m ∈ M;
+
+(B.1n)
+
+∀ j ∈ J.
+
+(B.1o)
+
+b∈B m∈M
+
+X
+f ∈F
+
+f
+l f · ybm
+≤
+
+X
+j∈J f
+
+X
+
+f
+yb−1,m
+≥
+
+f ∈F
+
+f ∈F
+
+Pbm ≥
+
+X
+j∈J
+
+S 1,m ≥
+
+X
+f ∈F
+
+S bm , Cbm , Pbm ≥ 0,
+C j ≥ 0,
+
+References
+
+variables that represent the start, processing, and completion
+times of the bth batch on machine m, respectively. Let C j be
+a non-negative variable that represents the completion time of
+job j. Model 6 presents the mathematical formulation of the PA
+model with batch availability and complete initiation.
+
+[1] L. Mönch, J. W. Fowler, S. Dauzère-Pérès, S. J.
+Mason, O. Rose,
+A survey of problems, solution techniques, and future challenges in scheduling
+semiconductor manufacturing operations,
+Journal of Scheduling 14 (2011) 583–599. URL:
+https://doi.org/10.1007/s10951-010-0222-9.
+doi:10.1007/S10951-010-0222-9/METRICS.
+
+Objective function (B.1a) minimizes the TWCT. Constraints
+(B.1b) ensure that each job is assigned to exactly one batch
+on one machine. Constraints (B.1c) ensure that each batch
+groups jobs of up to one family. Constraints (B.1d) ensure that
+jobs don’t get assigned on batches that are not processing their
+family. Constraints (B.1e) ensure the minimum batch size requirements. Constraints (B.1f) guarantee that empty batches
+are scheduled after nonempty batches on each machine. Constraints (B.1g) capture the processing time of each batch. Constraints (B.1h) guarantee that the initial setup times are respected. Constraints (B.1i) ensure that the intermediate family
+setup times are respected between consecutive batches. They
+use the big number K to deactivate the constraint if the intermediate family setup time is . Constraints (B.1j) ensure the
+complete batch initiation. Constraints (B.1k) capture the completion time of each batch. Constraints (B.1l) capture the completion time of each job using batch availability. Finally, constraints (B.1m)-(B.1o) define the variables’ domain.
+
+[2] J. W. Fowler, L. Mönch,
+A survey of scheduling with parallel batch (p-batch) processing, European Journal of Operational Research 298 (2022) 1–24.
+URL: https://doi.org/10.1016/j.ejor.2021.06.
+012. doi:10.1016/J.EJOR.2021.06.012.
+[3] C. N. Potts, M. Y. Kovalyov,
+Scheduling with
+batching: A review,
+European Journal of Operational Research 120 (2000) 228–249. URL: https:
+//doi.org/10.1016/S0377-2217(99)00153-8.
+doi:10.1016/S0377-2217(99)00153-8.
+[4] S. Wahl, C. Gahm, A. Tuma, Serial- and hierarchicalbatch scheduling:
+a systematic review and future research directions,
+International Journal
+17
+
+of Production Research (2024). URL: https:
+//doi.org/10.1080/00207543.2024.2432473.
+doi:10.1080/00207543.2024.2432473.
+
+[14] S. Wahl, Serial-batch scheduling – the special case of
+laser-cutting machines, Doctoral Thesis (2023). URL:
+https://opus.bibliothek.uni-augsburg.de/
+opus4/105548.
+
+[5] C. Gahm, S. Wahl, A. Tuma,
+Scheduling parallel serial-batch processing machines with incompatible job families, sequence-dependent setup times and
+arbitrary sizes,
+International Journal of Production Research 60 (2021) 5131–5154. URL: https://
+doi.org/10.1080/00207543.2021.1951446. doi:10.
+1080/00207543.2021.1951446.
+
+[15] C. S. Sung, U. G. Joo,
+Batching to minimize
+weighted mean flow time on a single machine with
+batch size restrictions,
+Computers & Industrial
+Engineering 32 (1997) 333–340. URL: https:
+//doi.org/10.1016/S0360-8352(96)00300-2.
+doi:10.1016/S0360-8352(96)00300-2.
+[16] T. Winkler, R. Sprenger,
+Simulation-based performance assessment of an implant scheduler in semiconductor manufacturing, Proceedings - Winter Simulation Conference (2017) 3704–3713. doi:10.1109/WSC.
+2017.8248083.
+
+[6] A. Uzunoglu, C. Gahm, S. Wahl, A. Tuma, Learningaugmented heuristics for scheduling parallel serial-batch
+processing machines, Computers & Operations Research 151 (2023) 106122. URL: https://doi.org/
+10.1016/j.cor.2022.106122. doi:10.1016/J.COR.
+2022.106122.
+
+[17] D. Kopp, M. Hassoun, A. Kalir, L. Monch, SMT2020
+- Semiconductor Manufacturing Testbed: Data Specification, https://p2schedgen.fernuni-hagen.de/
+downloads/simulation, 2020. Release 1.0.
+
+[7] L. Shen, U. Buscher,
+Solving the serial batching
+problem in job shop manufacturing systems, European Journal of Operational Research 221 (2012) 14–26.
+URL: https://doi.org/10.1016/j.ejor.2012.03.
+001. doi:10.1016/J.EJOR.2012.03.001.
+
+[18] G. Mosheiov, D. Oron, A single machine batch scheduling problem with bounded batch size, European Journal of Operational Research 187 (2008) 1069–1079.
+URL: https://doi.org/10.1016/j.ejor.2006.01.
+052. doi:10.1016/J.EJOR.2006.01.052.
+
+[8] M. Awad, K. Mulrennan, J. Donovan, R. Macpherson, D. Tormey, A constraint programming model for
+makespan minimisation in batch manufacturing pharmaceutical facilities, Computers & Chemical Engineering 156 (2022) 107565. URL: https://doi.org/10.
+1016/j.compchemeng.2021.107565. doi:10.1016/J.
+COMPCHEMENG.2021.107565.
+
+[19] P. Chrétienne, Öncü Hazır, S. Kedad-Sidhoum, Integrated batch sizing and scheduling on a single machine,
+Journal of Scheduling 14 (2011) 541–555. URL:
+https://doi.org/10.1007/s10951-011-0229-x.
+doi:10.1007/S10951-011-0229-X/METRICS.
+
+[9] I. A. Karimi, S. Hasebe, Chapter 8 chemical batch process scheduling, Data Handling in Science and Technology 15 (1995) 181–203. doi:10.1016/S0922-3487(06)
+80009-2.
+
+[20] Öncü. Hazır, S. Kedad-Sidhoum, Batch sizing and
+just-in-time scheduling with common due date, Annals
+of Operations Research 213 (2014) 187–202. URL:
+https://doi.org/10.1007/s10479-012-1289-9.
+doi:10.1007/S10479-012-1289-9/FIGURES/6.
+
+[10] L. Mönch, Scheduling-framework für jobs auf parallelen maschinen in komplexen produktionssystemen,
+Wirtschaftsinformatik 46 (2004) 470–480.
+URL:
+https://doi.org/10.1007/BF03250964.
+doi:10.1007/BF03250964/METRICS.
+
+[21] O. Shahvari, R. Logendran, Hybrid flow shop batching
+and scheduling with a bi-criteria objective, International
+Journal of Production Economics 179 (2016) 239–258.
+URL: https://doi.org/10.1016/j.ijpe.2016.06.
+005. doi:10.1016/J.IJPE.2016.06.005.
+
+[11] D. Kopp, M. Hassoun, A. Kalir, L. Monch, Smt2020 a semiconductor manufacturing testbed, IEEE Transactions on Semiconductor Manufacturing 33 (2020) 522–
+531. URL: https://doi.org/10.1109/TSM.2020.
+3001933. doi:10.1109/TSM.2020.3001933.
+
+[22] O. Shahvari, R. Logendran, An enhanced tabu search algorithm to minimize a bi-criteria objective in batching and
+scheduling problems on unrelated-parallel machines with
+desired lower bounds on batch sizes, Computers & Operations Research 77 (2017) 154–176. URL: https://doi.
+org/10.1016/j.cor.2016.07.021. doi:10.1016/J.
+COR.2016.07.021.
+
+[12] L. Mönch, J. W. Fowler, S. J. Mason, Production
+Planning and Control for Semiconductor Wafer Fabrication Facilities, Springer New York, 2013. URL:
+https://doi.org/10.1007/978-1-4614-4472-5.
+doi:10.1007/978-1-4614-4472-5.
+
+[23] F. Castillo, P. Gazmuri,
+Genetic algorithms for
+batch sizing and production scheduling,
+International Journal of Advanced Manufacturing Technology 77 (2015) 261–280. URL:
+https://doi.org/10.1007/s00170-014-6456-5.
+doi:10.1007/S00170-014-6456-5/METRICS.
+
+[13] T. C. Chiang, L. C. Fu, Rule-based scheduling in wafer
+fabrication with due date-based objectives, Computers
+& Operations Research 39 (2012) 2820–2835. doi:10.
+1016/J.COR.2012.02.014.
+18
+
+[24] C. Jordan, Batching and Scheduling, volume 437,
+1 ed., Springer Berlin Heidelberg, 1996. URL:
+https://doi.org/10.1007/978-3-642-48403-2.
+doi:10.1007/978-3-642-48403-2.
+[25] P. Van Beek, F. Rossi, T. Walsh, et al., Handbook of constraint programming, Elsevier, 2006.
+[26] P. Laborie, J. Rogerie, P. Shaw, P. Vilím, Ibm ilog cp optimizer for scheduling: 20+ years of scheduling with constraints at ibm/ilog, Constraints 23 (2018) 210–250. URL:
+https://doi.org/10.1007/s10601-018-9281-x.
+doi:10.1007/S10601-018-9281-X/FIGURES/20.
+[27] IBM,
+Modeling
+Sequence-Dependent
+Setup
+Times,
+2024.
+URL:
+https://www.
+ibm.com/docs/en/icos/20.1.0?topic=
+models-modeling-sequence-dependent-setup-times,
+accessed: 2024-12-08.
+[28] J. A. Huertas, P. Van Hentenryck, Parallel batch scheduling with incompatible job families via constraint programming, Under review in IEEE Transactions on Semiconductor Manufacturing (2024) 1–11. URL: https://
+arxiv.org/abs/2410.11981v1.
+[29] E. W. Dijkstra, A note on two problems in connexion with
+graphs, Numerische mathematik 1 (1959) 269–271.
+[30] J. E. Schaller, J. N. Gupta, A. J. Vakharia, Scheduling a flowline manufacturing cell with sequence dependent family setup times, European Journal of Operational Research 125 (2000) 324–339. doi:10.1016/
+S0377-2217(99)00387-2.
+[31] IBM, IBM Decision Optimization CPLEX Modeling
+for Python (DOcplex) documentation, 2022. URL:
+http://ibmdecisionoptimization.github.io/
+docplex-doc/cp/refman.html, version 2.25.
+[32] Gurobi Optimization, LLC, Gurobi Optimizer Reference
+Manual, 2024. URL: https://www.gurobi.com.
+[33] PACE, Partnership for an Advanced Computing Environment (PACE), 2017. URL: http://www.pace.gatech.
+edu.
+[34] A. Ham, J. W. Fowler, E. Cakici, Constraint programming approach for scheduling jobs with release times,
+non-identical sizes, and incompatible families on parallel
+batching machines, IEEE Transactions on Semiconductor
+Manufacturing 30 (2017) 500–507. URL: https://doi.
+org/10.1109/TSM.2017.2740340. doi:10.1109/TSM.
+2017.2740340.
+
+19
+
+

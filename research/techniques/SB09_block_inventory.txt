@@ -1,0 +1,97 @@
+Total minified 64456 margin 1079
+  1.  7271 class State
+  2.  5776 void State::apply_event(const Event& ev, double t)
+  3.  5134 q74 Scheduler::q7p(State& state, double t)
+  4.  3267 void State::issue(const q74& q53, double t)
+  5.  2906 if (reader.read_config(cfg) && reader.read_table(N, rows))
+  6.  2890 int qg::q75(q73 step, int n_ready, const State& s, double t) const
+  7.  2402 bool qf::next_frame(double& t, vector<Event>& events)
+  8.  2153 struct FwSim
+  9.  1847 int PrefillLoadBalanceCloud::choose(const State& s, const Rq& r, double t) const
+ 10.  1409 bool q74::parse(const vector<string>& tokens, const Config& cfg)
+ 11.  1223 void State::rl_remove(int rid)
+ 12.  1073 void qg::precompute(const Config& cfg, const qj& tbl)
+ 13.  1006 q74 Scheduler::pick_cloud(State& state, int c, double t)
+ 14.   941 vector<string> q74::tokens() const
+ 15.   918 void State::init(const Config& cfg)
+ 16.   851 pair<int, int> AdaptiveChunk::q79(const State& s, const Rq& r, double t) const
+ 17.   827 string_view qe::next_token()
+ 18.   821 }
+ 19.   796 void qj::load([[maybe_unused]] int N, const vector<vector<double>>& rows)
+ 20.   791 double q74::parse_double(string_view v)
+ 21.   691 bool State::q7g() const
+ 22.   682 bool rollout_should_hold(const State& s,double t,int lvl)
+ 23.   647 double qj::get(Step step, int q78) const
+ 24.   630 void State::rl_push(Phase p, int q13, int rid)
+ 25.   607 int State::qR(Phase p, int q13)
+ 26.   540 inline int drain_star(const State& s)
+ 27.   448 void State::qU(int rid)
+ 28.   445 bool qe::fill()
+ 29.   424 bool qf::read_config(Config& cfg)
+ 30.   423 int State::qT()
+ 31.   399 class qj
+ 32.   390 if (cfg.dist_base == 0.0)
+ 33.   387 int Scheduler::decide(State& state, double t, q77* out)
+ 34.   369 class Scheduler
+ 35.   363 void State::end_frame()
+ 36.   348 struct Gov
+ 37.   333 inline bool is_endgame(const State& s,double now)
+ 38.   306 void i64(long long v)
+ 39.   300 q73 kind_of(Step s)
+ 40.   298 struct Rq
+ 41.   295 Step q14(q73 k)
+ 42.   275 struct qd
+ 43.   271 class qg : public BatchPolicy
+ 44.   267 long long qe::next_long_long()
+ 45.   265 struct q74
+ 46.   261 int qe::next_int()
+ 47.   256 class qe
+ 48.   255 void write(const char* s, size_t n)
+ 49.   241 int State::q6(Phase p) const
+ 50.   230 struct Event
+ 51.   224 struct Config
+ 52.   221 bool qf::read_table(int& N, vector<vector<double>>& rows)
+ 53.   221 int q74::parse_int(string_view v)
+ 54.   218 int State::q16(int bid) const
+ 55.   215 void flush()
+ 56.   205 class qf
+ 57.   200 enum class Phase : uint8_t
+ 58.   176 int State::qS(Phase p, int q13) const
+ 59.   176 int State::qQ(Phase p, int q13) const
+ 60.   162 struct Policies
+ 61.   135 int qj::qb(Step step) const
+ 62.   128 class BatchPolicy
+ 63.   122 void qd::drain(double t)
+ 64.   121 class CloudPolicy
+ 65.   119 class qi
+ 66.   110 struct qc
+ 67.   102 double qe::next_double()
+ 68.    98 void qd::push(double enter_t, double dur)
+ 69.    89 class OnePieceChunk : public qi
+ 70.    89 class AdaptiveChunk : public qi
+ 71.    89 class SizeOneBatch : public BatchPolicy
+ 72.    86 pair<int, int> OnePieceChunk::q79(const State& s, const Rq& r, double t) const
+ 73.    82 class PrefillLoadBalanceCloud : public CloudPolicy
+ 74.    80 int State::q18(int id) const
+ 75.    71 enum class Step : uint8_t
+ 76.    63 int SizeOneBatch::q75(q73 step, int n_ready, const State& s, double t) const
+ 77.    57 bool qe::eof()
+ 78.    56 inline double q4(const Config& c, double len)
+ 79.    48 enum class q73 : uint8_t
+ 80.    44 void Scheduler::q7h(bool f)
+ 81.    42 inline int drain_mmax(const State& s,int pool)
+ 82.    39 static double tg(const State& s, q73 k, int m)
+ 83.    27 bool marginal_fast_mode()
+ 84.    25 int gov_level()
+ 85.    24 void set_marginal_fast_mode(bool f)
+ 86.    24 void c_str(const char* s)
+ 87.    22 enum class EventKind : uint8_t
+ 88.    22 BufWriter()
+ 89.    21 void gov_sample(long long fc)
+ 90.    19 void nl()
+ 91.    18 void space()
+ 92.    15 struct q77
+ 93.    12 ~BufWriter()
+ 94.     4 namespace
+ 95.     4 namespace
+ 96.     2 qe::qe() : buf_(BUF), pos_(0), valid_(0)

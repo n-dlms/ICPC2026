@@ -1,0 +1,1094 @@
+Competitive Algorithms for an Online Rent or Buy Problem
+with Variable Demand
+Rohan Kodialam
+High Technology High School, Lincroft, NJ | rkodialam@ctemc.org
+
+1
+
+Abstract
+
+We consider a generalization of the classical Ski Rental Problem motivated by applications in cloud
+computing. We develop deterministic and probabilistic online algorithms for rent/buy decision
+problems with time-varying demand. We show that these algorithms have competitive ratios of 2
+and 1.582 respectively. We also further establish the optimality of these algorithms.
+
+2
+
+Introduction
+
+The Ski Rental problem is the canonical example of a class of online rent or buy problems [9]. In the
+traditional ski rental problem, a man visits a ski resort, not knowing how many days he will be able
+to ski. The man can either rent skis at a cost of r dollars per day, or buy the skis permanently for b
+dollars. The dilemma arises from the fact that the number of days available for skiing is not known
+in advance; if there are many days of skiing it is better to buy the skis to avoid paying the rental
+fee every day, but if there are only a few days available for skiing it may be more economical to rent
+the skis instead. Applications of the ski-rental problem include scheduling tasks on a computer (the
+system must decide if it should do a task immediately by paying a high cost in processing time, or
+if it should wait and pay a ‘rental’ cost for keeping the task in waiting)[7] and caching data (the
+system decides if it should read a block of data during every pass at a cost of 1 bus cycle, or if it
+should pass over the data block and use several bus cycles to access the data if it is needed later)
+[5].
+Several extensions of the Ski Rental problem have already been studied, including variants where
+the player can switch bewteen two renting options at a cost [3], and more complex scenarios where
+there are more than two options to choose between [6]. In these cases, an e-competitive algorithm
+can be found. A natural extension of these situations - where there are multiple renting and
+multiple buying options - has also been studied [1]. Algorithms have also been developed to provide
+a strategy when the rental cost r is free to vary with time [2]. Another more complex extension
+studied is how to allocate capacity available through renting or buying to a graph’s edges to allow
+for sufficient flow between sources and sinks [4]. These variants add complexity to the ski rental
+problem, and as a result the competitive ratio varies as a function of the new parameters introduced
+by each variation.
+We consider a generalization of the ski-rental problem where demand varies across time. The
+motivation for solving this problem is the idea of cloud bursting that is used to address the computing
+
+Copyright © SIAM
+Unauthorized reproduction of this article is prohibited
+233
+
+needs for an enterprise [10]. The amount of computing that the enterprise requires (defined in terms
+of number of computer servers) varies across time. The enterprise can meet this requirement by
+buying these servers and creating a private network or can rent servers temporarily from a cloud
+service provider (public cloud) like Amazon. This idea of meeting computing requirement using a
+combination of internal and external cloud resources is called cloud bursting. The problem that
+the enterprise has to solve is to decide when and how many servers to buy and how many to rent
+from the cloud. Typically the computing resource requirement can vary significantly over time. It
+would be prohibitively expensive to handle the peak loads by buying servers. Similarly, it may not
+be economical to rent capacity from the public cloud to handle the entire computing requirement.
+Since the computing requirement will, in general, not be known ahead of time, the buy or rent
+decision has to be made in an online manner. There are several practical considerations that go
+into solving the problem in the real world but the model that we consider in this paper abstracts
+an important aspect of the buy/rent decision. Moreover, this abstraction models other online rent
+or buy decision problems with variable demand. Note that if the demand is one unit for a set of
+consecutive intervals and then becomes zero then it models the standard ski-rental problem.
+
+3
+
+Problem Definition
+
+We now formally define the problem that we study in this paper. Consider demands for some good
+that arrives to a system. We assume that demands arrive once per time period. For simplicity, we
+call each time interval a day. The demand for day i will be represented by di , with di ≥ 0. The
+demand can be satisfied in two ways. The user can rent an item at a cost of r per day, and this
+item will satisfy one unit of demand for one day. The user can also buy an item at a cost of b ≥ r, in
+which case the item will satisfy one unit of demand for day i and all subsequent days. The system
+objective is to determine the buy and rent options to satisfy the demand at a minimal cost. There
+are two versions of the problem that can be considered.
+• Offline Problem: In the offline version of the problem, all of the demands are known to the
+user ahead of time, and the cost optimization is therefore performed with complete knowledge
+of all the demands at the beginning.
+• Online Problem: In the online version of the problem, only the values of b and r are known
+initially, but each demand di is given to the user on day i. The online user also does not know
+the number of time periods n during which demands will arrive. The user must perform the
+cost optimization without any knowledge of future demands.
+The optimal offline cost provides a lower bound on the cost achieved by any online algorithm since
+the offline algorithm has more knowledge than the online algorithm. In this paper, we are interested
+in deriving algorithms to solve the online problem and measuring their performance.
+
+3.1
+
+Measuring the Performance of Online Algorithms
+
+We measure the performance of an online algorithm by comparing the cost incurred by that algorithm to that of the cost incurred by the optimum offline algorithm. The optimal cost will be
+a function of the input vector of demands. The demand for n days can be represented as an ndimensional vector D = (d1 , d2 , . . . , dn ). Let Con (D) represent the cost of an online algorithm and
+
+234
+
+Cof f (D) represent the cost of the optimum offline algorithm operating on input D. The competitive
+ratio ρ ≥ 1 of the online algorithm is then defined as
+ρ = max
+D
+
+Con (D)
+.
+Cof f (D)
+
+In other words, the competitive ratio is the worst case ratio of the costs of the online algorithm
+to the optimum offline algorithm over all demand vectors over any number of days. Note that the
+costs incurred by the algorithms and hence the competitive ratio will be a function of the per-day
+rental cost r, the cost of buying b and the demand set D. Note that without loss of generality we
+can assume that the per-day rental cost r = 1. This can be done by rescaling b, that is, setting the
+value of b to b/r. For the ease of presentation, we also assume that b is integral. This is purely
+done for convenience and all the results in the paper can applied to the case where the rescaled
+value of b is not integral by setting b to dbe. We use the following notation in the analysis of the
+algorithms: Consider the demands for the first k days (d1 ,d2 , . . . , dk ). Let π be a permutation of
+the set {1,2, . . . , k} such that dπ(1) ≥ dπ(2) ≥ . . . ≥ dπ(k) . Assume that ties are broken arbitrarily.
+We use hk to denote the bth highest of the first k demands. If b > k, then hk = 0. Therefore
+b
+
+b
+
+hkb = dπ(b) . We define Sbk = {π(1), π(2) . . . , π(b)} to denote the indices of the highest b values out
+of the k arrivals. We now state a simple result that is used in Section 5.
+Lemma 3.1 Let Sbk denote the indices of the b highest demands out of the first k arrivals and hkb
+denote the bth highest value out of the first k arrivals. If dk > hk−1
+then
+b
+X
+i∈Sbk
+
+di =
+
+X
+
+di + dk − hk−1
+.
+b
+
+i∈Sbk−1
+
+Proof Since dk > hk−1
+, index k ∈ Sbk and an index with value hk−1
+is not in the set Sbk .
+b
+b
+We now study the offline optimization problem and derive the optimal offline cost.
+
+4
+
+Offline Problem
+
+In the offline problem, all of the demands are known ahead of time. Since the value of b does not
+vary over time and all demands are known initially, we can assume that the optimum offline solution
+buys all the needed goods initially. In other words, if an optimum offline solution buys xt units on
+some day t, then the solution value does not increase if xt is bought initially. The cost of buying
+still remains bxt for these xt items and there is an opportunity to use these items at some day before
+day t and perhaps reduce the rental costs. Therefore, the offline algorithm consists of purchasing x
+items at the beginning and renting all other items as needed. As before, let the demands form the
+vector D. The optimum offline algorithm is called Aof f (D) and the total cost it incurs is defined
+as Cof f (D). Let x denote the number of items bought initially and yi , the number rented on day
+
+235
+
+i. The minimal cost can be found by setting up the following linear program:
+minimize bx +
+
+n
+X
+
+yi
+
+i=1
+
+subject to x + yi ≥ di i ∈ [1,n]
+x≥0
+yi ≥ 0 i ∈ [1,n].
+Where [1,n] represents the integers between 1 and n, inclusive of both endpoints. The variables x
+and yi must be integral, but since the linear programming relaxation above leads to integral optimal
+solutions we solve the linear problem instead of the integer program. The objective function of this
+linear program represents the total cost of the algorithm Cof f (D), which we want to minimize. The
+first constraint ensures that the demand is met each day. The other constraints ensure that x and
+yi are non-negative. To find the optimal solution, let us take the dual of the linear program. The
+dual [8] is
+maximize
+subject to
+
+n
+X
+i=1
+n
+X
+
+di zi
+zi ≤ b
+
+i=1
+
+0 ≤ zi ≤ 1, i ∈ [1,n].
+This problem is solved by assigning zi = 1 for the b highest demands. Recall that hkb represents
+thePbth highest demand value among the first k arrivals. The optimal solution to the dual problem
+is i∈S n di . If a primal solution can be constructed with the same objective function value as the
+b
+dual, that primal solution is optimal by strong duality. To construct a primal solution with the
+same optimal value, the variables x and yi are set so that
+x = hnb
+(
+0
+yi =
+di − hnb
+
+if i ∈
+/ Sbn
+if i ∈ Sbn .
+
+This corresponds to buying hnb items immediately and renting any more items if di > hnb . The cost
+Cof f (D) is then just the optimal value of the primal objective function, so
+X
+Cof f (D) =
+di .
+(1)
+i∈Sbn
+
+As this value is equal to that of the dual objective function, it is optimal by strong duality.
+
+4.1
+
+Offline Algorithm Example
+
+Let us consider the example where b = 3, and D is {3,5,2,4,8,1,6}. The algorithm suggests that the
+user should buy hnb = h73 items immediately. In this case, h73 = 5 items should be bought. Doing so
+
+236
+
+adds a cost of 5b = 15 to the cost incurred. With regards to the renting costs, it is only necessary
+to rent on days i when di > 5, so no items will be rented for i = 1,2,3,4,6. Three items must be
+rented on day i = 5 and 1 on day i = 7, so a total of 4 items at a total cost of 4 must be rented.
+The total cost, which is the sum of buying and renting costs, is therefore 15 + 4 = 19.
+
+5
+
+Deterministic Online Algorithm
+
+We now consider the online optimization problem. In the online optimization problem, the demand
+is given one day at a time and the rent/buy decisions have to be made on demand arrival. Therefore,
+on day k, only the demands d1 , d2 , ...,dk are known. We now outline algorithm Aon and analyze
+its competitive ratio. In the description of the algorithm we use x̃k to denote the number of items
+bought on day k and ỹk to denote the number of items rented on day k. Recall that we use hkb to
+denote the bth highest demand among the first k demands.
+Algorithm Aon
+for k=1 to n do
+if k<b then
+x̃k = 0
+ỹk = dk
+else
+Compute hkb
+x̃k = hkb −hk−1
+b
+ỹk = max 0, dk − hkb
+end
+
+The online algorithm Aon works as follows: For the first b − 1 days, the online algorithm rents
+all the demands. From each day k ≥ b onwards, the online algorithm first computes hkb . It then
+buys hkb − hk−1
+items. It is easy to see that the total number of items that have been bought up
+b
+to (and including) day k is hkb . If dk > hkb , it rents dk − hkb items to meet the demand dk . In the
+next theorem, we derive a closed form expression for the cost incurred by the online algorithm after
+processing k ≥ b demands.
+Theorem 5.1 For any k ≥ b, the cost of the online algorithm after k demands have been processed,
+k
+denoted by Con
+, is given by
+X
+k
+Con
+=
+di + (b − 1)hkb .
+(2)
+i∈Sbk
+
+Proof We prove the theorem via induction on k when k ≥ b. Before the arrival
+the online
+Pb,
+b−1
+algorithm only rents. Therefore after processing arrival b − 1, the total cost will be i=1 di . When
+k = b, then the online algorithm buys hbb items each at cost b and rents db − hbb incurring a total
+cost of bhbb + db − hbb in day b. Therefore the total cost from day one until after arrival b is processed
+
+237
+
+is given by
+b
+Con
+
+=
+
+b−1
+X
+
+di + bhbb + db − hbb
+
+i=1
+
+=
+
+X
+
+di + (b − 1)hbb .
+
+i∈Sbb
+
+This establishes the base step of the induction. Let us now assume that the cost formula holds until
+arrival k − 1 is processed, i.e.,
+X
+k−1
+Con
+=
+di + (b − 1)hk−1
+.
+b
+i∈Sbk−1
+
+
+When arrival k is processed, the algorithm buys hkb − hk−1
+items at a cost of b hkb − hk−1
+. It then
+b
+b
+rents (if necessary) dk − hkb items. We consider two separate cases:
+1. If dk ≤ hk−1
+, then the demand dk is less than the total number of items already purchased
+b
+and Sbk = Sbk−1 and
+and therefore no items will
+In this case hkb = hk−1
+b
+P be bought or rented.
+k
+k
+k−1
+therefore Con = Con = i∈S k di + (b − 1)hb .
+b
+
+2.
+
+If dk > hk−1
+, then hkb > hk−1
+and hkb − hk−1
+items will be bought at a cost of b hkb − hk−1
+.
+b
+b
+b
+b
+k
+Moreover dk −hb items will be rented. Therefore the total cost incurred by the online algorithm
+
+
+after demand k is processed is
+k
+Con
+
+
+
+k−1
+= Con
++ b hkb − hk−1
++ dk − hkb
+b
+X
+
+
+=
+di + (b − 1)hk−1
++ b hkb − hk−1
++ dk − hkb
+b
+b
+i∈Sbk−1
+
+=
+
+X
+
+di + (b − 1)hk−1
++ (b − 1)hkb − bhk−1
++ dk
+b
+b
+
+i∈Sbk−1
+
+=
+
+X
+
+di + (b − 1)hkb + dk − hkb
+
+i∈Sbk−1
+
+=
+
+X
+
+di + (b − 1)hkb
+
+i∈Sbk
+
+where the last equality follows from Lemma 3.1.
+Note that the total cost incurred by the online algorithm is independent of the order in which the
+demands arrive into the system. It is just a function of the ordered set of demands. We now can
+give the competitive ratio of the online algorithm.
+Theorem 5.2 Given any non-negative n-vector D of demands, let Cof f (D) be the cost incurred by
+the offline algorithm and Con (D) be the cost incurred by the online algorithm. Then
+ρ=
+
+1
+Con (D)
+≤2− .
+Cof f (D)
+b
+
+238
+
+Proof If the number of demands n < b, then the optimal offline solution is to rent all the demands
+and the online algorithm also does the same. The competitive ratio ρ = 1 if n < b. If n ≥ b, then
+from Equations (1) and (2), we can write
+P
+n
+n
+Con
+i∈Sbn di + (b − 1)hb
+P
+=
+n
+Cof
+i∈S n di
+f
+b
+
+=
+
+(b − 1)hnb
+1+ P
+i∈S n di
+b
+
+(b − 1)hnb
+≤ 1+
+bhnb
+(b − 1)
+1
+= 1+
+=2− .
+b
+b
+The inequality follows from the fact that di ≥ hnb for all i ∈ Sbn . Algorithm Aon can also be shown
+to be the best possible deterministic online algorithm to solve this problem, or, equivalently, that
+no other deterministic online algorithm can have a competitive ratio lower than 2 − 1b . This follows
+directly from the proof of the optimality of the standard item rental problem [9] and we give the
+proof for completeness.
+Theorem 5.3 No deterministic online algorithm operating with the same demands as Aon to create
+a rent/buy schedule to solve the ski-rental problem with demands can have a competitive ratio less
+than 2 − 1b .
+Proof Let us construct a simple example for which no deterministic algorithm can have a competitive ratio lower than 2 − 1b . We consider a special case of our problem where the demands are
+one up to some day after which the demand becomes zero. Consider an online algorithm for this
+problem. Assume that the online algorithm buys one unit of the item on day m. In this case the
+cost of the online algorithm is m − 1 + b where m − 1 is the cost of renting for the first m − 1 days
+and b is the cost of buying on day m. Assume that the demand generator sets the demands to zero
+from day m + 1. The optimal offline cost to this problem is min{m, b}. Therefore the competitive
+ratio is
+m−1+b
+max{m, b} + min{m, b} − 1
+2b − 1
+1
+=
+≥
+=2− .
+min{m, b}
+min{m, b}
+b
+b
+The inequality follows from the fact that the ratio is minimized when m = b.
+
+5.1
+
+Online Deterministic Algorithm Example
+
+Let us again consider the example where b = 3, and D is {3,5,2,4,8,1,6}. Let t represent the current
+day. For the first two days, while t < b, we will only rent to satisfy the demands. At all further
+days t, we will buy x̃ = ht3 − ht−1
+items and rent ỹ = ht3 − dt items, as in the table below:
+3
+
+239
+
+t
+1
+2
+3
+4
+5
+6
+7
+
+x̃t
+0
+0
+2
+1
+1
+0
+1
+
+ỹt
+3
+5
+0
+1
+4
+0
+1
+
+t
+Con
+3
+8
+14
+18
+25
+25
+29
+
+Thus the total cost incurred by the online algorithm is 29, which is within a factor of 2 of the
+optimal offline cost of 19. The ratio of the online and offline costs in this example is 29
+19 ≈ 1.526.
+
+6
+
+Probabilistic Online Algorithm
+
+It has been shown that the best online deterministic algorithm will incur no more than about twice
+the cost of an offline algorithm that knows all the demands in advance. A probabilistic online
+algorithm randomizes over multiple deterministic strategies can potentially achieve better expected
+performance. We first define how the performance of probabilistic online algorithms is measured.
+Assume that the algorithm has set A of deterministic strategies that it randomizes over. Assume
+that it uses strategy a ∈ A with probability pa . Since the probabilistic algorithm randomizes over
+multiple deterministic strategies, we have to weight the competitive ratio achieved with strategy a
+with the probability that strategy a is used in order to get the expected competitive ratio ρ̄. The
+expected competitive ratio is given by
+X  C a (D) 
+on
+ρ̄ = max
+pa
+.
+D
+Cof f (D)
+a∈A
+
+Note that the performance of the probabilistic online algorithm is measured over the worst case
+demand input. From the worst-case analysis of the deterministic algorithm in the previous section,
+an obvious weakness of the deterministic algorithm is that it often buys too little. In general,
+the probabilistic algorithm we are about to describe will attempt to correct this by buying more
+items than the deterministic algorithm. In the deterministic algorithm, the user will try to buy
+items so that the total amount bought is equal to the bth highest demand seen so far at each time
+interval. The probabilistic algorithm will, instead of buying only up to the bth highest, will buy up
+to the ath highest demand where the value of a is chosen randomly between 1 and b. By choosing
+the distribution of a carefully, the probabilistic algorithm attempts the minimize the expected
+a
+(D) represent the cost of the online algorithm which rents for the first
+competitive ratio. Let Con
+a − 1 demands and then chooses the ath highest demand each day. On day k, the algorithm buys
+hka − hk−1
+items and rents max{0, dk − hka } items.
+a
+a
+Lemma 6.1 Let Con
+(D) represent the cost of the online algorithm that buys to the ath highest
+demand each day and rents if necessary when the demand vector is D. Then
+X
+a
+Con
+(D) =
+di + (b − 1)hna .
+(3)
+i∈San
+
+Proof The proof follows exactly the same argument as in the last section for the deterministic
+online algorithm. We replace b with a keeping in mind that the cost of buying the items is still b.
+
+240
+
+6.1
+
+Picking the Optimal Distribution
+
+We now derive the optimal distribution of a in order to minimize the competitive guarantee. Towards this end, we first make a notational simplification in order to keep the analysis clean. Since
+both the offline costs as well as the online cost for any strategy does not depend on the order of
+demands, without loss of generality, we assume that d1 ≥ d2 ≥ . . . ≥ dn . With the demands ordered
+in this fashion, we can now write
+a
+Con
+(D)
+
+a
+X
+
+=
+
+di + (b − 1)da .
+
+(4)
+
+di .
+
+(5)
+
+i=1
+
+Cof f (D)
+
+b
+X
+
+=
+
+i=1
+
+This due to the fact that the set San = {1,2, . . . , a} . The objective of the algorithm designer is to
+Pb
+pick the probabilities pa ≥ 0 where a=1 pa = 1 such ρ̄ is minimized. Assume that the algorithm
+designer has fixed the probability vector pa . The adversary for the algorithm designer is the demand
+generator. For a fixed probability vector, the demand generator solves the following optimization
+problem:
+
+ a
+b
+X
+Con (D)
+.
+pa
+max
+D
+Cof f (D)
+a=1
+In other words, the demand generator attempts to find the demand input that maximizes the
+competitve ratio. From Equations (4) and (5), note that the competitive ratio is unchanged if all
+the demands are scaled. Therefore, without loss of generality, we can assume that the demand
+generator normalizes the demands such that
+Cof f (D) =
+
+b
+X
+
+da = 1.
+
+a=1
+a
+from Equation (3),
+Using the value of Con
+
+X
+
+a
+pa Con
+(D)
+
+=
+
+a
+
+b
+X
+
+pa
+
+" a
+X
+
+a=1
+
+=
+
+b
+X
+
+#
+di + (b − 1)da
+
+(6)
+
+i=1
+
+"
+di bpi +
+
+i=1
+
+b
+X
+
+#
+pa .
+
+(7)
+
+a=i+1
+
+Equation (7) is just a re-arrangement of the terms in Equation (6) in order to collect the terms
+corresponding to di . Therefore the optimization problem solved by the demand generator is
+
+
+b
+b
+X
+X
+max
+da  bpa +
+pj 
+a=1
+
+s.t.
+
+j=a+1
+b
+X
+
+da
+
+=
+
+1
+
+da
+
+≥ 0 ∀a.
+
+a=1
+
+241
+
+Pb
+Let ca = bpa + j=a+1 pj be the coefficient of da in the objective function. The optimal solution
+to this problem is for the demand generator to set da = 1 corresponding to the maximum ca .
+Therefore, it is in the interest of the algorithm designer to make all the coefficients ca equal. In this
+case ρ̄ will equal this (common) value of ca . The algorithm designer, picks pa such that
+ca = bpa +
+
+b
+X
+
+pj = ρ̄ ∀a.
+
+(8)
+
+j=a+1
+
+Equating the coefficients ca and ca+1 , we get
+bpa +
+
+n
+X
+
+pi = bpa+1 +
+
+i=a+1
+
+b
+X
+
+pi .
+
+i=a+2
+
+The equation can be simplified by cancelling the common terms on both sides, giving
+bpa + pa+1 = bpa+1 ,
+which further simplifies to
+b
+pa = pa+1 .
+b−1
+b
+This shows that the probabilities pa are in a geometric progression with common ratio r = b−1
+.
+Therefore,
+pa = p1 ra−1 a = 1,2,3, . . . b.
+Pb
+Since a=1 pa = 1, we solve for p1 to get
+p1 =
+
+r−1
+rb − 1
+
+and
+
+r − 1 a−1
+r
+, a = 1,2, . . . , b.
+(9)
+rb − 1
+With the distribution now known, we can fully outline the probabilistic online algorithm Aprob (D),
+using the same notation as used in the description of algorithm Aon in section 5.
+pa =
+
+Algorithm Aprob
+pick ã randomly using distribution (9)
+for k=1 to n do
+if k < ã then
+x̃k = 0
+ỹk = dk
+else
+Compute hkã
+x̃k = hkã −hãk−1
+ỹk = max 0, dk − hkã
+end
+
+242
+
+We now establish the probabilistic expected competitive ratio. To solve for the expected competitive ratio, we use Equation (8) when a = b, and we get
+ρ̄ = bpb
+
+
+r − 1 b−1
+= b b
+r
+r −1
+=
+=
+
+≤
+
+rb
+rb − 1
+1
+=
+1 − r−b
+
+1
+
+
+1
+1 − 1 + b−1
+
+−b
+
+1
+e
+.
+=
+e−1
+1 − 1e
+
+Inequality (10) follows from the fact that
+
+1+
+
+1
+b−1
+
+(10)
+
+−b
+≤
+
+1
+.
+e
+
+Therefore, we can state the following theorem about the probabilistic online algorithm.
+Theorem 6.2 The probabilistic online algorithm Aprob (D) achieves an expected competitive ratio
+e
+ρ̄ of e−1
+.
+Since this problem generalizes the standard ski-rental problem, we can state the following known
+result which follows directly from the ski rental problem [9].
+Theorem 6.3 No probabilistic online algorithm operating with the same inputs as Aprob (D) to
+create a rent/buy schedule to solve the ski-rental problem with demands can have an expected come
+petitive ratio less than e−1
+.
+
+6.2
+
+Probabilistic Algorithm Example
+
+Let us again consider the example where b = 3, and D is {3,5,2,4,8,1,6}. We now have three pure
+strategies to use: strategy a = 1, strategy a = 2, and strategy a = 3. For strategy a = 1, we will
+items and rent ỹt1 = ht1 − dt items, as in the
+rent if t < 1, and if t ≥ 1 we will buy x̃1t = ht1 − ht−1
+1
+table below:
+t
+1
+2
+3
+4
+5
+6
+7
+
+x̃1t
+3
+2
+0
+0
+3
+0
+0
+
+ỹt1
+0
+0
+0
+0
+0
+0
+0
+
+1
+Cprob
+(t)
+9
+15
+15
+15
+24
+24
+24
+
+For strategy a = 2, we will rent if t < 2, and if t ≥ 2 we will buy x̃2t = ht2 − ht−1
+items and rent
+2
+ỹt2 = ht2 − dt items, as in the table below:
+
+243
+
+t
+1
+2
+3
+4
+5
+6
+7
+
+x̃2t
+0
+3
+0
+1
+1
+0
+1
+
+ỹt2
+3
+2
+0
+0
+2
+0
+0
+
+2
+Cprob
+(t)
+3
+14
+14
+17
+22
+22
+25
+
+Finally, for strategy a = 3, while t < b, we will only rent. At times t ≥ b, we will buy x̃3t = ht3 − ht−1
+3
+items and rent ỹt3 = ht3 − dt items, as in the table below:
+t
+1
+2
+3
+4
+5
+6
+7
+
+x̃3t
+0
+0
+2
+1
+1
+0
+1
+
+ỹt3
+3
+5
+0
+1
+4
+0
+1
+
+3
+Cprob
+(t)
+3
+8
+14
+18
+25
+25
+29
+
+The probability that the user chooses a strategy can be computed from Equation (9). So,
+p1
+
+=
+≈
+
+p2
+
+=
+≈
+
+p3
+
+=
+≈
+
+2
+( )2 (3(1 − (1 − 3−1 )3 ))−1
+3
+0.2105
+2
+( )1 (3(1 − (1 − 3−1 )3 ))−1
+3
+0.3158
+2
+( )0 (3(1 − (1 − 3−1 )3 ))−1
+3
+0.4737
+
+3
+2
+1
+, which is (0.2105)(24) +
++ p3 Cprob
++ p2 Cprob
+Now, we can find the expected cost as p1 Cprob
+(0.3158)(25) + (0.4737)(29) ≈ 26.684. We can now see that the expected cost of the probabilistic algorithm is lower than that of the deterministic algorithm, which has a cost of 29. The expected ratio
+of the probabilistic algorithm’s cost to that of the offline algorithm in this example is 26.684
+≈ 1.404.
+19
+
+7
+
+Conclusion and Further Research
+
+In this paper, we considered an online buy or rent decision problem with variable demands and we
+developed
+• A deterministic online algorithm with a competitive ratio of 2 − 1b .
+e
+• A probabilistic online algorithm with an expected competitive ratio of e−1
+.
+
+244
+
+We further established the optimality of these two algorithms.
+Currently, we are studying variants of this problem under more general cost models as well as
+realistic constraints.
+
+References
+[1] L. AI, X. WU, LINGXIAO HUANG, LONGBO HUANG, P. TANG, and J. LI, The Multi-shop
+Ski Rental Problem, in Computing Research Repository, 2014
+[2] M. BIENKOWSKI, Ski Rental Problem with Dynamic Pricing, Institute Of Computer Science,
+University Of Wroclaw, Report 03/08, 2008
+[3] H. FUJIWARA, T. KITANO, and T. FUJITO, On the Best Possible Competitive Ratio for Multislope Ski Rental, in ISAAC’11 Proceedings of the 22nd international Conference on Algorithms
+and Computation, 2011, pp. 544-553.
+[4] A. GUPTA, A. KUMAR, M. PAL, and T. ROUGHGARDEN, Approximation via cost sharing: Simpler and better approximation algorithms for network design, in Journal of the ACM
+(JACM), Vol 54, No. 3, 2007, pp. 11-20.
+[5] A. R. KARLIN, M. S. MANASSEE, L. A. MCGEOCH, and S. OWICKI, Competitive randomized algorithms for non-uniform problems, in Proceedings of the First Annual ACM-SIAM
+Symposium on Discrete Algorithms (SODA ’90). Society for Industrial and Applied Mathematics, Philadelphia, PA, USA, 1990, pp. 301-309.
+[6] Z. LOTKER, B. PATT-SHAMIR, and D. RAWITZ, Rent, Lease or Buy: Randomized Algorithms for Multislope Ski Rental, in Symposium on Theoretical Aspects of Computer Science.
+STACS, Bordeaux, France, 2008, pp. 503-51.
+[7] S. S. SEIDEN, A guessing game and randomized online algorithms, in Proceedings of the thirtysecond annual ACM symposium on Theory of computing (STOC ’00). ACM, New York, NY,
+USA, 2000, pp. 592-601.
+[8] S. LAHAIE, How to take the Dual of a Linear Program, <www.cs.columbia.edu/coms69983/lpprimer.pdf>, 2008
+[9] M. QUEYRANNE, An Introduction to Competitive Analysis for Online Optimization,
+<www.ima.umn.edu/∼mali/Online Brown-Bag Slides.pdf>, 2002
+[10] G. TIAN, U. SHARMA, T. WOOD, S. SAHU, and P. SHENOY, Seagull: intelligent cloud
+bursting for enterprise applications, in Proceedings of the Usenix Annual Technical Conference,
+<www.usenix.org/system/files/conference/atc12/atc12-final57.pdf>, 2012.
+
+245
+
+
